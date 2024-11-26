@@ -300,7 +300,7 @@ def get_sequences(sample_id: str):
 
                 for i in range(filtered_data_len):
                     filtered_data.loc[i, "Select"] = (
-                        f"<input type=\"checkbox\" name=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" id=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" value=\">Seq{str(filtered_data.loc[i, 'Rank'])}_{sample_id};{str(filtered_data.loc[i, 'Sequence'])};{int(filtered_data.loc[i, 'Merge count'])};{float(filtered_data.loc[i, '% total reads'])}\n\">"
+                        f"<input type=\"checkbox\" name=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" id=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" value=\">Seq{str(filtered_data.loc[i, 'Rank'])}_{sample_id};{str(filtered_data.loc[i, 'Sequence'])};{int(filtered_data.loc[i, 'Merge count'])};{float(filtered_data.loc[i, '% total reads'])};{str(filtered_data.loc[i, 'In-frame (Y/N)'])};{str(filtered_data.loc[i, 'No Stop codon (Y/N)'])}\n\">"
                     )
 
                 html_table = filtered_data.to_html(
@@ -344,9 +344,10 @@ def vquest_analysis(sample_id: str):
         seq_selected_stats = []
         for checkbox in request.form:
             _seq = request.form.get(checkbox).split("\\n")
+            # ['>Seq1_20MD02004;GGTTTTCCTTGTTGTTATTTTAGAAGGTGAATCATGGAAAAGTAGAGAGATTTAGTGTGTGTGGATATGAGTGAGAGAAACGGTGGATGTGTGTGACAATTTCTGACCAATGTCTCTCTGTTTGCAGGTGTCCAGTGTGAGGTGCAGCTGGTGGACTCTGGGGGAGGCCTGGTCAAGCCTGGGGGGTCCCTGAGACTCTCTTGTGCAGCCTCTGGATTCACCTTCAGTACGTATAGTATGAACTGGGTCCGCCAGGCTCCAGGGAAGGGGCCGGAGTGGGTCTCATCCATTAGTAGGAGTAGTTACATATACTACGCAGACTCAGTGAAGGGCCGATTCACCGTCTCCAGAGACAACGCCAAGAACTCACTGTATCTGCAAATGAACAGCCTGAGAGCCGAGGACACGGCTGTGTATTACTGTGCGAGAGATGCGAACGGTATGGACGTCTGGGGCCAAGGGACCAC;498469;69.7344749;Y;Y', ''] # First Y is Inframe and second Y is Coding
             _seq_elements = _seq[0].split(";")
             seq_append = "\n".join(_seq_elements[0:2])
-            seq_stats = ";".join(_seq_elements[i] for i in [0, 2, 3])
+            seq_stats = ";".join(_seq_elements[i] for i in [0, 2, 3, 4, 5])
             seq_selected_stats.append(seq_stats.replace(">", ""))
             selected.append(f"{seq_append}\n")
         selected_sequence = "\n".join(selected)
@@ -411,8 +412,16 @@ def vquest_results(sample_id: str):
                     )
                     vquest_results_raw[sample_id][seq_id]["summary"][
                         "Total Reads Per"
-                    ] = round(
-                        float(selected_sequences_merging_rate[seq_id][1].strip("/")), 2
+                    ] = round(float(selected_sequences_merging_rate[seq_id][1]), 2)
+                    vquest_results_raw[sample_id][seq_id]["summary"]["Inframe"] = (
+                        True
+                        if selected_sequences_merging_rate[seq_id][2] == "Y"
+                        else False
+                    )
+                    vquest_results_raw[sample_id][seq_id]["summary"]["Stop Codon"] = (
+                        False
+                        if selected_sequences_merging_rate[seq_id][3].strip("/") == "Y"
+                        else True
                     )
 
             if ResultsController.save_results_to_db(

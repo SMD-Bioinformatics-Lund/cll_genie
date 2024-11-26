@@ -6,7 +6,7 @@
 </div>
 {% endif %}
 
-<span class="report_header">IGHV mutationsstatus och subsetanalys i Kronisk lymfatisk leukemi (KLL) - <i>{{sample_id}}</i></span>
+<span class="report_header">IGHV mutationsanalys - <i>{{sample_id}}</i></span>
 <br>
 
 <div class="report_div">
@@ -27,7 +27,7 @@
       <td class="report_key">Provtyp</td><td class="report_val">&lt;SAMPLE_TYPE&gt;</td>
     </tr>
     <tr>
-      <td class="report_key">Frågeställning</td><td class="report_val">IGHV mutationsstatus och subsetanalys i KLL</td>
+      <td class="report_key">Frågeställning</td><td class="report_val">IGHV mutationsanalys</td>
     </tr>
     <tr>
       <td class="report_key">Analysmetod</td><td class="report_val">LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande analys i IMGT/VQUEST</td>
@@ -188,7 +188,7 @@
 {% endif %}
 <span class="report_header">Analysbeskrivning</span>
 <span class="report_text_medium">
-  DNA har extraherats från insänt prov (färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS) på Illuminas MiSeq system (läslängd: 2x301 bp). Sekvensanalysen omfattar LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) och klonalitetsanalys i mjukvaruprogrammet LymphoTrack Dx Software. Efterföljande analys av funktionell klonal sekvens (utan stoppkodon och läsramsförskjutning) utförs i CLL Genie via databasen <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (Brochet et al 2008) och avser detektion av funktionellt IGH-genrearrangemang (IGHV-IGHD-IGHJ), IGHV-mutationsstatus samt subsettillhörighet. I de fall då den klonala sekvensen inkluderar en indel gäller den första angivna frekvensen för identitet mot IGHV-genen för mutationsstatus i tabellen från <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> vilken anges i svaret. I de fall då den klonala sekvensen avviker från germline-sekvensen i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (<98% identitet) bedöms den vara hypermuterad (M-CLL). Om den analyserade sekvensen däremot har ≥98 identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99% identitet mot referenssekvenserna i IMGT/V-QUEST. I de fall där flera klonala sekvenser analyseras, ställs mutationsstatus utifrån den sammanslagna bedömningen av de analyserade sekvenserna. Identifiering av subsettillhörighet till subset #2 och #8 görs genom analys av den klonala IGH-genes struktur mot fördefinierad subsetinformation i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. 
+  DNA har extraherats från insänt prov (färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS) på Illuminas MiSeq system (läslängd: 2x301 bp). Sekvensanalysen omfattar LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) och klonalitetsanalys i mjukvaruprogrammet LymphoTrack Dx Software. Efterföljande analys av funktionell klonal sekvens (utan stoppkodon och läsramsförskjutning) utförs i CLL Genie via databasen <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (Brochet et al 2008) och avser detektion av funktionellt IGH-genrearrangemang (IGHV-IGHD-IGHJ), IGHV-mutationsstatus samt subsettillhörighet. I de fall då den klonala sekvensen inkluderar en indel gäller den första angivna frekvensen för identitet mot IGHV-genen för mutationsstatus i tabellen från <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> vilken anges i svaret. I de fall då den klonala IGHV-gensekvensen avviker från germline-sekvensen i IMGT/V-QUEST (<98% identitet) bedöms den vara hypermuterad (M-CLL). Om den analyserade sekvensen däremot har ≥98% identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99% identitet mot referenssekvenserna i IMGT/V-QUEST. I de fall där flera klonala sekvenser analyseras, ställs mutationsstatus utifrån den sammanslagna bedömningen av de analyserade sekvenserna. Identifiering av subsettillhörighet till subset #2 och #8 görs genom analys av den klonala IGH-genes struktur mot fördefinierad subsetinformation i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>.<br><br> 
 </span>
 <span class="report_header">References</span>
 <span class="report_text_medium">

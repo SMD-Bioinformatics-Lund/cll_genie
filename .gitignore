@@ -12,6 +12,7 @@ cll_genie/blueprints/models/mongo.py
 docker-compose_copy.yml
 Dockerfile_copy
 cll_genie/templates/cll_report_pdf_backup.html
+run_dev.py
 
 # Environments
 .env
