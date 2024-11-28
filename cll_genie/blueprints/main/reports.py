@@ -262,7 +262,7 @@ class ReportController:
                 if subset_id == "#2":
                     summary_string += "Subset #2 är en prognostisk markör (riskstratifierande) oberoende av mutationsstatus (Nationellt Vårdprogram 2022, ERIC Guidelines 2022). \n\nSubset #2 är associerad med en sämre prognos oberoende av mutationsstatus. (Nationellt Vårdprogram 2022, ERIC Guidelines 2022). \n\n"
                 elif subset_id == "#8":
-                    summary_string += "Subset #8 är en prognostisk markör (riskstratifierande) och associerad med Richter transformation (Nationellt Vårdprogram 2022, ERIC Guidelines 2022).\n\nSubset #2 är associerad med en sämre prognos oberoende av mutationsstatus. (Nationellt Vårdprogram 2022, ERIC Guidelines 2022). \n\n"
+                    summary_string += "Subset #8 är en prognostisk markör (riskstratifierande) och associerad med Richter transformation (Nationellt Vårdprogram 2022, ERIC Guidelines 2022).\n\nSubset #8 är associerad med en sämre prognos och associerad med Richter transformation (Nationellt Vårdprogram 2022, ERIC Guidelines 2022). \n\n"
         else:
             summary_string = None
 
