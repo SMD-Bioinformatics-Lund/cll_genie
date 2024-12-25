@@ -117,7 +117,7 @@
         {% set seq_name = seq_id.split('_')[0] %}
         <table class="report_variant">
           <tr>
-            <th class="report_variant_header" colspan="6">
+            <th class="report_variant_header" colspan="5">
               <center>
                 <span class="report_variant_header">{{ seq_name }} - {{ seq_value['Analysed sequence length'] }} nt</span>
               </center>
@@ -140,17 +140,14 @@
                 <i>-</i>
               {% endif %}
             </td>
-            <td class="report_key">
-              Sekvensanalyskategori
-            </td>
             <td class="var_report_val" style="background-color: #FFFFE0">
-              {{ seq_value['Sequence analysis category'] }}
+              <b>Sekvensanalyskategori: </b> {{ seq_value['Sequence analysis category'] }}
             </td>
           </tr>
           {% if v_indel_identity_per is not none %}
             <tr>
               <td class="report_key" colspan="1">Indel Summary</td>
-              <td class="var_report_val" colspan="5" style="background-color: #FFFFE0">
+              <td class="var_report_val" colspan="4" style="background-color: #FFFFE0">
                 {% if seq_value['V-REGION insertions'] is not none %}
                   Nucleotide insertions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
                   <i>{{ seq_value['V-REGION insertions'] }}</i>
@@ -162,56 +159,56 @@
             </tr>
             <tr>
               <td class="report_key" colspan="2">V-Domain functionality after removal of Indels</td>
-              <td class="var_report_val" colspan="4" style="text-align: center; background-color: #FFFFE0" >
+              <td class="var_report_val" colspan="3" style="text-align: center; background-color: #FFFFE0" >
                 {{ seq_value['V-DOMAIN Functionality'] }}<br />
               </td>
             </tr>
           {% elif v_indel_identity_per is none %}
             <tr><td class="report_key" colspan="2">V-Domain functionality</td>
-            <td class="var_report_val" colspan="4" style="background-color: #FFFFE0">
+            <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
               {{ seq_value['V-DOMAIN Functionality'] }}
             </td></tr>
           {% endif %}
           {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
             <tr>
               <td class="report_key" colspan="1">Comment</td>
-              <td class="var_report_val" colspan="5" style="background-color: #FFFFE0">
+              <td class="var_report_val" colspan="4" style="background-color: #FFFFE0">
                 {{ seq_value['V-DOMAIN Functionality comment'] }}
               </td>
             </tr>
           {% endif %}
           <tr>
-            <td class="report_key" colspan="2">V-GENE and allele</td>
-            <td class="var_report_val" colspan="2">{{ seq_value['V-GENE and allele'] }}</td>
+            <td class="report_key" colspan="1">V-GENE and allele</td>
+            <td class="var_report_val" >{{ seq_value['V-GENE and allele'] }}</td>
             <td class="var_report_val"><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
             {% if v_indel_identity_per is not none %}
-              <td class="var_report_val" style="background-color: #FFFFE0">
+              <td class="var_report_val" colspan="2" style="background-color: #FFFFE0">
                 <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
                 v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
               </td>
             {% elif v_indel_identity_per is none %}
-              <td class="var_report_val" style="background-color: #FFFFE0">
+              <td class="var_report_val" colspan="2" style="background-color: #FFFFE0">
                 <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
               </td>
             {% endif %}
           </tr>
           <tr>
-            <td class="report_key" colspan="2">J GENE and allele</td>
-            <td class="var_report_val" colspan="2">{{ seq_value['J-GENE and allele'] }}</td>
+            <td class="report_key" colspan="1">J GENE and allele</td>
+            <td class="var_report_val">{{ seq_value['J-GENE and allele'] }}</td>
             <td class="var_report_val"><b>Score:</b> {{ seq_value['J-REGION score'] }}</td>
-            <td class="var_report_val">
+            <td class="var_report_val" colspan="2">
               <b>Identity:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})
             </td>
           </tr>
           <tr>
             <td class="report_key" colspan="3">D-GEN and allele by IMGT/JunctionAnalysis</td>
-            <td class="var_report_val" colspan="2">{{ seq_value['D-GENE and allele'] }}</td>
-            <td colspan="2" class="var_report_val">
+            <td class="var_report_val">{{ seq_value['D-GENE and allele'] }}</td>
+            <td class="var_report_val">
               <b>D-REGION</b> is in reading frame {{ seq_value['D-REGION reading frame'] }}
             </td>
           </tr>
           <tr>
-            <td class="report_key" colspan="3">FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</td>
+            <td class="report_key" colspan="2">FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</td>
             <td class="var_report_val">{{ seq_value['FR-IMGT lengths'] }}</td>
             <td class="var_report_val">[{{ seq_value['CDR-IMGT lengths'] }}]</td>
             <td class="var_report_val">{{ seq_value['AA JUNCTION'] }}</td>
@@ -219,7 +216,7 @@
           <tr>
             <td class="report_key" colspan="2">JUNCTION length (in nt) and decryption</td>
             <td class="var_report_val" colspan="2">{{ seq_value['JUNCTION-nt nb'] }} nt = {{ seq_value['JUNCTION decryption'] }}</td>
-            <td class="var_report_val" colspan="2">
+            <td class="var_report_val">
               <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank ">(3'V)3'{N1}5'(D)3'{N2}5'(5'J)</a>
             </td>
           </tr>
