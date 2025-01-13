@@ -5,6 +5,7 @@ import os
 from pymongo.errors import PyMongoError
 from cll_genie.extensions import sample_handler
 from cll_genie.extensions import results_handler
+from typing import Any
 
 
 class ReportController:
@@ -226,17 +227,17 @@ class ReportController:
             summary_string = "DNA har extraherats från insänt prov och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Analysen omfattar detektion av klonalt IGHV-D-J genrearrangemang, IGHV-mutationsstatus (muterad, M-CLL eller icke muterad, U-CLL), samt subsettillhörighet (subset #2 eller #8). \n\n"
 
             if number_of_submitted_seqs == 0:
-                summary_string += "Vid analysen påvisas ingen förekomst av klonalt IGHV-D-J genrearrangemang, varför IGHV-mutationsstatus inte kan fastställas. Provet skickas till Salgrenska sjukhuset (Göteborg) för analys av RNA. \n\n"
+                summary_string += "DNA har extraherats från insänt prov och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Analysen omfattar detektion av klonalt IGHV-D-J rearrangemang, IGHV-mutationsstatus (muterad, M-CLL eller icke muterad, U-CLL), samt subsettillhörighet (subset #2 eller #8). \n\n"
             elif number_of_submitted_seqs == 1:
                 if not is_inframe or has_stop_codon:
-                    summary_string += "Vid analysen finner man en klonal sekvens, men då denna sekvens saknar ett funktionellt IGHV-D-J genrearrangemang kan IGHV-mutationsstatus inte fastställas. Provet skickas till Salgrenska sjukhuset (Göteborg) för analys av RNA. \n\n"
+                    summary_string += "Vid analysen finner man en klonal sekvens, men då sekvensen saknar ett funktionellt (produktivt) IGHV-D-J rearrangemang kan IGHV-mutationsstatus inte fastställas. Vi rekommenderar därför att ett nytt blodprov skickas för en utökad analys på RNA-nivå för identifiering av ett klonalt och funktionellt IGHV-D-J rearrangemang där IGHV-mutationsanalys och subset-analys kan utföras. (Provet/RNA skickas till Salgrenska sjukhuset (Göteborg) för analys av RNA). \n\n"
                 else:
-                    summary_string += "Vid analysen finner man en klonal sekvens med ett funktionellt IGHV-D-J genrearrangemang (se tabell seq1).\n\n"
+                    summary_string += "Vid analysen finner man en klonal sekvens med ett funktionellt (produktivt) IGHV-D-J rearrangemang (se tabell seq1).\n\n"
             elif number_of_submitted_seqs > 1:
                 table_string = ", ".join(
                     [f"Seq{x}" for x in range(1, number_of_submitted_seqs + 1)]
                 )
-                summary_string += f"Vid analysen finner man {ReportController.swedish_number_string[number_of_submitted_seqs]} klonala sekvenser, båda med funktionella IGH-gen rearrangemang. (se tabeller; {table_string}) \n\n"
+                summary_string += f"Vid analysen finner man {ReportController.swedish_number_string[number_of_submitted_seqs]} klonala sekvenser och har funktionella (produktiva) IGHV-D-J rearrangemang. (se tabeller; {table_string}) \n\n"
 
             # Hyper mutation status comment
             if is_inframe and not has_stop_codon:
@@ -253,20 +254,46 @@ class ReportController:
 
                 # Clinical Comments
                 if "(U-CLL)" in summary_string or "(M-CLL)" in summary_string:
-                    summary_string += "IGHV-mutationsstatus, i detta fall [M-CLL/U-CLL], är en prognostisk markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2022, ERIC Guidelines 2022).\n\n"
+                    summary_string += "IGHV-mutationsstatus, i detta fall [M-CLL/U-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
                 elif "borderline" in summary_string:
-                    summary_string += "IGHV-mutationsstatus med borderlinetillhörighet bör beaktas med försiktighet (ERIC Guidelines 2022). \n\n"
+                    summary_string += "5)	IGHV-mutationsstatus med borderlinetillhörighet bör beaktas med försiktighet (ERIC Guidelines 2022). \n\n"
 
                 # STILL NEED TO BE MODIFIED
-                # TODO
                 if subset_id == "#2":
-                    summary_string += "Subset #2 är en prognostisk markör (riskstratifierande) oberoende av mutationsstatus (Nationellt Vårdprogram 2022, ERIC Guidelines 2022). \n\nSubset #2 är associerad med en sämre prognos oberoende av mutationsstatus. (Nationellt Vårdprogram 2022, ERIC Guidelines 2022). \n\n"
+                    summary_string += "Subset #2 utgör en prognostisk markör som är oberoende av mutationsstatus (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
                 elif subset_id == "#8":
-                    summary_string += "Subset #8 är en prognostisk markör (riskstratifierande) och associerad med Richter transformation (Nationellt Vårdprogram 2022, ERIC Guidelines 2022).\n\nSubset #8 är associerad med en sämre prognos och associerad med Richter transformation (Nationellt Vårdprogram 2022, ERIC Guidelines 2022). \n\n"
+                    summary_string += "Subset #8 är en prognostisk markör och har beskrivits vara associerad med en ökad risk att utveckla Richtertransformation (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
         else:
             summary_string = None
 
         return summary_string
+
+    @staticmethod
+    def get_mutation_status_per_seq(results) -> dict[Any, float]:
+        """
+        Get the V-REGION identity percentage for the results
+        """
+        seqs = list(results.keys())
+        v_identity = {
+            seq_id: round(float(results[seq_id]["V-REGION identity %"]), 2)
+            for seq_id in seqs
+        }
+        mutation_status = {}
+        for seq_id in seqs:
+            if (
+                v_identity[seq_id]
+                < cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
+            ):
+                mutation_status[seq_id] = "M-CLL"
+            elif (
+                v_identity[seq_id]
+                > cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
+            ):
+                mutation_status[seq_id] = "U-CLL"
+            else:
+                mutation_status[seq_id] = "Borderline"
+
+        return mutation_status
 
     @staticmethod
     def get_hypermutation_string(results_dict):
@@ -277,8 +304,6 @@ class ReportController:
             round(float(results_dict[seq_id]["summary"]["V-REGION identity %"]), 2)
             for seq_id in seqs
         ]
-        print(v_identity)
-
         v_identity_string = "%, ".join(str(x) for x in deepcopy(v_identity))
 
         if all(
@@ -312,10 +337,9 @@ class ReportController:
                 return_string = f"Analysen påvisar ett borderline-resultat ({v_identity_string}% identitet mot IGHV-genen)."  # 2.c
             elif seq_count > 1:
                 return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGHV-gensekvenserna påvisar ett borderline-resultat ({v_identity_string}% identitet mot IGHV-genen)."  # own point
-
         else:
             if seq_count > 1:
-                return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGHV-gensekvenserna påvisar ett icke-konklusivt resultat av somatisk hypermutation ({v_identity_string}% repektive identitet mot IGHV-genen). Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov. Provet skickas till Salgrenska sjukhuset (Göteborg) för analys av RNA."  # 2.f
+                return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGHV-sekvenserna påvisar ett icke-konklusivt resultat av somatisk hypermutation ({v_identity_string}% repektive identitet mot IGHV-genen). Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov. Vi rekommenderar därför att ett nytt blodprov skickas för en utökad analys på RNA-nivå för identifiering av ett klonalt och funktionellt (produktivt) IGHV-D-J rearrangemang där IGHV-mutationsanalys och subset-analys kan utföras. (Provet skickas till Sahlgrenska sjukhuset (Göteborg) för analys av RNA.)"  # 2.f
             else:
                 return_string = ""
 

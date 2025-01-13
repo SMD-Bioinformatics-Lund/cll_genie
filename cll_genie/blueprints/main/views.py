@@ -588,6 +588,7 @@ def cll_report(sample_id: str):
                 _id=_id,
             )
 
+        mutation_status = ReportController.get_mutation_status_per_seq(results_summary)
         logo_base64 = create_base64_logo(cll_app.config["LOGO_PATH"])
         antibody_base64 = create_base64_logo(cll_app.config["ANTIBODY_LOGO_PATH"])
         html_file_path = ReportController.get_html_filename(_id, submission_id)
@@ -619,6 +620,7 @@ def cll_report(sample_id: str):
                     antibody_base64=antibody_base64,
                     submission_id=submission_id,
                     sample=sample,
+                    mutation_status=mutation_status,
                     preview=preview,
                 )
 
