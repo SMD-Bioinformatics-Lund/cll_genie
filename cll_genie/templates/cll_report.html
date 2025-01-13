@@ -53,12 +53,10 @@
 
 <!--  Variant Summary -->
 <span class="report_header">Analysresultat</span>
-<span class="report_header">CLL klontabell</span>
 <table class="variant_table">
   <tr>
     <th>SekvensID</th>
     <th>Sekvenslängd</th>
-    <th>V-gen Allele</th>
     <th>V-gen Identitet</th>
     <th>IGHV-mutationsstatus</th>
     <th>CLL Subset</th>
@@ -70,7 +68,6 @@
       <tr>
         <td>{{ seq_name }}</td>
         <td>{{ seq_value['Analysed sequence length'] }}</td>
-        <td>{{ seq_value['V-GENE and allele'] }}</td>
         <td>
           {% if v_indel_identity_per is not none %}
             {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
