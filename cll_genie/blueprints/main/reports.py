@@ -322,7 +322,7 @@ class ReportController:
             for v_identity_per in v_identity
         ):
             if seq_count == 1:
-                return_string = f"Analysen påvisar somatisk hypermutation (M-CLL) ({v_identity_string}% identitet mot IGHV-genen)"  # 2.a
+                return_string = f"Analysen påvisar somatisk hypermutation (M-CLL) ({v_identity_string}% identitet mot IGHV-genen)."  # 2.a
             elif seq_count > 1:
                 return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna påvisar samstämmig förekomst av somatisk hypermutation (M-CLL) ({v_identity_string}% identitet mot IGHV-genen)."  # 2.d
 
@@ -339,7 +339,7 @@ class ReportController:
                 return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGHV-gensekvenserna påvisar ett borderline-resultat ({v_identity_string}% identitet mot IGHV-genen)."  # own point
         else:
             if seq_count > 1:
-                return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGHV-sekvenserna påvisar ett icke-konklusivt resultat av somatisk hypermutation ({v_identity_string}% repektive identitet mot IGHV-genen). Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov. Vi rekommenderar därför att ett nytt blodprov skickas för en utökad analys på RNA-nivå för identifiering av ett klonalt och funktionellt (produktivt) IGHV-D-J rearrangemang där IGHV-mutationsanalys och subset-analys kan utföras. (Provet skickas till Sahlgrenska sjukhuset (Göteborg) för analys av RNA.)"  # 2.f
+                return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGHV-sekvenserna påvisar ett icke-konklusivt resultat av somatisk hypermutation ({v_identity_string}% repektive identitet mot IGHV-genen). Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov. Vi rekommenderar därför att ett nytt blodprov skickas för en utökad analys på RNA-nivå för identifiering av ett klonalt och funktionellt (produktivt) IGHV-D-J rearrangemang där IGHV-mutationsanalys och subset-analys kan utföras (Provet skickas till Sahlgrenska sjukhuset (Göteborg) för analys av RNA.)."  # 2.f
             else:
                 return_string = ""
 
@@ -363,7 +363,7 @@ class ReportController:
 
         if subset_count == 1 and subset_ids[0] is not None:
             return_string = (
-                f"Vidare påvisas subsettillhörighet till subset {subset_ids[0]}"
+                f"Vidare påvisas subsettillhörighet till subset {subset_ids[0]}."
             )
             return_subset = subset_ids[0]
 

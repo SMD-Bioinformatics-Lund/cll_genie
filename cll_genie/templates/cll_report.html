@@ -47,7 +47,7 @@
     <tr>
       <td class="report_key">Rapportversion</td><td class="report_val">{{ config['APP_VERSION'] }}</td>
     </tr>
-</table>
+  </table>
 </div>
 
 
@@ -112,7 +112,7 @@
   <span class="report_header">Detaljerade Analysresultat</span>
     {% set seq_count = 1 %}
     {% for seq_id, seq_value in results_summary.items() %} 
-      <div class=report_div style="page-break-inside:avoid;">
+      <div class="report_div" style="page-break-inside:avoid;">
         {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
         {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
         {% set seq_name = seq_id.split('_')[0] %}
@@ -228,16 +228,18 @@
   </div>
 {% endif %}
 
-<span class="report_header">Analysbeskrivning</span>
-<div class="analysis_description">
-  DNA har extraherats från insänt prov (färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS) på Illuminas MiSeq system (läslängd: 2x301 bp). Sekvensanalysen omfattar LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) och klonalitetsanalys i mjukvaruprogrammet LymphoTrack Dx Software. Efterföljande analys av funktionell klonal sekvens (dvs ett produktivt rearrangemang utan stoppkodon och läsramsförskjutning) utförs i CLL Genie via databasen <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (Brochet et al 2008) och avser detektion av funktionellt IGH-varaible-diversity-joining (V-D-J) rearrangemang IGHV-mutationsstatus samt subsettillhörighet. I de fall då den klonala sekvensen inkluderar en indel gäller den första angivna frekvensen för identitet mot IGHV-genen för mutationsstatus i tabellen från <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> vilken anges i svaret. I de fall då den klonala IGHV-gensekvensen avviker från germline-sekvensen i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (<98% identitet) bedöms den vara hypermuterad (M-CLL). Om den analyserade sekvensen däremot har ≥98% identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99% identitet mot referenssekvenserna i IMGT/V-QUEST. I de fall där flera klonala sekvenser analyseras, bestäms mutationsstatus utifrån den sammanslagna bedömningen av de analyserade sekvenserna. Identifiering av subsettillhörighet till subset #2 och #8 görs genom analys av den klonala IGH-genes struktur mot fördefinierad subsetinformation i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. Analysen utförs och svaras ut enligt rekommendationer från ERIC (European Research Initiative on CLL (ERIC Guidelines 2022).<br><br>
+<div class="report_div">
+  <span class="report_header" style="padding-left: 15px">Analysbeskrivning</span>
+  <div class="analysis_description">
+    DNA har extraherats från insänt prov (färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS) på Illuminas MiSeq system (läslängd: 2x301 bp). Sekvensanalysen omfattar LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) och klonalitetsanalys i mjukvaruprogrammet LymphoTrack Dx Software. Efterföljande analys av funktionell klonal sekvens (dvs ett produktivt rearrangemang utan stoppkodon och läsramsförskjutning) utförs i CLL Genie via databasen <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>[2] och avser detektion av funktionellt IGH-varaible-diversity-joining (V-D-J) rearrangemang IGHV-mutationsstatus samt subsettillhörighet. I de fall då den klonala sekvensen inkluderar en indel gäller den första angivna frekvensen för identitet mot IGHV-genen för mutationsstatus i tabellen från <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> vilken anges i svaret. I de fall då den klonala IGHV-gensekvensen avviker från germline-sekvensen i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (<98% identitet) bedöms den vara hypermuterad (M-CLL). Om den analyserade sekvensen däremot har ≥98% identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99% identitet mot referenssekvenserna i IMGT/V-QUEST. I de fall där flera klonala sekvenser analyseras, bestäms mutationsstatus utifrån den sammanslagna bedömningen av de analyserade sekvenserna. Identifiering av subsettillhörighet till subset #2 och #8 görs genom analys av den klonala IGH-genes struktur mot fördefinierad subsetinformation i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. Analysen utförs och svaras ut enligt rekommendationer från ERIC (European Research Initiative on CLL)[3].<br><br>
 
-  <p>
-    <b>Referenser</b>
-  <p>
-  [1] Nationellt vårdprogram kronisk lymfatisk leukemi, KLL - RCC Kunskapsbanken (cancercentrum.se)<br><br>
-  [2] Brochet X, Lefranc MP, Giudicelli V. IMGT/V-QUEST: the highly customized and integrated system for IG and TR standardized V-J and V-D-J sequence analysis. Nucleic Acids Res. 2008;36(Web Server issue):W503-W508.<br><br>
-  [3] Agathangelidis A, Chatzidimitriou A, Chatzikonstantinou T, et al. Immunoglobulin gene sequence analysis in chronic lymphocytic leukemia: the 2022 update of the recommendations by ERIC, the European Research Initiative on CLL Leukemia. 2022;36(8):1961-1968.
+    <p>
+      <b>Referenser</b>
+    <p>
+    [1] Nationellt vårdprogram kronisk lymfatisk leukemi, KLL - RCC Kunskapsbanken (cancercentrum.se)<br><br>
+    [2] Brochet X, Lefranc MP, Giudicelli V. IMGT/V-QUEST: the highly customized and integrated system for IG and TR standardized V-J and V-D-J sequence analysis. Nucleic Acids Res. 2008;36(Web Server issue):W503-W508.<br><br>
+    [3] Agathangelidis A, Chatzidimitriou A, Chatzikonstantinou T, et al. Immunoglobulin gene sequence analysis in chronic lymphocytic leukemia: the 2022 update of the recommendations by ERIC, the European Research Initiative on CLL Leukemia. 2022;36(8):1961-1968.
+  </div>
 </div>
 {% endblock %}
 
