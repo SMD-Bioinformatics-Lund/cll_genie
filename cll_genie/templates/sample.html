@@ -40,11 +40,14 @@
         <td>Total Raw Reads</td>
         <td>{{ sample.total_raw_reads }}</td>
     </tr><tr>
-        <td>Total AT Reads</td>
-        <td>{{ sample.total_reads }}</td>
+        <td>Total Raw Bases</td>
+        <td>{{ sample.total_raw_bases }}</td>
     </tr><tr>
-        <td>Q30 AT Reads</td>
-        <td>{{ sample.q30_reads }}</td>
+        <td>Total AT Bases</td>
+        <td>{{ sample.total_bases }}</td>
+    </tr><tr>
+        <td>Q30 AT Bases</td>
+        <td>{{ sample.q30_bases }}</td>
     </tr><tr>
         <td>Q30 AT Reads Percentage</td>
         {% if sample.q30_per is not none %}

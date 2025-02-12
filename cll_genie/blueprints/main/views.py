@@ -156,21 +156,21 @@ def sample(sample_id: str):
         )
 
     if (
-        sample["total_reads"] == ""
-        or sample["q30_reads"] == ""
+        sample["total_bases"] == ""
+        or sample["q30_bases"] == ""
         or sample["q30_per"] == ""
     ):
         try:
             qc_values = load_qc(sample_id, sample["lymphotrack_qc_path"])
-            sample["total_reads"] = int(qc_values["totalCount"])
-            sample["q30_reads"] = int(qc_values["countQ30"])
+            sample["total_bases"] = int(qc_values["totalCount"])
+            sample["q30_bases"] = int(qc_values["countQ30"])
             sample["q30_per"] = round(float(qc_values["indexQ30"].replace(",", ".")), 2)
 
             SampleListController.sample_handler.update_document(
-                _id, "total_reads", sample["total_reads"]
+                _id, "total_bases", sample["total_bases"]
             )
             SampleListController.sample_handler.update_document(
-                _id, "q30_reads", sample["q30_reads"]
+                _id, "q30_bases", sample["q30_bases"]
             )
             SampleListController.sample_handler.update_document(
                 _id, "q30_per", sample["q30_per"]

@@ -74,3 +74,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Others
+info/
