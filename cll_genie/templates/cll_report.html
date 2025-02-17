@@ -52,46 +52,48 @@
 
 
 <!--  Variant Summary -->
-<span class="report_header">Analysresultat</span>
-<table class="variant_table">
-  <tr>
-    <th>SekvensID</th>
-    <th>Sekvenslängd</th>
-    <th>V-gen Identitet</th>
-    <th>IGHV-mutationsstatus</th>
-    <th>CLL Subset</th>
-  </tr>
-  {% for seq_id, seq_value in results_summary.items() %} 
-    {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
-    {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
-    {% set seq_name = seq_id.split('_')[0] %}
-      <tr>
-        <td>{{ seq_name }}</td>
-        <td>{{ seq_value['Analysed sequence length'] }}</td>
-        <td>
-          {% if v_indel_identity_per is not none %}
-            {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
-          {% elif v_indel_identity_per is none %}
-            {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
-          {% endif %}
-        </td>
-        <td>
-          {{ mutation_status[seq_id] }}
-        </td>
-        <td>
-          {% if seq_value['CLL subset'] is not none %}
-            <a href="https://www.imgt.org/IMGT_vquest/user_guide#afunccll" target="_blank">{{ seq_value['CLL subset'] }}</a>
-          {% else %}
-            -
-          {% endif %}
-        </td>
-      </tr>
-  {% else %}
-      <tr>
-        <td>Inga detekterade varianter</td>
-      </tr>
-  {% endfor %}
-</table>
+{% if results_summary is not none %}
+  <span class="report_header">Analysresultat</span>
+  <table class="variant_table">
+    <tr>
+      <th>SekvensID</th>
+      <th>Sekvenslängd</th>
+      <th>V-gen Identitet</th>
+      <th>IGHV-mutationsstatus</th>
+      <th>CLL Subset</th>
+    </tr>
+    {% for seq_id, seq_value in results_summary.items() %} 
+      {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
+      {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
+      {% set seq_name = seq_id.split('_')[0] %}
+        <tr>
+          <td>{{ seq_name }}</td>
+          <td>{{ seq_value['Analysed sequence length'] }}</td>
+          <td>
+            {% if v_indel_identity_per is not none %}
+              {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
+            {% elif v_indel_identity_per is none %}
+              {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
+            {% endif %}
+          </td>
+          <td>
+            {{ mutation_status[seq_id] }}
+          </td>
+          <td>
+            {% if seq_value['CLL subset'] is not none %}
+              <a href="https://www.imgt.org/IMGT_vquest/user_guide#afunccll" target="_blank">{{ seq_value['CLL subset'] }}</a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+    {% else %}
+        <tr>
+          <td>Inga detekterade varianter</td>
+        </tr>
+    {% endfor %}
+  </table>
+{% endif %}
 
 
 <span class="report_header">Slutsats</span>
