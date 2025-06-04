@@ -25,8 +25,8 @@ class Config:
     DB_NAME = os.getenv("DB_NAME", "cll_genie")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "27017")
-    DB_SAMPLES_COLLECTION = os.getenv("DB_SAMPLES_COLLECTION", "samples_test")
-    DB_RESULTS_COLLECTION = os.getenv("DB_RESULTS_COLLECTION", "vquest_results_test")
+    DB_SAMPLES_COLLECTION = os.getenv("DB_SAMPLES_COLLECTION", "samples")
+    DB_RESULTS_COLLECTION = os.getenv("DB_RESULTS_COLLECTION", "vquest_results")
     MONGO_URI = f"mongodb://{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     # User groups with permission to delete cll_genie samples and vquest_results

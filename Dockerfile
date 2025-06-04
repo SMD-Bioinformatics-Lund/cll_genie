@@ -2,15 +2,14 @@ FROM python:3.11.0-slim as cll_genie_app
 
 
 LABEL base_image="python:3.11.0-slim"
-LABEL about.home="https://github.com/ramsainanduri/cll_genie"
+LABEL about.home="https://github.com/SMD-Bioinformatics-Lund/cll_genie"
 
-#EXPOSE 5000
+EXPOSE 8000
 #EXPOSE 27017/tcp
 WORKDIR /cll_genie
 
 COPY cll_genie/ /cll_genie/cll_genie/
-COPY config.py requirements.txt wsgi.py version.py /cll_genie/
-
+COPY config.py requirements.txt wsgi.py version.py CHANGELOG.md /cll_genie/
 
 ENV PYHTONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -21,10 +20,10 @@ ENV FLASK_APP=wsgi.py
 #ENV FLASK_MONGO_URI=mtlucmds1.lund.skane.se:27017
 #ENV FLASK_MONGO_URI=127.0.0.1:27017
 
-
+ENV SCRIPT_NAME=""
 # Override when starting with docker run, e.g:
 # $ docker run -e LOG_LEVEL=DEBUG [...]
-ENV LOG_LEVEL="INFO"
+ENV CLL_GENIE_LOG_LEVEL="INFO"
 
 
 RUN apt update &&\
@@ -40,5 +39,5 @@ RUN apt update &&\
     mkdir -p /cll_genie/logs 
 
 
-#CMD gunicorn -w 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level ${LOG_LEVEL} --bind 0.0.0.0:8000 wsgi:cll_genie
-CMD python3 wsgi.py
+CMD gunicorn -w 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level ${CLL_GENIE_LOG_LEVEL} --bind 0.0.0.0:8000 wsgi:cll_genie_app
+# CMD python3 wsgi.py
