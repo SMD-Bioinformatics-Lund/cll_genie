@@ -6,8 +6,6 @@
 ![Dockerized](https://img.shields.io/badge/docker-ready-blue)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
 [![Issues](https://img.shields.io/github/issues/ramsainanduri/cll_genie)](https://github.com/ramsainanduri/cll_genie/issues)
-![Latest Release](https://img.shields.io/github/v/release/SMD-Bioinformatics-Lund/cll_genie?label=latest%20release)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/SMD-Bioinformatics-Lund/cll_genie)
 
 ## Overview
 
