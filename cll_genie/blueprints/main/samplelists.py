@@ -7,9 +7,11 @@ from flask import current_app as cll_app
 
 class SampleListController:
     """
-    Create cll_genie samplelists for main.views and annotate with CDM data
-    """
+    Controller for managing sample lists in the cll_genie application.
 
+    Provides methods to retrieve and annotate sample lists with CDM data,
+    as well as detect duplicate samples.
+    """
     sample_handler = sample_handler
 
     @staticmethod
@@ -17,7 +19,15 @@ class SampleListController:
         query: Optional[dict] = None, n_skip: int = 0, page_size: int = 0
     ) -> List[dict]:
         """
-        Get list of cll_genie samples and annotate with CDM data
+        Retrieve a list of unanalyzed samples and annotate them with CDM data.
+
+        Args:
+            query (Optional[dict]): The query to filter samples. Defaults to None.
+            n_skip (int): The number of samples to skip. Defaults to 0.
+            page_size (int): The number of samples to retrieve. Defaults to 0.
+
+        Returns:
+            List[dict]: A list of unanalyzed samples with annotations.
         """
 
         if query is None:
@@ -48,7 +58,15 @@ class SampleListController:
         query: Optional[dict] = None, n_skip: int = 0, page_size: int = 0
     ) -> pymongo.collection.Cursor:
         """
-        Get and prepare sample list for display
+        Retrieve and prepare a sample list for display.
+
+        Args:
+            query (Optional[dict]): The query to filter samples. Defaults to None.
+            n_skip (int): The number of samples to skip. Defaults to 0.
+            page_size (int): The number of samples to retrieve. Defaults to 0.
+
+        Returns:
+            pymongo.collection.Cursor: A cursor containing the retrieved samples.
         """
         if query is None:
             query = {}
@@ -69,9 +87,13 @@ class SampleListController:
     @staticmethod
     def _get_duplicated_samples(sample_id: str) -> Optional[List[dict]]:
         """
-        Given a sample id, detect and return list samples sharing the same sample id.
+        Detect and return a list of samples sharing the same sample ID.
 
-        Returns None if no duplicates found.
+        Args:
+            sample_id (str): The sample ID to check for duplicates.
+
+        Returns:
+            Optional[List[dict]]: A list of duplicate samples, or None if no duplicates are found.
         """
         results = SampleListController.sample_handler.get_samples({"name": sample_id})
         results = list(results)

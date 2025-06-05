@@ -9,33 +9,33 @@ import os
 import re
 import json
 import datetime
-import logging
 import argparse
 import colorlog
 from pathlib import Path
 from copy import deepcopy
 from pymongo import MongoClient
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, LiteralString, Union
 from dotenv import dotenv_values, load_dotenv
 from pprint import pprint
+import logging
 
 
 class Config:
     """
     Config class for managing configuration settings for the lymphotrack sample registration script.
+
     Attributes:
         _LYMPHOTRACK_ROOT_DIR (str): Root directory for lymphotrack data.
         _CONFIG (dict): Base configuration settings including keywords, directories, filenames, and database name.
-        _configs (dict): Environment-specific configurations for 'prod' and 'test' modes.
-        _current_mode (str): Current mode of operation, either 'prod' or 'test'.
+        test_config (dict): Environment-specific configurations for testing mode.
         env_config (dict): Configuration values loaded from a .env file.
+        testing (bool): Indicates whether the script is running in testing mode.
+
     Methods:
         get_config():
             Returns the active configuration based on the current mode.
-            Combines base configuration, environment-specific settings, and .env file values.
-        set_mode(mode):
-            Switches the configuration mode to the specified mode ('prod' or 'test').
-            Raises ValueError if an invalid mode is provided.
+        set_mode(testing):
+            Switches the configuration mode to testing or production.
         set_config(key, value):
             Updates a specific configuration key dynamically in the active mode.
     """
@@ -117,10 +117,14 @@ class Config:
 class MongoDBConnection:
     """
     MongoDB connection class for establishing a connection to the MongoDB server.
+
     Attributes:
         _client (MongoClient): MongoDB client instance.
         _db (Database): MongoDB database instance.
         _collection (Collection): MongoDB collection instance.
+        db_name (str): Name of the database.
+        collection_name (str): Name of the collection.
+
     Methods:
         connect():
             Establishes a connection to the MongoDB server.
@@ -158,6 +162,37 @@ class MongoDBConnection:
 
 
 class CllGenieSampleRegister:
+    """
+    Class for registering lymphotrack samples in the database.
+
+    Attributes:
+        config (dict): Configuration settings for the script.
+        db_collection (Collection): MongoDB collection instance.
+
+    Methods:
+        register_samples():
+            Registers lymphotrack samples by processing runs and updating the database.
+        get_runs_to_register():
+            Retrieves a list of runs to register based on completion files.
+        get_samplesheet(run):
+            Retrieves the path to the samplesheet for a given run.
+        get_run_stats_file(run):
+            Retrieves the path to the run stats file for a given run.
+        parse_samplesheet(samplesheet):
+            Parses the samplesheet and returns a list of samples and instrument type.
+        parse_sample_elements(raw_sample, header):
+            Parses individual sample elements from the samplesheet.
+        parse_run_stats(run_stats):
+            Parses the run stats file and returns a dictionary with required fields.
+        register_samples_in_db(samples, demux_stats, run_metadata):
+            Registers samples in the database with metadata and stats.
+        create_sample_obj(sample_id, clarity_id, run_metadata, raw_reads, raw_bases):
+            Creates a sample object with required fields for database insertion.
+        insert_sample(sample_obj, overwrite):
+            Inserts a sample object into the database, with optional overwrite.
+        finish_run_registration(run):
+            Marks a run as registered by creating a completion file.
+    """
 
     def __init__(self, config=None, db_collection=None) -> None:
         self.config = config
@@ -223,12 +258,10 @@ class CllGenieSampleRegister:
                 os.walk(self.config["RUN_ROOT_DIR"])
             )  # Restrict to one level
             for dir_name in dirs:
-                dir_path = os.path.join(root_dir, dir_name)
+                dir_path: LiteralString | bytes | str | Any = os.path.join(root_dir, dir_name)
                 rta_file = os.path.join(dir_path, self.config["RTA_FILE"])
                 bjorn_file = os.path.join(dir_path, self.config["BJORN_COMPLETED_FILE"])
-                cg_file = os.path.join(
-                    dir_path, self.config["CLL_GENIE_COMPLETED_FILE"]
-                )
+                cg_file = os.path.join(dir_path, self.config["CLL_GENIE_COMPLETED_FILE"])
 
                 # Directly check if required files exist inside the folder
                 if os.path.isfile(cg_file):
@@ -244,14 +277,14 @@ class CllGenieSampleRegister:
 
         return runs
 
-    def get_samplesheet(self, run: str) -> str | None:
+    def get_samplesheet(self, run: str) -> Any | None:
         if run:
             return os.path.join(
                 self.config["RUN_ROOT_DIR"], run, self.config["SAMPLESHEET_NAME"]
             )
         return None
 
-    def get_run_stats_file(self, run: str) -> str | None:
+    def get_run_stats_file(self, run: str) -> Any | None:
         if run:
             return os.path.join(
                 self.config["RUN_ROOT_DIR"], run, self.config["RUN_STATS"]
@@ -429,6 +462,23 @@ class CllGenieSampleRegister:
 
 
 class CllGenieAddLymphotrackResults:
+    """
+    Class for updating lymphotrack results in the database.
+
+    Attributes:
+        config (dict): Configuration settings for the script.
+        db_collection (Collection): MongoDB collection instance.
+
+    Methods:
+        update_lymphotrack_results():
+            Updates lymphotrack results for samples in the database.
+        get_samples_without_lymphotrack_results():
+            Retrieves samples that lack lymphotrack results.
+        get_lymphotrack_results_on_disk(samples):
+            Retrieves lymphotrack result files from disk and updates the database.
+        get_qc_stats(qc_file):
+            Parses QC stats from a file and returns them as a dictionary.
+    """
 
     def __init__(self, config=None, db_collection=None) -> None:
         self.config = config
@@ -511,6 +561,8 @@ class CllGenieAddLymphotrackResults:
 
             logger.info("Lymphotrack results updated successfully.")
 
+        return None
+
     def get_qc_stats(self, qc_file) -> dict:
         stats = {}
         with open(qc_file, "r") as qc_fh:
@@ -525,6 +577,12 @@ class CllGenieAddLymphotrackResults:
 
 # Argument Parser
 def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command-line arguments for the script.
+
+    Returns:
+        argparse.Namespace: Parsed arguments as a namespace object.
+    """
     parser = argparse.ArgumentParser(description="Register Lymphotrack Samples")
     parser.add_argument(
         "-rd",
@@ -614,37 +672,16 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# def get_root_logger(level="INFO") -> logging.Logger:
-#     """
-#     Returns the root logger with a console handler set to display all log levels.
-#     """
-#     logger = logging.getLogger()
-#     logger.setLevel(level)  # Set global logging level
-
-#     # Check if handlers already exist (prevents duplicate handlers)
-#     if not logger.handlers:
-#         console_handler = logging.StreamHandler()
-#         console_handler.setLevel(
-#             logging.DEBUG
-#         )  # Ensure handler captures DEBUG messages
-
-#         # Define log format
-#         formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-#         console_handler.setFormatter(formatter)
-
-#         # Add handler to logger
-#         logger.addHandler(console_handler)
-
-#     return logger
-
-
-import logging
-
-
 def get_root_logger(level="INFO", log_file=None) -> logging.Logger:
     """
     Returns the root logger with a console handler (colorized) and a file handler (plain text).
-    Logs are written to both console and a specified file.
+
+    Args:
+        level (str): Logging level (e.g., "INFO", "DEBUG").
+        log_file (str, optional): Path to the log file.
+
+    Returns:
+        logging.Logger: Configured logger instance.
     """
     logger = logging.getLogger()
     logger.setLevel(level)  # Set global logging level
@@ -686,10 +723,19 @@ def get_root_logger(level="INFO", log_file=None) -> logging.Logger:
     return logger
 
 def get_time_now():
+    """
+    Get the current time as a formatted string.
+
+    Returns:
+        str: Current time in "YYYY-MM-DD HH:MM:SS" format.
+    """
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 if __name__ == "__main__":
+    """
+    Main entry point for the script. Parses arguments, sets up configuration, and executes the workflow.
+    """
     args = parse_arguments()
     args_dict = {k: v for k, v in vars(args).items() if v is not None}
 

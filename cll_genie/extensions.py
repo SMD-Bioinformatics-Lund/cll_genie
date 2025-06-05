@@ -1,11 +1,16 @@
 """
-This module stores variables/objects that need to be accessed all over
-the app. e.g. mongo : MongoClient.
+This module initializes and provides shared extensions and handlers for the application.
+
+It exposes instances such as:
+- `login_manager`: Manages user session authentication.
+- `mongo`: Handles MongoDB connections via PyMongo.
+- `sample_handler`: Provides sample data operations.
+- `results_handler`: Manages V-QUEST results processing.
+
+These objects are intended for use throughout the app to ensure consistent access and configuration.
 """
-from flask import current_app as cll_app
 from flask_login import LoginManager, current_user  # type: ignore
 from flask_pymongo import PyMongo  # type: ignore
-from functools import wraps
 
 from cll_genie.blueprints.models.cll_samples import SampleHandler
 from cll_genie.blueprints.models.cll_vquest import ResultsHandler

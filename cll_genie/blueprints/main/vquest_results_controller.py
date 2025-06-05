@@ -10,9 +10,10 @@ from flask_login import current_user
 
 
 class ResultsController:
-
     """
-    save results to the database cll_genie for main.views
+    Controller for managing results in the cll_genie application.
+
+    Provides methods to save, retrieve, update, and delete results and related data.
     """
 
     results_handler = results_handler
@@ -26,6 +27,18 @@ class ResultsController:
         submission_id: str,
         zip_file_name: str,
     ) -> bool:
+        """
+        Save results to the database.
+
+        Args:
+            _id (str): The object ID of the sample.
+            results_data (dict): The results data to be saved.
+            submission_id (str): The submission ID for the results.
+            zip_file_name (str): The name of the zip file containing the results.
+
+        Returns:
+            bool: True if the results were saved successfully, False otherwise.
+        """
         collection = ResultsController.results_handler.results_collection()
         sample_name = ResultsController.sample_handler.get_sample_name(_id)
 
@@ -76,6 +89,16 @@ class ResultsController:
 
     @staticmethod
     def get_submission_id(_id: str, num=None) -> str:
+        """
+        Generate a submission ID for a given object ID.
+
+        Args:
+            _id (str): The object ID of the sample.
+            num (int, optional): The index of the submission. Defaults to None.
+
+        Returns:
+            str: The generated submission ID.
+        """
         if ResultsController.results_handler.results_document_exists(_id):
             detailed_results_submissions = (
                 ResultsController.results_handler.get_results(_id)["results"].keys()
@@ -100,6 +123,17 @@ class ResultsController:
 
     @staticmethod
     def save_comments(_id, submission_id, comment):
+        """
+        Save comments for a specific submission.
+
+        Args:
+            _id (str): The object ID of the sample.
+            submission_id (str): The submission ID.
+            comment (str): The comment to be saved.
+
+        Returns:
+            bool: True if the comments were saved successfully, False otherwise.
+        """
         old_comments = ReportController.get_comments_for_report(_id, submission_id)
         new_comments = deepcopy(old_comments) if old_comments is not None else []
         new_comments.append(comment)
@@ -113,6 +147,18 @@ class ResultsController:
 
     @staticmethod
     def update_submission_comments_status(_id, submission_id, comment_id, query_type):
+        """
+        Update the status of a comment (hide/unhide) for a specific submission.
+
+        Args:
+            _id (str): The object ID of the sample.
+            submission_id (str): The submission ID.
+            comment_id (str): The ID of the comment to update.
+            query_type (str): The type of update ('hide' or 'unhide').
+
+        Returns:
+            bool: True if the update was successful, False otherwise.
+        """
         old_comments = ReportController.get_comments_for_report(_id, submission_id)
 
         if comment_id is None:
@@ -139,7 +185,14 @@ class ResultsController:
     @staticmethod
     def delete_cll_results(_id: str, submission_id: str) -> bool:
         """
-        Delete Cll results and reports for a given submission id and object id
+        Delete results and reports for a specific submission.
+
+        Args:
+            _id (str): The object ID of the sample.
+            submission_id (str): The submission ID.
+
+        Returns:
+            bool: True if the deletion was successful, False otherwise.
         """
         submission_results_count = (
             ResultsController.results_handler.get_submission_count(_id)
@@ -172,9 +225,11 @@ class ResultsController:
     @staticmethod
     def update_vquest_status(_id):
         """
-        Update the vquest status to true or false based on the analysis results in the results collections
-        """
+        Update the V-QUEST status for a sample based on the analysis results.
 
+        Args:
+            _id (str): The object ID of the sample.
+        """
         try:
             result_counts = len(
                 ResultsController.results_handler.get_results(_id).get("results", "")

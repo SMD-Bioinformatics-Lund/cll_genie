@@ -1,13 +1,33 @@
 """
 Class-based Flask app configuration.
 
-Config vars set from env variables should be set using a dotenv file passed to do
+This module defines configuration classes for a Flask application. These classes
+provide settings for different environments (production, development, and testing)
+and include application-wide settings, database configurations, logging, and other
+custom settings.
+
+Classes:
+    Config:
+        Base configuration class with default settings.
+    ProductionConfig(Config):
+        Configuration for the production environment.
+    DevelopmentConfig(Config):
+        Configuration for the development environment.
+    TestConfig(Config):
+        Configuration for the testing environment.
 """
 
 import os
 
 
 class Config:
+    """
+    Base configuration class for the Flask application.
+
+    This class contains default settings that are shared across all environments.
+    Environment-specific configurations can inherit from this class and override
+    specific attributes.
+    """
     # Application-wide settings
     DEBUG = False
     TESTING = False
@@ -78,6 +98,12 @@ class Config:
 
 
 class ProductionConfig(Config):
+    """
+    Configuration for the production environment.
+
+    This class inherits from the base `Config` class and overrides settings
+    specific to the production environment.
+    """
     LOG_FILE = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_prod.log"
     )
@@ -93,6 +119,12 @@ class ProductionConfig(Config):
 
 
 class DevelopmentConfig(Config):
+    """
+    Configuration for the development environment.
+
+    This class inherits from the base `Config` class and overrides settings
+    specific to the development environment.
+    """
     DEBUG = True
     SECRET_KEY = "secretkeynotsodisguised"
     LOG_FILE = os.path.join(
@@ -103,9 +135,11 @@ class DevelopmentConfig(Config):
 
 class TestConfig(Config):
     """
-    For future test code.
-    """
+    Configuration for the testing environment.
 
+    This class inherits from the base `Config` class and overrides settings
+    specific to the testing environment.
+    """
     MONGO_URI = None
     TESTING = True
     SECRET_KEY = "rollercosterappdevelopment"

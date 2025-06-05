@@ -5,7 +5,6 @@ from flask_login import login_required, login_user, logout_user, current_user  #
 
 from cll_genie.extensions import login_manager, mongo
 from cll_genie.blueprints.login import login_bp
-from cll_genie.blueprints.main import main_bp
 from cll_genie.blueprints.login.login import (
     LoginForm,
     User,
@@ -19,6 +18,13 @@ from cll_genie.blueprints.login.login import (
 # Login routes:
 @login_bp.route("/login/", methods=["GET", "POST"])
 def login():
+    """
+    Represents the login form for user authentication.
+
+    Attributes:
+        username (StringField): Field for entering the username.
+        password (PasswordField): Field for entering the password.
+    """
     if not current_user.is_authenticated:
         form = LoginForm()
 
@@ -47,6 +53,14 @@ def login():
 @login_bp.route("/logout/")
 @login_required
 def logout():
+    """
+    Handle user logout.
+
+    Log the user out and redirect to the login page with a success message.
+
+    Returns:
+        Response: A redirect to the login page.
+    """
     logout_user()
     flash(f"Logged out successfully", "success")
     return redirect(url_for("login_bp.login"))
@@ -54,6 +68,15 @@ def logout():
 
 @login_manager.user_loader
 def load_user(username):
+    """
+    Load a user by their username.
+
+    Args:
+        username (str): The username of the user.
+
+    Returns:
+        User or None: The User object if found, otherwise None.
+    """
     users_collection = mongo.cx["coyote"]["users"]
     user = users_collection.find_one({"_id": username})
     if not user:
@@ -68,6 +91,15 @@ def load_user(username):
 @login_bp.route("/add_user/", methods=["GET", "POST"])
 @login_required
 def add_user():
+    """
+    Handle adding a new user.
+
+    Only accessible to admin users. Displays a form to add a new user and
+    processes the form submission to create the user in the database.
+
+    Returns:
+        Response: The rendered add user page or a redirect to the admin page.
+    """
     if not current_user.admin():
         abort(403)
 
@@ -99,6 +131,15 @@ def add_user():
 
 @login_bp.route("/update_user/", methods=["GET", "POST"])
 def update_user():
+    """
+    Handle updating user details.
+
+    Only accessible to admin users. Displays a search form to find a user
+    and an edit form to update the user's details.
+
+    Returns:
+        Response: The rendered update user page or a redirect to the admin page.
+    """
     if not current_user.admin():
         abort(403)
 
@@ -154,6 +195,14 @@ def update_user():
 @login_bp.route("/remove_user/", methods=["GET", "POST"])
 @login_required
 def remove_user():
+    """
+    Handle removing a user.
+
+    Only accessible to admin users. Displays the remove user page.
+
+    Returns:
+        Response: The rendered remove user page or a 403 error if unauthorized.
+    """
     if current_user.admin():
         return render_template("remove_user.html")
     else:

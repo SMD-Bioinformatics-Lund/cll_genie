@@ -5,29 +5,45 @@ from .logging_setup import configure_logging
 
 
 def create_app():
-    """Initialize Flask app."""
+    """
+    Initialize and configure the Flask application.
+
+    This function creates a Flask application instance, configures it based on the
+    environment (production, development, or testing), and sets up logging, blueprints,
+    and extensions.
+
+    Returns:
+        Flask: The configured Flask application instance.
+    """
     cll_app = Flask(__name__, instance_relative_config=True)
 
     if not cll_app.debug or cll_app.testing:
+        # Load production configuration
         cll_app.config.from_object(config.ProductionConfig())
     else:
         if cll_app.debug:
+            # Load development configuration and redact sensitive information
             cll_app.logger.debug("Loading dev config:")
             cll_app.config.from_object(config.DevelopmentConfig())
             conf_copy = dict(cll_app.config)
             conf_copy["CLARITY_PASSWORD"] = "REDACTED"
             cll_app.logger.debug(pformat(conf_copy))
         elif cll_app.testing:
+            # Load testing configuration
             cll_app.config.from_object(config.TestConfig())
 
+    # Load instance configuration
     cll_app.logger = configure_logging(
         cll_app.config["LOG_LEVEL"], cll_app.config["LOG_FILE"]
     )
 
     with cll_app.app_context():
+        # Initialize blueprints
         cll_app.logger.info("Initializing app blueprints.")
         register_blueprints(cll_app)
         cll_app.logger.info("Finished initializing app blueprints.")
+
+        # Initialize extensions
         cll_app.logger.info("Initializing app extensions.")
         init_login_manager(cll_app)
         init_mongodb(cll_app)
@@ -42,10 +58,17 @@ def create_app():
 
 def register_blueprints(app: Flask) -> None:
     """
-    Register Flask blueprints
+    Register Flask blueprints.
+
+    This function registers all the blueprints used in the application, such as
+    the main views and the login module.
+
+    Args:
+        app (Flask): The Flask application instance.
     """
 
     def bp_debug_msg(msg):
+        #  Log a debug message when a blueprint is added
         app.logger.info(f"Blueprint added: {msg}")
 
     # Main views:
@@ -63,7 +86,13 @@ def register_blueprints(app: Flask) -> None:
 
 def init_mongodb(app: Flask) -> None:
     """
-    Initialize pymongo.MongoClient extension
+    Initialize the MongoDB extension.
+
+    This function sets up the MongoDB client for the application using the
+    configuration provided in the app.
+
+    Args:
+        app (Flask): The Flask application instance.
     """
     app.logger.info("Initializing mongodb at: " f"{app.config['MONGO_URI']}")
     from cll_genie.extensions import mongo
@@ -73,7 +102,12 @@ def init_mongodb(app: Flask) -> None:
 
 def init_login_manager(app: Flask) -> None:
     """
-    Initialize login manager
+    Initialize the login manager.
+
+    This function configures the Flask-Login extension for the application.
+
+    Args:
+        app (Flask): The Flask application instance.
     """
     from cll_genie.extensions import login_manager
 
@@ -84,7 +118,12 @@ def init_login_manager(app: Flask) -> None:
 
 def init_samples_handler(app: Flask) -> None:
     """
-    Initialize samples handler
+    Initialize the samples handler.
+
+    This function sets up the SampleHandler extension for managing sample data.
+
+    Args:
+        app (Flask): The Flask application instance.
     """
     app.logger.info("Initializing SampleHandler")
     from cll_genie.extensions import sample_handler, mongo
@@ -96,7 +135,12 @@ def init_samples_handler(app: Flask) -> None:
 
 def init_results_handler(app: Flask) -> None:
     """
-    Initialize samples handler
+    Initialize the results handler.
+
+    This function sets up the ResultsHandler extension for managing result data.
+
+    Args:
+        app (Flask): The Flask application instance.
     """
     app.logger.info("Initializing Results handler")
     from cll_genie.extensions import results_handler, mongo

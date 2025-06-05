@@ -10,15 +10,14 @@ class ProcessExcel:
     A class for processing Excel files.
 
     Attributes:
-    - file_path (str): The path of the input file.
-    - accepted_input_formats (list): A list of accepted file formats.
-    - excel_header_row (int): The row number of the header in Excel files.
-    - excel_sheet_name (str): The name of the sheet in Excel files.
-    - csv_tsv_header_row (int): The row number of the header in CSV/TSV files.
-    - input_format (str): The file format of the input file.
-    - valid_format (bool): True if the input file format is valid, False otherwise.
+        file_path (str): The path of the input file.
+        accepted_input_formats (list): A list of accepted file formats.
+        excel_header_row (int): The row number of the header in Excel files.
+        excel_sheet_name (str): The name of the sheet in Excel files.
+        csv_tsv_header_row (int): The row number of the header in CSV/TSV files.
+        input_format (str): The file format of the input file.
+        valid_format (bool): True if the input file format is valid, False otherwise.
     """
-
     def __init__(
         self,
         file,
@@ -28,6 +27,17 @@ class ProcessExcel:
         no_stop_codon,
         is_in_frame,
     ):
+        """
+        Initialize the ProcessExcel class.
+
+        Args:
+            file (str): The path to the input file.
+            excel_header_row (int): The row number of the header in the Excel file.
+            excel_sheet_name (str): The name of the sheet in the Excel file.
+            filtration_cutoff (int): The cutoff value for filtering data.
+            no_stop_codon (str): Filter condition for sequences without stop codons.
+            is_in_frame (str): Filter condition for in-frame sequences.
+        """
         self.accepted_input_formats = [".xlsx", ".xlsm", ".xls"]
 
         self.file = file
@@ -38,14 +48,12 @@ class ProcessExcel:
         self.is_in_frame = is_in_frame
         self.file_path = file
 
-    def read(self):
+    def read(self) -> pd.DataFrame:
         """
-        Reads a file based on its extension and returns a pandas DataFrame if
-        it was successfully read or None if there was an error.
+        Reads a file based on its extension and returns a pandas DataFrame.
 
         Returns:
-        - data (pandas.DataFrame or None): The DataFrame containing the data
-        from the file, or None if there was an error.
+            pandas.DataFrame or None: The DataFrame containing the data from the file, or None if there was an error.
         """
         data = None
         try:
@@ -60,20 +68,13 @@ class ProcessExcel:
 
         return data
 
-    def filter_data(self):
+    def filter_data(self) -> tuple:
         """
-        Filters data based on given conditions and returns filtered data as a pandas dataframe.
-
-        Parameters:
-        - cutoff_value (int): Minimum value of '% total reads' column for filtering (0-100)
-        - in_frame (bool): True to include only in-frame data, False to include out-of-frame data
-        - stop_codon (bool): True to include only sequences with a stop codon, False to include sequences without a stop codon
+        Filters data based on given conditions and returns filtered data as a pandas DataFrame.
 
         Returns:
-        - filtered_data (pandas dataframe): Filtered data as a pandas dataframe, or None if no sequences meet the filtering conditions
+            tuple: A tuple containing the filtered data (pandas.DataFrame) and metadata (dict), or None if no sequences meet the filtering conditions.
         """
-
-        # Read the Excel file using pandas if it has a valid format
         path = Path(self.file_path)
         ext = path.suffix.lower()
 
@@ -135,7 +136,16 @@ class ProcessExcel:
 
         return filtered_data, meta_info
 
-    def extract_sequences(self, dataframe):
+    def extract_sequences(self, dataframe) -> str:
+        """
+        Extracts sequences from the filtered data.
+
+        Args:
+            dataframe (pandas.DataFrame): The filtered data.
+
+        Returns:
+            str: A string containing the sequences in FASTA format.
+        """
         ranks_sequences = list(dataframe[["Rank", "Sequence"]].to_records(index=False))
 
         sequences_str = ""

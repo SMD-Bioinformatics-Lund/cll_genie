@@ -9,7 +9,6 @@ from flask import (
     request,
     flash,
     jsonify,
-    session,
     abort,
     send_from_directory,
     send_file,
@@ -23,17 +22,19 @@ from cll_genie.blueprints.main.samplelists import SampleListController
 from cll_genie.blueprints.main import main_bp
 from cll_genie.blueprints.main.vquest_results_controller import ResultsController
 from cll_genie.blueprints.main.reports import ReportController
-from urllib.parse import urlencode
+
 import ast
 import shutil
 from bson import ObjectId
 from datetime import datetime
-from werkzeug.security import generate_password_hash
-from cll_genie.extensions import mongo
-
 
 @main_bp.route("/")
 def cll_genie():
+    """
+    CLL Genie home page.
+
+    Displays the list of samples that are analyzed and not analyzed. Allows users to search, paginate, and view sample analysis status.
+    """
     page_size = cll_app.config["PAGE_SIZE"]
     n_skip = int(request.args.get("skip", 0))
     search_string = request.args.get("search", "")
@@ -62,6 +63,18 @@ def cll_genie():
 @main_bp.route("/download/excel/<string:id>")
 @login_required
 def download_excel(id):
+    """
+    Download the LymphoTrack Excel file associated with the specified sample ID.
+
+    This endpoint retrieves the Excel file for the given sample, if it exists, and sends it as a downloadable attachment to the user.
+    If the file is not found or an error occurs, an error page is rendered with details.
+
+    Args:
+        id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: The Excel file as an attachment, or an error page if the file cannot be found or accessed.
+    """
     sample_id = SampleListController.sample_handler.get_sample_name(id)
     excel_file = os.path.abspath(
         SampleListController.sample_handler.get_lymphotrack_excel(id)
@@ -83,6 +96,18 @@ def download_excel(id):
 @main_bp.route("/download/qc_file/<string:id>")
 @login_required
 def download_qc_file(id):
+    """
+    Download the LymphoTrack QC file associated with the specified sample ID.
+
+    This endpoint retrieves the QC file for the given sample, if it exists, and sends it as a downloadable attachment to the user.
+    If the file is not found or an error occurs, an error page is rendered with details.
+
+    Args:
+        id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: The QC file as an attachment, or an error page if the file cannot be found or accessed.
+    """
     sample_id = SampleListController.sample_handler.get_sample_name(id)
     qc_file = os.path.abspath(
         SampleListController.sample_handler.get_lymphotrack_qc(id)
@@ -104,6 +129,19 @@ def download_qc_file(id):
 @main_bp.route("/download/results/<string:filetype>/<string:id>")
 @login_required
 def download_results(filetype: str, id: str):
+    """
+    Download the results file for a specific submission of a sample.
+
+    Args:
+        filetype (str): The type of file to download ("zip" or "text").
+        id (str): The unique identifier of the sample.
+
+    Query Parameters:
+        sub_id (str): The submission ID for which to download the results.
+
+    Returns:
+        Response: The requested results file as an attachment, or an error page if the file cannot be found or accessed.
+    """
     sample_id = SampleListController.sample_handler.get_sample_name(id)
     submission_id = request.args.get("sub_id")
     submission_results = ResultsController.results_handler.get_submission_results(
@@ -141,6 +179,20 @@ def download_results(filetype: str, id: str):
 @main_bp.route("/sample/<string:sample_id>", methods=["GET"])
 @login_required
 def sample(sample_id: str):
+    """
+    Display the details and analysis results for a specific sample.
+
+    This view retrieves the sample information and associated results from the database,
+    updates QC metrics if missing, and renders the sample details page. If QC values are
+    not available, it attempts to load them from the QC file and update the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample (from the URL).
+
+    Returns:
+        Response: Renders the sample details template with sample data, results submissions,
+        and report counts per submission.
+    """
     _id = request.args.get("_id")
     sample = SampleListController.sample_handler.get_sample(_id)
     results_submissions = None
@@ -188,6 +240,16 @@ def sample(sample_id: str):
 
 
 def load_qc(sample_id: str, lymphotrack_qc_file: str) -> dict:
+    """
+    Load the QC \(Quality Control\) data from the LymphoTrack QC file for a given sample.
+
+    Args:
+        sample_id \(str\): The unique identifier of the sample.
+        lymphotrack_qc_file \(str\): The path to the LymphoTrack QC file.
+
+    Returns:
+        dict: A dictionary containing QC values \(totalCount, countQ30, indexQ30\).
+    """
     try:
         with open(lymphotrack_qc_file, "r") as qc_data:
             qc = qc_data.read().strip().split("\n")
@@ -210,6 +272,20 @@ def load_qc(sample_id: str, lymphotrack_qc_file: str) -> dict:
 @main_bp.route("/get_sequences/<string:sample_id>", methods=["GET", "POST"])
 @login_required
 def get_sequences(sample_id: str):
+    """
+    Get sequences from the LymphoTrack Excel file for a specific sample.
+
+    This endpoint retrieves and processes the LymphoTrack Excel file associated with the given sample ID.
+    It allows users to upload a new Excel file or use the existing one, apply filtration based on user-defined criteria,
+    and returns a filtered table of sequences for further analysis.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: Renders the get_sequences.html template with the filtered sequences table, meta information,
+        and relevant sample details. If errors occur (e.g., file not found or parsing error), an error page is rendered.
+    """
     results_dir = cll_app.config["ANALYSIS_OUTDIR"]
 
     html_table = None
@@ -336,6 +412,16 @@ def get_sequences(sample_id: str):
 @main_bp.route("/vquest_analysis/<string:sample_id>", methods=["POST"])
 @login_required
 def vquest_analysis(sample_id: str):
+    """
+    Process the selected sequences for VQuest analysis.
+
+    Handles the POST request from the get_sequences page, where users select sequences for analysis.
+    Retrieves the selected sequences from the form, processes them, and prepares them for VQuest analysis.
+    Renders the vquest_analysis.html template with the selected sequences and their statistics.
+
+    Returns:
+        Response: Renders the VQuest analysis page with the selected sequences and related data.
+    """
     selected_sequence = None
     selected_sequence_stats = None
     if request.method == "POST":
@@ -365,6 +451,19 @@ def vquest_analysis(sample_id: str):
 @main_bp.route("/vquest_results/<string:sample_id>", methods=["POST"])
 @login_required
 def vquest_results(sample_id: str):
+    """
+    Process the VQuest results for the selected sample.
+
+    This endpoint handles the POST request after VQuest analysis is triggered. It processes the selected sequences,
+    runs the VQuest analysis, saves the results to the database, and redirects the user to the report page if successful.
+    If errors occur during analysis or saving, an error page is rendered.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: Redirects to the report page on success, or renders an error page if analysis fails.
+    """
     results_dir = cll_app.config["ANALYSIS_OUTDIR"]
     _id = request.args.get("_id")
     sub_num = (
@@ -453,7 +552,13 @@ def vquest_results(sample_id: str):
 
 def comment_dict(summary: str) -> dict:
     """
-    Create a dictionary for the comment to be saved in the database
+    Create a dictionary representing a comment to be saved in the database.
+
+    Args:
+        summary (str): The comment text to be saved.
+
+    Returns:
+        dict: A dictionary containing the comment details, including id, text, creation time, author, and visibility status.
     """
 
     new_comment = {}
@@ -504,6 +609,19 @@ def save_comment(sample_id: str, submission_id: str):
 )
 @login_required
 def suggest_comment(id: str, submission_id: str):
+    """
+    Generate a suggested comment for the report summary.
+
+    This function generates a suggested comment for the report summary based on the provided sample ID and submission ID.
+    It uses the `ReportController.generate_report_summary_text` method to create the suggestion and returns it as a JSON response.
+
+    Args:
+        id (str): The unique identifier of the sample.
+        submission_id (str): The unique identifier of the submission.
+
+    Returns:
+        Response: A JSON object containing the suggested comment text.
+    """
     suggested_text = ReportController.generate_report_summary_text(id, submission_id)
     return jsonify({"suggested_text": suggested_text})
 
@@ -514,6 +632,16 @@ def suggest_comment(id: str, submission_id: str):
 )
 @login_required
 def update_comment_status(sample_id: str, submission_id: str):
+    """
+    Update the status (e\.g\., hidden or visible) of a comment in the database for a given sample and submission\.
+
+    Args\:
+        sample_id \(str\)\: The unique identifier of the sample\.
+        submission_id \(str\)\: The unique identifier of the submission\.
+
+    Returns\:
+        Response\: Redirects to the report page with updated comment status, or flashes a warning if the user is not authorized\.
+    """
     _id = request.args.get("_id")
     comment_id = request.args.get("comment_id") or None
     query_type = request.args.get("query_type")
@@ -549,6 +677,20 @@ def update_comment_status(sample_id: str, submission_id: str):
 @main_bp.route("/cll_report/<string:sample_id>", methods=["GET", "POST"])
 @login_required
 def cll_report(sample_id: str):
+    """
+    Generate and display the CLL \(Chronic Lymphocytic Leukemia\) report for a specific sample.
+
+    This function handles GET and POST requests to generate, preview, export, and display the CLL report for a given sample.
+    It retrieves the sample and analysis results, manages report summaries and comments, and renders the appropriate templates.
+    If the report is being exported, it saves the report to disk and updates the database. If previewing, it returns the HTML.
+    If results are missing or errors occur, it flashes an error message and renders an error page.
+
+    Args:
+        sample_id \(str\): The unique identifier of the sample.
+
+    Returns:
+        Response: Renders the report, returns the HTML for preview/export, or redirects to the appropriate page on error.
+    """
     _id = request.args.get("_id")
     results_comments = ""
     _type = request.args.get("_type") or None
@@ -686,6 +828,20 @@ def cll_report(sample_id: str):
 @main_bp.route("/negative_report/<string:sample_id>", methods=["POST", "GET"])
 @login_required
 def negative_report(sample_id: str):
+    """
+    Generate and display a negative report for a specific sample.
+
+    This endpoint handles GET and POST requests to create and display a negative report for the given sample.
+    If a negative report does not exist, it generates the report, saves it to disk, and updates the database.
+    If a negative report already exists, it serves the existing report file.
+    Handles errors and displays appropriate messages if report creation or retrieval fails.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: Renders the negative report template, serves the report file, or displays an error page.
+    """
     _id = request.args.get("_id")
     sample = ReportController.sample_handler.get_sample(_id)
     report_summary = ""
@@ -762,7 +918,16 @@ def negative_report(sample_id: str):
 @login_required
 def report_view(sample_id: str):
     """
-    show the latest report from the database.
+    Display the latest report for the specified sample from the database.
+
+    This view retrieves the latest report file associated with the given sample ID and serves it to the user.
+    If no report is available, it flashes an error message and redirects to the home page.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: Sends the latest report file as a downloadable file, or redirects to the home page if not found.
     """
     _id = request.args.get("_id")
     report_id = request.args.get("report_id")
@@ -784,7 +949,14 @@ def report_view(sample_id: str):
 @login_required
 def toggle_report_status(db_id: str):
     """
-    Set samples as analyzed/not analyzed
+    Set the analyzed status of a sample.
+
+    This function allows toggling the analyzed/not analyzed status of a sample by updating the
+    'report' field in the database. The status is determined by the 'set_analyzed' query parameter.
+    After updating, it redirects to the home page.
+
+    Returns:
+        Response: Redirects to the main page after updating the sample's analyzed status.
     """
 
     def check_report_status_arg(arg):
@@ -814,7 +986,11 @@ def toggle_report_status(db_id: str):
 @login_required
 def update_report(id: str, report_id: str):
     """
-    Update the report status as hidden or show its contents from the samples database
+    Update the report status to hidden or visible for a report in the samples database.
+
+    This function allows an authorized user to change the visibility status of a report (e.g., hide or show)
+    by updating the corresponding entry in the database. The action is determined by the `query_type`
+    parameter in the request. Only users with super user privileges can perform this operation.
     """
     sample_id = ReportController.sample_handler.get_sample_name(id)
     query_type = request.args.get("query_type")
@@ -853,7 +1029,17 @@ def update_report(id: str, report_id: str):
 @login_required
 def delete_negative_report(sample_id: str):
     """
-    Delete the negative report and its contents from the samples database
+    Delete the negative report and its contents from the samples database.
+
+    This function allows a super user to delete the negative report associated with a given sample.
+    It removes the negative report entry from the database and updates the report status.
+    If the user is not authorized, a warning is flashed and the action is not performed.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: Redirects to the sample details page after deletion or if unauthorized.
     """
     _id = request.args.get("_id")
     if current_user.super_user_mode():
@@ -894,7 +1080,16 @@ def delete_negative_report(sample_id: str):
 @login_required
 def delete_results(id: str, sub_id: str):
     """
-    Delete the results for the submissions or all the submission and its contents from the analysis database and samples database
+    Delete the results for a specific submission or all submissions and their associated contents from both the analysis and samples databases.
+
+    This function allows a super user to remove results data for a given sample and submission. It deletes the relevant entries from the databases and updates the report and VQuest status accordingly. If the user is not authorized, a warning is flashed and the action is not performed.
+
+    Args:
+        id (str): The unique identifier of the sample.
+        sub_id (str): The unique identifier of the submission to delete. If deleting all, a special value may be used.
+
+    Returns:
+        Response: Redirects to the sample details page after deletion or if unauthorized.
     """
     sample_id = request.args.get("sample_id")
 
@@ -934,6 +1129,12 @@ def delete_results(id: str, sub_id: str):
 @main_bp.route("/admin/", methods=["GET"])
 @login_required
 def admin():
+    """
+    Render the admin page if the user is an admin.
+
+    Returns:
+        Response: Renders the admin.html template if the user is an admin, otherwise aborts with a 403 error.
+    """
     if current_user.admin():
         return render_template("admin.html")
     else:
