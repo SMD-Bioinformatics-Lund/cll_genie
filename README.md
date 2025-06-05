@@ -20,12 +20,9 @@
 - [Architecture](#architecture)
 - [Workflow](#workflow)
 - [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Testing](#testing)
-- [Contributing](#contributing)
+- [Who Built It?](#who-built-it)
 - [License](#license)
+- [Contact](#contact)
 
 ---
 
