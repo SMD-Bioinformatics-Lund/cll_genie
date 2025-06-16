@@ -61,6 +61,7 @@ else
   if [[ -f "$VERSION_FILE" ]]; then
     fallback_version=$(grep __version__ "$VERSION_FILE" | awk -F'"' '{print $2}')
     export CLL_GENIE_VERSION="$fallback_version"
+    image_name="cll_genie:$CLL_GENIE_VERSION"
     log_info "No Git tags found. Version set from version.py: $CLL_GENIE_VERSION"
   else
     log_error "No Git tags and no version.py found! Exiting."
@@ -68,7 +69,7 @@ else
   fi
 fi
 
-image_name="cll_genie:$CLL_GENIE_VERSION"
+
 
 # -------- Docker Build --------
 log_step "Building Docker image: $image_name"

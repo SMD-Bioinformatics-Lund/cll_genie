@@ -1,5 +1,4 @@
 from flask import current_app as cll_app
-from mongomock import MongoClient
 import pymongo  # type: ignore
 from pymongo.errors import PyMongoError
 from bson.objectid import ObjectId  # type: ignore

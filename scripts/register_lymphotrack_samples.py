@@ -41,19 +41,10 @@ class Config:
     """
 
     _LYMPHOTRACK_ROOT_DIR = "/data/lymphotrack"
-    _DATETIME = datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )  # Define datetime separately
-    _LOG_DIR = (
-        f"{_LYMPHOTRACK_ROOT_DIR}/logs/register_logs"  # Define log directory separately
-    )
+    _DATETIME = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Define datetime separately
+    _LOG_DIR = f"{_LYMPHOTRACK_ROOT_DIR}/logs/register_logs"  # Define log directory separately
     _CONFIG: dict[str, Any] = {
-        "SAMPLESHEET_KEYWORDS": [
-            "lymphotrack",
-            "IGH",
-            "SHM",
-            "LEADER"
-        ],
+        "SAMPLESHEET_KEYWORDS": ["lymphotrack", "IGH", "SHM", "LEADER"],
         "EXCLUDE_SAMPLE_TAGS": ["POS", "NEG", "IGHSHM"],
         "DATETIME": _DATETIME,
         "ROOT_DIR": str(Path(__file__).resolve().parent.parent),
@@ -197,6 +188,9 @@ class CllGenieSampleRegister:
     def __init__(self, config=None, db_collection=None) -> None:
         self.config = config
         self.db_collection = db_collection
+        self.run_folder_pattern: re.Pattern[str] = re.compile(
+            r"^\d{6}_[A-Z]\d{5}_\d{4}_\d{9}-[A-Z0-9]{5}$"
+        )
 
     def register_samples(self):
         runs = self.get_runs_to_register()
@@ -204,14 +198,13 @@ class CllGenieSampleRegister:
             logger.info("No new runs found for lymphotrack samples hunting.")
             return
         else:
-            logger.info(
-                f"Woah.. Found {len(runs)} run(s) for lymphotrack samples hunting."
-            )
+            logger.info(f"Woah.. Found {len(runs)} run(s) for lymphotrack samples hunting.")
 
         for run in runs:
             samplesheet = self.get_samplesheet(run)
             run_stats = self.get_run_stats_file(run)
             samples, instrument_type = self.parse_samplesheet(samplesheet)
+            print(samples)
             demux_stats = self.parse_run_stats(run_stats)
             _stats = demux_stats.get("stats", {})
 
@@ -232,17 +225,13 @@ class CllGenieSampleRegister:
 
             # Register samples in the database
             if samples:
-                logger.info(
-                    f"Found {len(samples)} lymphotract samples in the run: {run}"
-                )
+                logger.info(f"Found {len(samples)} lymphotrack samples in the run: {run}")
                 self.register_samples_in_db(samples, _stats, run_metadata)
-                logging.info(
-                    f"Finished registering samples for run: {run}.. Moving on.\n"
-                )
+                logging.info(f"Finished registering samples for run: {run}.. Moving on.\n")
                 self.finish_run_registration(run)
             else:
                 logger.warning(
-                    f"Ahh.. Skipping.. Found {len(samples)} lymphotract samples in the run: {run}.\n"
+                    f"Ahh.. Skipping.. Found {len(samples)} lymphotrack samples in the run: {run}.\n"
                 )
                 self.finish_run_registration(run)
 
@@ -254,10 +243,10 @@ class CllGenieSampleRegister:
         runs = []
 
         try:
-            root_dir, dirs, _ = next(
-                os.walk(self.config["RUN_ROOT_DIR"])
-            )  # Restrict to one level
+            root_dir, dirs, _ = next(os.walk(self.config["RUN_ROOT_DIR"]))  # Restrict to one level
             for dir_name in dirs:
+                if not self.run_folder_pattern.match(dir_name):
+                    continue
                 dir_path: LiteralString | bytes | str | Any = os.path.join(root_dir, dir_name)
                 rta_file = os.path.join(dir_path, self.config["RTA_FILE"])
                 bjorn_file = os.path.join(dir_path, self.config["BJORN_COMPLETED_FILE"])
@@ -269,9 +258,7 @@ class CllGenieSampleRegister:
                 elif os.path.isfile(rta_file) and os.path.isfile(bjorn_file):
                     runs.append(dir_name)  # Append only folder names
                 else:
-                    logger.warning(
-                        f"Run {dir_name} is missing the required completion files."
-                    )
+                    logger.warning(f"Run {dir_name} is missing the required completion files.")
         except StopIteration:
             logger.debug(f"Could not access {self.config['RUN_ROOT_DIR']}")
 
@@ -279,16 +266,12 @@ class CllGenieSampleRegister:
 
     def get_samplesheet(self, run: str) -> Any | None:
         if run:
-            return os.path.join(
-                self.config["RUN_ROOT_DIR"], run, self.config["SAMPLESHEET_NAME"]
-            )
+            return os.path.join(self.config["RUN_ROOT_DIR"], run, self.config["SAMPLESHEET_NAME"])
         return None
 
     def get_run_stats_file(self, run: str) -> Any | None:
         if run:
-            return os.path.join(
-                self.config["RUN_ROOT_DIR"], run, self.config["RUN_STATS"]
-            )
+            return os.path.join(self.config["RUN_ROOT_DIR"], run, self.config["RUN_STATS"])
         return None
 
     def parse_samplesheet(self, samplesheet: str) -> tuple[List[Dict[str, Any]], str]:
@@ -299,6 +282,7 @@ class CllGenieSampleRegister:
         samples = []
 
         if not os.path.isfile(samplesheet):
+            logger.error(f"Samplesheet file not found: {samplesheet}")
             return samples  # Return early if file doesn't exist
 
         found_header = False
@@ -310,7 +294,7 @@ class CllGenieSampleRegister:
                 if not found_header:
                     if line.startswith("Instrument Type"):
                         instrument_type = line.split(",")[1]
-                    if line.startswith("Sample_ID,Sample_Name"):
+                    if all(key in line for key in ["Sample_ID", "Description", "I7_Index_ID"]):
                         header = line.strip()
                         found_header = True
                 else:
@@ -326,7 +310,6 @@ class CllGenieSampleRegister:
 
         sample_dict = {}
 
-        # sample_id_pattern = r"\d{2}[A-Z]{2}\d{5}-?.*$"  # 00MD00000-SHM
         sample_id_pattern = r"\d{2}[A-Z]{2}\d{5}-SHM"  # 00MD00000-SHM
 
         # Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Description
@@ -366,11 +349,11 @@ class CllGenieSampleRegister:
                     if sample_id not in _data["stats"]:
                         _data["stats"][sample_id] = {}
 
-                    _data["stats"][sample_id]['TRR'] = _data["stats"][sample_id].get(
-                        'TRR', 0
+                    _data["stats"][sample_id]["TRR"] = _data["stats"][sample_id].get(
+                        "TRR", 0
                     ) + sample_stats.get("NumberReads", 0)
-                    _data["stats"][sample_id]['TRB'] = _data["stats"][sample_id].get(
-                        'TRB', 0
+                    _data["stats"][sample_id]["TRB"] = _data["stats"][sample_id].get(
+                        "TRB", 0
                     ) + sample_stats.get("Yield", 0)
         return _data
 
@@ -412,6 +395,7 @@ class CllGenieSampleRegister:
             "total_bases": "",
             "q30_bases": "",
             "q30_per": "",
+            "date_added": datetime.datetime.utcnow(),
         }
 
         # return sample_obj.update(run_metadata)
@@ -428,9 +412,7 @@ class CllGenieSampleRegister:
         if existing_sample:
             if overwrite:
                 logger.warning(f"Sample {sample_id} already exists in the database.")
-                logger.info(
-                    f"Dont worry.. overriding and updating the sample {sample_id}."
-                )
+                logger.info(f"Dont worry.. overriding and updating the sample {sample_id}.")
                 result = self.db_collection.update_one(
                     {"name": sample_id}, {"$set": sample_obj}, upsert=True
                 )
@@ -458,7 +440,7 @@ class CllGenieSampleRegister:
         completion_file = os.path.join(
             self.config["RUN_ROOT_DIR"], run, self.config["CLL_GENIE_COMPLETED_FILE"]
         )
-        Path(completion_file).touch()
+        touch_file(completion_file)
 
 
 class CllGenieAddLymphotrackResults:
@@ -490,9 +472,7 @@ class CllGenieAddLymphotrackResults:
             logger.info("No sample needs Lymphotrack results update.")
             return
         else:
-            logger.info(
-                f"{len(list(samples))} samples found without Lymphotrack results."
-            )
+            logger.info(f"{len(list(samples))} samples found without Lymphotrack results.")
         files_on_disk = self.get_lymphotrack_results_on_disk(deepcopy(samples))
 
     def get_samples_without_lymphotrack_results(self):
@@ -519,9 +499,7 @@ class CllGenieAddLymphotrackResults:
         for sample in samples:
             sample_id = sample.get("name")
             logging.info(f"Gathering Lymphotrack results for sample: {sample_id}")
-            excel_file = next(
-                (f for f in lymphotrack_files["excel"] if sample_id in f), None
-            )
+            excel_file = next((f for f in lymphotrack_files["excel"] if sample_id in f), None)
             qc_file = next((f for f in lymphotrack_files["qc"] if sample_id in f), None)
             logging.debug(f"Found Excel file: {excel_file}")
 
@@ -535,7 +513,7 @@ class CllGenieAddLymphotrackResults:
                         }
                     },
                 )
-                Path(excel_file + ".added").touch()
+                touch_file(excel_file)
                 logging.info(f"Found Excel file and is added for sample: {sample_id}")
             else:
                 logging.warning(f"No Excel file found for sample: {sample_id}")
@@ -554,7 +532,7 @@ class CllGenieAddLymphotrackResults:
                         }
                     },
                 )
-                Path(qc_file + ".added").touch()
+                touch_file(qc_file)
                 logging.info(f"Found QC file and is added for sample: {sample_id}")
             else:
                 logging.warning(f"No QC file found for sample: {sample_id}")
@@ -573,6 +551,23 @@ class CllGenieAddLymphotrackResults:
                 )
 
         return stats
+
+
+def touch_file(file_path: str):
+    """
+    Create an empty file at the specified path if it does not already exist.
+    """
+    try:
+        Path(file_path + ".added").touch()
+    except PermissionError as e:
+        logging.warning(f"Permission denied: {e}. Attempting to fix folder permissions...")
+
+        # Fix folder permissions to rwx for user and rx for group/others
+        os.chmod(os.path.dirname(file_path), 0o755)
+
+        # Retry writing to file
+        Path(file_path + ".added").touch()
+        logging.info("Folder permissions fixed. File written successfully.")
 
 
 # Argument Parser
@@ -721,6 +716,7 @@ def get_root_logger(level="INFO", log_file=None) -> logging.Logger:
             logger.addHandler(file_handler)
 
     return logger
+
 
 def get_time_now():
     """

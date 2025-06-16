@@ -18,15 +18,11 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi.py
       - FLASK_DEBUG=1
-      - SCRIPT_NAME=''
+      - SCRIPT_NAME=""
     env_file:
       - .env
     restart: always
     volumes:
-      - "./cll_genie:/cll_genie/cll_genie"
-      - "./wsgi.py:/cll_genie/wsgi.py"
-      - "./config.py:/cll_genie/config.py"
-      - "./version.py:/cll_genie/version.py"
       - "/data/lymphotrack/cll_results/:/cll_genie/results/"
       - "/data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/"
       - "/data/lymphotrack/logs:/cll_genie/logs"

@@ -28,6 +28,7 @@ class Config:
     Environment-specific configurations can inherit from this class and override
     specific attributes.
     """
+
     # Application-wide settings
     DEBUG = False
     TESTING = False
@@ -55,13 +56,11 @@ class Config:
 
     # Results and analysis settings
     ANALYSIS_OUTDIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_analysis"
+        os.path.dirname(os.path.abspath(__file__)), "results", "saved_cll_analysis"
     )
     REPORT_OUTDIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_reports"
+        os.path.dirname(os.path.abspath(__file__)), "results", "saved_cll_reports"
     )
-
-    # REPORT_OUTDIR = "/data/bnf/dev/ram/Pipelines/Web_Developement/cll_genie/results/saved_cll_reports"
 
     # PDF Report related settings and variables
     PDF_ANALYSIS_RUN_AT = "Centrum för molekylär diagnostik (CMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
@@ -104,6 +103,7 @@ class ProductionConfig(Config):
     This class inherits from the base `Config` class and overrides settings
     specific to the production environment.
     """
+
     LOG_FILE = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_prod.log"
     )
@@ -125,11 +125,10 @@ class DevelopmentConfig(Config):
     This class inherits from the base `Config` class and overrides settings
     specific to the development environment.
     """
+
     DEBUG = True
     SECRET_KEY = "secretkeynotsodisguised"
-    LOG_FILE = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_dev.log"
-    )
+    LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_dev.log")
     LOG_LEVEL = "DEBUG"
 
 
@@ -140,6 +139,7 @@ class TestConfig(Config):
     This class inherits from the base `Config` class and overrides settings
     specific to the testing environment.
     """
+
     MONGO_URI = None
     TESTING = True
     SECRET_KEY = "rollercosterappdevelopment"
