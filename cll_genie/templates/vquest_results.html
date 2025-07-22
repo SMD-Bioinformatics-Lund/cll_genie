@@ -1,0 +1,368 @@
+{% extends "base.html" %} {% block title %}CLL Results{% endblock %} 
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/disable_refresh_back_nav.js') }}"></script>
+<script>
+  function reloadWindow() {
+    // Reload the window when the "Save Comment" button is clicked
+    window.location.reload();
+  }
+</script>
+<script>
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    document.getElementById("report_summary").value = targ.textContent || targ.innerText;
+  };
+</script>
+{% endblock %}
+{% block body %}
+<div id="report">
+  <center>
+    <h2>Chronic Lymphocytic Leukemia (CLL) Analysis Results</h2>
+    <br />
+  </center>
+  <div id="parameters">
+    <table class="report_table" border='1'>
+      <thead>
+        <tr>
+          <th colspan="2">Sample & Database Information</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td width='50%'><b>Sample ID</b></td>
+          <td><i>{{ sample_id }}</i></td>
+        </tr>
+        {% if results_parameters is not none %}
+          {% for parameter_key, parameter_value in results_parameters.items() %}
+          <tr>
+            <td><b>{{ parameter_key }}</b></td>
+            <td><i>{{ parameter_value }}</i></td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <td><b>Submission ID</b></td>
+            <td><i>{{ submission_id }}</i></td>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <div id='summary_text'>
+    <br /><hr>
+    <center><h2>IMGT/V-QUEST Results Summary</h2></center>
+    <br />
+    {% if results_summary is not none %}
+      {% set seq_count = 1 %}
+      {% for seq_id, seq_value in results_summary.items() %} 
+        {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
+        {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
+        {% set seq_name = seq_id.split('_')[0] %}
+        </p></br />
+        <div id='summary_table'>     
+          <table class="report_table" border='1'>
+            <thead>
+              <tr>
+                <th colspan="4">Summary table for Sequence Id: <i>{{ seq_id }}</i></th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td style="width:25%"><b>Sequence Id</b></td>
+              <td style="width:25%">
+                <i>{{ seq_name }}</i>
+              </td>
+              <td style="width:25%"><b>Cll Subset</b></td>
+              <td style="background-color: #FFFFE0">
+              {% if seq_value['CLL subset'] is not none %}
+                <i><a href="https://www.imgt.org/IMGT_vquest/user_guide#afunccll" target="_blank">{{ seq_value['CLL subset'] }}</i>
+              {% else %}
+                <i>-</i>
+              {% endif %}
+            </tr>
+            <tr>
+              <td style="width:25%"><b>Sequence Merging Count</b></td>
+              <td style="width:25%">
+                {{ seq_value['Merge Count']}}
+              </td>
+              <td style="width:25%"><b>Sequence Merging Percentage</b></td>
+              <td style="width:25%">
+                {{ seq_value['Total Reads Per']}}%
+              </td>
+            </tr>
+            <tr>
+              <td style="width:25%"><b>Sequence length</b></td>
+              <td style="width:25%">
+                {{ seq_value['Analysed sequence length']}}
+              </td>
+              <td style="width:25%"><b>Analysis category</b></td>
+              <td style="width:25%">
+                {{ seq_value['Sequence analysis category'] }}
+              </td>
+            </tr>
+            {% if seq_value['V-REGION potential ins/del'] is not none %}
+              <tr>
+                <td style="width:25%"><b>V-REGION potential ins/del</b></td>
+                <td colspan="3">
+                  {{ seq_value['V-REGION potential ins/del']|safe }}
+                </td>
+              </tr>
+            {% endif %}
+            {% if v_indel_identity_per is not none %}
+              <tr>
+                <td><b>Indel Summary</b></td>
+                <td colspan="3" style="background-color: #FFFFE0">
+                  {% if seq_value['V-REGION insertions'] is not none %}
+                    Nucleotide insertions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+                    <i>{{ seq_value['V-REGION insertions'] }}</i>
+                  {% elif seq_value['V-REGION deletions'] is not none %}
+                    Nucleotide deletions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+                    <i>{{ seq_value['V-REGION deletions'] }}</i>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <td><b>V-Domain functionality after removal of Indels</b></td>
+                <td colspan="3" style="text-align: center; background-color: #FFFFE0" >
+                  {{ seq_value['V-DOMAIN Functionality'] }}<br />
+                </td>
+              </tr>
+            {% elif v_indel_identity_per is none %}
+              <tr><td><b>V-Domain functionality</b></td>
+              <td colspan="3" style="background-color: #FFFFE0">
+                {{ seq_value['V-DOMAIN Functionality'] }}
+              </td></tr>
+            {% endif %}
+            {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
+              <tr>
+                <td><b>Comment</b></td>
+                <td colspan="3" style="background-color: #FFFFE0">
+                  {{ seq_value['V-DOMAIN Functionality comment'] }}
+                </td>
+              </tr>
+            {% endif %}
+            </tr>
+            <tr>
+              <td><b>V-Gene and Allele</b></td>
+              <td>{{ seq_value['V-GENE and allele'] }}</td>
+              <td><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
+              {% if v_indel_identity_per is not none %}
+              <td style="background-color: #FFFFE0">
+                <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
+                v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
+              </td>
+              {% elif v_indel_identity_per is none %}
+              <td style="background-color: #FFFFE0">
+                <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
+              </td>
+              {% endif %}
+            </tr>
+            <tr>
+              <td><b>J-Gene and allele</b></td>
+              <td>{{ seq_value['J-GENE and allele'] }}</td>
+              <td><b>Score:</b> {{ seq_value['J-REGION score'] }}</td>
+              <td>
+                <b>Indentiy:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})
+              </td>
+            </tr>
+            <tr>
+              <td><b>D-Gene and allele through IMGT/JunctionAnalysis</b></td>
+              <td>{{ seq_value['D-GENE and allele'] }}</td>
+              <td colspan="2">
+                <b>D-REGION</b> is in reading frame {{ seq_value['D-REGION reading frame'] }}
+              </td>
+            </tr>
+            <tr>
+              <td><b>FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</b></td>
+              <td>{{ seq_value['FR-IMGT lengths'] }}</td>
+              <td>[{{ seq_value['CDR-IMGT lengths'] }}]</td>
+              <td>{{ seq_value['AA JUNCTION'] }}</td>
+            </tr>
+            <tr>
+              <td><b>JUNCTION length (in nt) and decryption<b></td>
+              <td>{{ seq_value['JUNCTION-nt nb'] }} nt = {{ seq_value['JUNCTION decryption'] }}</td>
+              <td colspan="2">
+                <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank ">(3'V)3'{N1}5'(D)3'{N2}5'(5'J)</a>
+              </td>
+            </tr>
+          </tbody>
+        </table><br />
+        </div>
+        <br /> 
+        <hr>
+        {% set seq_count = seq_count + 1 %}
+        {% endfor %}
+    {% else %}
+      <p style="color: red; text-align:justify">&ensp;&ensp;After the initial filtration process, no potential merged sequences remained. Due to this, the data was not submitted to the IMGT server, resulting in the absence of any Vquest results.</p><br>
+    {% endif %}
+      <!-- Delete this section later -->
+      <center><h2 id="analysis_comments">Analysis Comments</h2></center>
+      <div id='analysis_comments_table'>     
+        <table border='1' style="width: 100%">
+          <thead>
+            <tr>
+              <th width="10%">Who</th>
+              <th width="80%">Comment</th>
+              <th width="10%">Hide/Unhide</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if results_comments is not none %}
+
+            {% for comment in results_comments|sort(attribute='time_created', reverse=True) %}
+
+              {% if comment.hidden %}
+                <tr class="hidden-comment" style="background-color: #CC6677">
+              {% else %}
+                <tr>
+              {% endif %}
+
+              {% if not comment.hidden %}
+                <td>{{ comment.author }}<br>{{ comment.time_created|human_date }}</td>
+                <td style="white-space: normal" onclick='addText(event)'>{{ comment.text|format_comment|safe }}</td>
+                <td style="white-space: normal"><a href="{{ url_for('main_bp.update_comment_status', sample_id=sample_id, submission_id=submission_id, comment_id=comment.id, _id=_id, query_type='hide', _type='update_comment') }}" onclick="reloadWindow()"><img height=35 src="{{ url_for('static', filename='icons/delete-96.png') }}"></a></td>
+              {% elif comment.hidden and current_user.super_user_mode() %}
+                <td>{{ comment.author }}<br>{{ comment.time_created|human_date }}</td>
+                <td style="white-space: normal" onclick='showHiddenWarning()'>{{ comment.text|format_comment|safe }}</td>
+                <td><a href="{{ url_for('main_bp.update_comment_status', sample_id=sample_id, submission_id=submission_id, comment_id=comment.id, _id=_id, query_type='unhide', _type='update_comment') }}" onclick="reloadWindow()"><img height=35 src="{{ url_for('static', filename='icons/view-96.png') }}"></a></td>
+              {% endif %}
+              </tr>
+            {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+        {% if results_comments is not none %}
+        {% if results_comments|length > 0 %}
+        <a href="#" id="showAllCommentsLink">Show All Comments</a>
+        <a href="#" id="hideAllCommentsLink">Hide All Comments</a>
+        {% elif results_comments|length > 0 and results_comments|selectattr('hidden', 'equalto', false)|length > 0 %}
+        <a href="#" id="hideAllCommentsLink">Hide All Comments</a>
+        {% endif %}
+        {% endif %}
+      </div>      
+      <hr> 
+  </div>
+</div>
+
+<div>
+  <form method="POST" action="{{ url_for('main_bp.cll_report', sample_id=sample_id, submission_id=submission_id, _id=_id) }}" enctype="multipart/form-data" id="cll_report" name="cll_report">  
+    <input type="hidden" name="sample_id" value="{{ sample_id }}">
+    <input type="hidden" name="_id" value="{{ _id }}">
+    <br><label for="report_summary"><center><h2>Analysis Summary</h2></center></label><br>
+    <textarea style="resize: vertical; width: 100%; height: 180px; white-space: pre-line; text-align:justify" id="report_summary" name="report_summary" rows="80" placeholder="Add summary here...">{{ report_summary }}</textarea>
+    <br>
+    <div class="button-container">
+      <button type="submit" name="_type" value="save_comment" id="save_comment" onclick="saveComment()">
+          <p style="font-size: 8pt"><b>Save Comment</b></p>
+      </button>
+      <button type="button" name="_type" value="suggest" id="suggest">
+          <p style="font-size: 8pt"><b>Suggest</b></p>
+      </button>
+  </div><br>
+  <br>
+    <table style="width: 100%">
+      <tr>
+        <td width="50%" align="center">
+          <button type="submit" name="_type" id="preview" value="preview"><p style="font-size: 8pt"><b>Preview Report</b></p>
+          </button>
+        </td>
+        <td width="50%" align="center">
+          <button type="submit" name="_type" id="export" value="export" onclick="showConfirmationDialog()"><p style="font-size: 8pt"><b>Finalize Report</b></p>
+          </button>
+        </td>
+      </tr>
+    </table>
+  </form>
+</div>
+
+
+<script>
+  function showConfirmationDialog() {
+    if (confirm('Is QC ok for {{sample_id}}?')) {
+      // If the user confirms, submit the form
+      document.getElementById('export').submit();
+    } else {
+      // If the user cancels, do nothing
+      event.preventDefault();
+    }
+  }
+
+  function showHiddenWarning() {
+    alert('This comment is hidden, cannot add to the report.')
+  }
+
+  function saveComment() {
+    // Set the form's action attribute to the different URL
+    document.getElementById('cll_report').action = "{{ url_for('main_bp.save_comment', sample_id=sample_id, submission_id=submission_id, _id=_id ) }}";
+    // Submit the form
+    document.getElementById('cll_report').submit();
+  }
+
+  function updateComment() {
+    // Set the form's action attribute to the different URL
+    document.getElementById('cll_report').action = "{{ url_for('main_bp.update_comment_status', sample_id=sample_id, submission_id=submission_id, _id=_id ) }}";
+    // Submit the form
+    document.getElementById('cll_report').submit();
+  }
+
+  // Report comment
+  $(document).ready(function () {
+    $("#suggest").click(function () {
+      // Make an AJAX request to the Flask route
+      $.post(
+        "{{ url_for('main_bp.suggest_comment', id=_id, submission_id=submission_id) }}",
+        function (data) {
+          // Update the textarea with the suggested text
+          var suggestedText = data.suggested_text;
+          $("#report_summary").val(function (_, currentValue) {
+            // return currentValue + "\n" + suggestedText;
+            return suggestedText;
+          });
+        }
+      );
+    });
+  });
+  
+
+  // Comments display
+  $(document).ready(function () {
+    // Initially hide all comments beyond the latest two in analysis_comments_table
+    $("#analysis_comments_table tr:gt(1)").hide();
+
+    // Function to show all comments in analysis_comments_table
+    function showAllComments() {
+      $("#analysis_comments_table tr").show();
+      $("#showAllCommentsLink").hide();
+      $("#hideAllCommentsLink").show();
+    }
+
+    // Function to hide all comments beyond the latest two in analysis_comments_table
+    function hideAllComments() {
+      $("#analysis_comments_table tr:gt(1)").hide();
+      $("#showAllCommentsLink").show();
+      $("#hideAllCommentsLink").hide();
+    }
+
+    // Handle the "Show All Comments" link
+    $("#showAllCommentsLink").click(function (e) {
+      e.preventDefault(); // Prevent the link from navigating
+      showAllComments();
+    });
+
+    // Handle the "Hide All Comments" link
+    $("#hideAllCommentsLink").click(function (e) {
+      e.preventDefault(); // Prevent the link from navigating
+      hideAllComments();
+    });
+
+    // Show all comments if there are less than or equal to 2 unhidden comments
+    if ($("#analysis_comments_table tr:not(.hidden-comment)").length <= 1) {
+      showAllComments();
+    }
+  });
+
+  
+
+</script>
+
+{% endblock %}
+
+

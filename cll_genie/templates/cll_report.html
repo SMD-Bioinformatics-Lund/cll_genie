@@ -1,0 +1,247 @@
+{% extends "report_base.html" %} {% block body %}
+
+{% if preview %}
+<div style="background-color:#FCC; border:1px solid #EAA; width:600px; text-align:center; padding:20px; margin:10px 10px 30px 10px;">
+  <b>*** PREVIEW OF REPORT ***</b><br><br>
+</div>
+{% endif %}
+
+<span class="report_header">Analysrapport, IGHV-mutationsanalys - {{sample_id}}</span>
+<br>
+
+<div class="report_div">
+  <table class='report_general'> 
+    <tr>
+      <td class="report_key">Patientnamn</td><td class="report_val">&lt;PATIENT_NAME&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Personnummer</td><td class="report_val">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Prov-ID</td><td class="report_val">{{ sample_id }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Registreringsdatum</td><td class="report_val">&lt;REGISTRATION_DATE&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Provtyp</td><td class="report_val">&lt;SAMPLE_TYPE&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Frågeställning</td><td class="report_val">IGHV mutationsanalys</td>
+    </tr>
+    <tr>
+      <td class="report_key">Analysmetod</td><td class="report_val">LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande analys i IMGT/VQUEST</td>
+    </tr>
+    <tr>
+      <td class="report_key">Analys genomförd av</td><td class="report_val">{{ config['PDF_ANALYSIS_RUN_AT'] }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapportdatum</td><td class="report_val">{{ report_date }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapport skapad av</td><td class="report_val">{{ current_user.get_fullname() }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapport-ID</td><td class="report_val">{{ report_id }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapportversion</td><td class="report_val">{{ config['APP_VERSION'] }}</td>
+    </tr>
+  </table>
+</div>
+
+
+<!--  Variant Summary -->
+{% if results_summary is not none %}
+  <span class="report_header">Analysresultat</span>
+  <table class="variant_table">
+    <tr>
+      <th>SekvensID</th>
+      <th>Sekvenslängd</th>
+      <th>V-gen Identitet</th>
+      <th>IGHV-mutationsstatus</th>
+      <th>CLL Subset</th>
+    </tr>
+    {% for seq_id, seq_value in results_summary.items() %} 
+      {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
+      {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
+      {% set seq_name = seq_id.split('_')[0] %}
+        <tr>
+          <td>{{ seq_name }}</td>
+          <td>{{ seq_value['Analysed sequence length'] }}</td>
+          <td>
+            {% if v_indel_identity_per is not none %}
+              {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
+            {% elif v_indel_identity_per is none %}
+              {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
+            {% endif %}
+          </td>
+          <td>
+            {{ mutation_status[seq_id] }}
+          </td>
+          <td>
+            {% if seq_value['CLL subset'] is not none %}
+              <a href="https://www.imgt.org/IMGT_vquest/user_guide#afunccll" target="_blank">{{ seq_value['CLL subset'] }}</a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
+    {% else %}
+        <tr>
+          <td>Inga detekterade varianter</td>
+        </tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+
+<span class="report_header">Slutsats</span>
+<div class="conclusion">
+  <div class="results_summary">
+    {% if report_summary|length > 0 %}
+      {{ report_summary|replace('\n', '<br>')|safe }}
+    {% else %}
+      Slutsats saknas!
+    {% endif %}
+  </div>
+</div>
+
+<p style="page-break-before: always;"></p>
+<br>
+
+{% if results_summary is not none %}
+  <span class="report_header">Detaljerade Analysresultat</span>
+    {% set seq_count = 1 %}
+    {% for seq_id, seq_value in results_summary.items() %} 
+      <div class="report_div" style="page-break-inside:avoid;">
+        {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
+        {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
+        {% set seq_name = seq_id.split('_')[0] %}
+        <table class="report_variant">
+          <tr>
+            <th class="report_variant_header" colspan="5">
+              <center>
+                <span class="report_variant_header">{{ seq_name }} - {{ seq_value['Analysed sequence length'] }} nt ({{ mutation_status[seq_id] }})</span>
+              </center>
+            </th>
+          </tr>
+          <tr>
+            <td class="report_key">
+              Seq ID
+            </td>
+            <td class="var_report_val">
+              {{ seq_name }}
+            </td>
+            <td class="report_key">
+              CLL Subset
+            </td>
+            <td class="var_report_val" style="background-color: #FFFFE0">
+              {% if seq_value['CLL subset'] is not none %}
+                <i><a href="https://www.imgt.org/IMGT_vquest/user_guide#afunccll" target="_blank">{{ seq_value['CLL subset'] }}</i>
+              {% else %}
+                <i>-</i>
+              {% endif %}
+            </td>
+            <td class="var_report_val" style="background-color: #FFFFE0">
+              <b>Sekvensanalyskategori: </b> {{ seq_value['Sequence analysis category'] }}
+            </td>
+          </tr>
+          {% if v_indel_identity_per is not none %}
+            <tr>
+              <td class="report_key" colspan="1">Indel Summary</td>
+              <td class="var_report_val" colspan="4" style="background-color: #FFFFE0">
+                {% if seq_value['V-REGION insertions'] is not none %}
+                  Nucleotide insertions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+                  <i>{{ seq_value['V-REGION insertions'] }}</i>
+                {% elif seq_value['V-REGION deletions'] is not none %}
+                  Nucleotide deletions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+                  <i>{{ seq_value['V-REGION deletions'] }}</i>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td class="report_key" colspan="2">V-Domain functionality after removal of Indels</td>
+              <td class="var_report_val" colspan="3" style="text-align: center; background-color: #FFFFE0" >
+                {{ seq_value['V-DOMAIN Functionality'] }}<br />
+              </td>
+            </tr>
+          {% elif v_indel_identity_per is none %}
+            <tr><td class="report_key" colspan="2">V-Domain functionality</td>
+            <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
+              {{ seq_value['V-DOMAIN Functionality'] }}
+            </td></tr>
+          {% endif %}
+          {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
+            <tr>
+              <td class="report_key" colspan="1">Comment</td>
+              <td class="var_report_val" colspan="4" style="background-color: #FFFFE0">
+                {{ seq_value['V-DOMAIN Functionality comment'] }}
+              </td>
+            </tr>
+          {% endif %}
+          <tr>
+            <td class="report_key" colspan="1">V-GENE and allele</td>
+            <td class="var_report_val" >{{ seq_value['V-GENE and allele'] }}</td>
+            <td class="var_report_val"><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
+            {% if v_indel_identity_per is not none %}
+              <td class="var_report_val" colspan="2" style="background-color: #FFFFE0">
+                <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
+                v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
+              </td>
+            {% elif v_indel_identity_per is none %}
+              <td class="var_report_val" colspan="2" style="background-color: #FFFFE0">
+                <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
+              </td>
+            {% endif %}
+          </tr>
+          <tr>
+            <td class="report_key" colspan="1">J GENE and allele</td>
+            <td class="var_report_val">{{ seq_value['J-GENE and allele'] }}</td>
+            <td class="var_report_val"><b>Score:</b> {{ seq_value['J-REGION score'] }}</td>
+            <td class="var_report_val" colspan="2">
+              <b>Identity:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})
+            </td>
+          </tr>
+          <tr>
+            <td class="report_key" colspan="3">D-GEN and allele by IMGT/JunctionAnalysis</td>
+            <td class="var_report_val">{{ seq_value['D-GENE and allele'] }}</td>
+            <td class="var_report_val">
+              <b>D-REGION</b> is in reading frame {{ seq_value['D-REGION reading frame'] }}
+            </td>
+          </tr>
+          <tr>
+            <td class="report_key" colspan="2">FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</td>
+            <td class="var_report_val">{{ seq_value['FR-IMGT lengths'] }}</td>
+            <td class="var_report_val">[{{ seq_value['CDR-IMGT lengths'] }}]</td>
+            <td class="var_report_val">{{ seq_value['AA JUNCTION'] }}</td>
+          </tr>
+          <tr>
+            <td class="report_key" colspan="2">JUNCTION length (in nt) and decryption</td>
+            <td class="var_report_val" colspan="2">{{ seq_value['JUNCTION-nt nb'] }} nt = {{ seq_value['JUNCTION decryption'] }}</td>
+            <td class="var_report_val">
+              <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank ">(3'V)3'{N1}5'(D)3'{N2}5'(5'J)</a>
+            </td>
+          </tr>
+        </table>
+        {% set seq_count = seq_count + 1 %} 
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="report_div">
+  <span class="report_header" style="padding-left: 15px">Analysbeskrivning</span>
+  <div class="analysis_description">
+    DNA har extraherats från insänt prov (färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS) på Illuminas MiSeq system (läslängd: 2x301 bp). Sekvensanalysen omfattar LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) och klonalitetsanalys i mjukvaruprogrammet LymphoTrack Dx Software. Efterföljande analys av funktionell klonal sekvens (dvs ett produktivt rearrangemang utan stoppkodon och läsramsförskjutning) utförs i CLL Genie via databasen <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>[2] och avser detektion av funktionellt IGH-varaible-diversity-joining (V-D-J) rearrangemang IGHV-mutationsstatus samt subsettillhörighet. I de fall då den klonala sekvensen inkluderar en indel gäller den första angivna frekvensen för identitet mot IGHV-genen för mutationsstatus i tabellen från <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> vilken anges i svaret. I de fall då den klonala IGHV-gensekvensen avviker från germline-sekvensen i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (<98% identitet) bedöms den vara hypermuterad (M-CLL). Om den analyserade sekvensen däremot har ≥98% identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99% identitet mot referenssekvenserna i IMGT/V-QUEST. I de fall där flera klonala sekvenser analyseras, bestäms mutationsstatus utifrån den sammanslagna bedömningen av de analyserade sekvenserna. Identifiering av subsettillhörighet till subset #2 och #8 görs genom analys av den klonala IGH-genes struktur mot fördefinierad subsetinformation i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. Analysen utförs och svaras ut enligt rekommendationer från ERIC (European Research Initiative on CLL)[3].<br><br>
+
+    <p>
+      <b>Referenser</b>
+    <p>
+    [1] Nationellt vårdprogram kronisk lymfatisk leukemi, KLL - RCC Kunskapsbanken (cancercentrum.se)<br><br>
+    [2] Brochet X, Lefranc MP, Giudicelli V. IMGT/V-QUEST: the highly customized and integrated system for IG and TR standardized V-J and V-D-J sequence analysis. Nucleic Acids Res. 2008;36(Web Server issue):W503-W508.<br><br>
+    [3] Agathangelidis A, Chatzidimitriou A, Chatzikonstantinou T, et al. Immunoglobulin gene sequence analysis in chronic lymphocytic leukemia: the 2022 update of the recommendations by ERIC, the European Research Initiative on CLL Leukemia. 2022;36(8):1961-1968.
+  </div>
+</div>
+{% endblock %}
+

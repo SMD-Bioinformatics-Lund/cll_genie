@@ -1,0 +1,9 @@
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[pycodestyle]
+max-line-length=100
+
+[flake8]
+max-line-length=100
