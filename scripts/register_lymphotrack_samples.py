@@ -489,10 +489,12 @@ class CllGenieAddLymphotrackResults:
         lymphotrack_files = {"excel": [], "qc": []}
         for root, _, files in os.walk(self.config["LYMPHOTRACK_ROOT_DIR"]):
             for file in files:
-                if file.endswith(".xlsm") and not os.path.isfile(f"{file}.added"):
+                if (file.endswith(".xlsm") or file.endswith(".xlsx") or file.endswith(".xls")) and not os.path.isfile(
+                    os.path.join(root, f"{file}.added")
+                ):
                     lymphotrack_files["excel"].append(os.path.join(root, file))
-                elif file.endswith(".fastq_indexQ30.tsv") and not file.endswith(
-                    ".fastq_indexQ30.tsv.added"
+                elif file.endswith(".fastq_indexQ30.tsv") and not os.path.isfile(
+                    os.path.join(root, f"{file}.added")
                 ):
                     lymphotrack_files["qc"].append(os.path.join(root, file))
 

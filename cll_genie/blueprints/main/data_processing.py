@@ -18,6 +18,7 @@ class ProcessExcel:
         input_format (str): The file format of the input file.
         valid_format (bool): True if the input file format is valid, False otherwise.
     """
+
     def __init__(
         self,
         file,
@@ -92,8 +93,18 @@ class ProcessExcel:
 
         try:
             if df_no_meta is not None:
-                # Convert numeric columns to numeric data types
 
+                # Convert the columns to numeric from comma separated to dot separated
+                columns_to_covert: list[str] = [
+                    "% total reads",
+                    "Cumulative %",
+                    "Mutation rate to partial V-gene (%)",
+                    "V-coverage",
+                ]
+                for col in columns_to_covert:
+                    df_no_meta[col] = df_no_meta[col].astype(str).str.replace(",", ".", regex=False)
+
+                # Convert numeric columns to numeric data types
                 columns_to_numeric = [
                     "Rank",
                     "Length",
@@ -103,6 +114,7 @@ class ProcessExcel:
                     "Mutation rate to partial V-gene (%)",
                     "V-coverage",
                 ]
+
                 for col in columns_to_numeric:
                     df_no_meta[col] = pd.to_numeric(df_no_meta[col], errors="coerce")
 
