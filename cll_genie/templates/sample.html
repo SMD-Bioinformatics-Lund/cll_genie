@@ -14,8 +14,20 @@
         <td>Clarity Id</td>
         <td>{{ sample.clarity_id }}</td>
     </tr><tr>
+        <td>Control</td>
+        <td>
+            {% if sample.is_control %}
+                Yes
+            {% else %}
+                No
+            {% endif %}
+        </td>
+    </tr><tr>
         <td>Run Id</td>
         <td>{{ sample.run_id }}</td>
+    </tr><tr>
+        <td>Run Number</td>
+        <td>{{ sample.run_number }}</td>
     </tr><tr>
         <td>Sequencer Type</td>
         <td>{{ sample.sequencer }}</td>

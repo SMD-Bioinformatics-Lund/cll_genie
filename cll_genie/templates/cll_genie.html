@@ -14,6 +14,8 @@
       <col class="date_added" />
       <col class="sample_name" />
       <col class="clarity_id" />
+      <col class="is_control" />
+      <col class="run_number" />
       <col class="assay" />
       <col class="get_sequences" />
       <col class="lymphotrack_qc" />
@@ -26,6 +28,8 @@
     <th>Date</th>
     <th>Sample ID</th>
     <th>Clarity ID</th>
+    <th>Control</th>
+    <th>Run Number</th>
     <th>Data Availability</th>
     <th>Analysis</th>
     <th>Results</th>
@@ -50,6 +54,7 @@
               <tr>
                 <th>Date</th>
                 <th>Sample ID</th>
+                <th>Run Number</th>
                 <th>Clarity ID</th>
                 <th>Assay</th>
               </tr>
@@ -57,6 +62,7 @@
               <tr>
                 <td>{{row.date_added}}</td>
                 <td>{{row.name}}</td>
+                <td>{{row.run_number}}</td>
                 <td>{{row.clarity_id}}</td>
                 <td>{{row.assay}}</td>
               </tr>
@@ -67,6 +73,20 @@
         {% endif %}
       </td>
       <td>{{sample.clarity_id}}</td>
+      <td>
+        {% if sample.is_control %}
+          Yes
+        {% else %}
+          No
+        {% endif %}
+      </td>
+      <td>
+        {% if sample.run_number %}
+          {{sample.run_number}}
+        {% else %}
+          Not Available
+        {% endif %}
+      </td>
       <td>
         {% if sample.lymphotrack_excel and sample.lymphotrack_qc %}
         <img height=20  src="{{ url_for('static', filename='icons/excel-96.png') }}">, &nbsp;&nbsp;&nbsp;&nbsp;<img height=25  src="{{ url_for('static', filename='icons/text-96.png') }}">
@@ -103,6 +123,8 @@
       <th>Date</th>
       <th>Sample ID</th>
       <th>Clarity ID</th>
+      <th>Control</th>
+      <th>Run Number</th>
       <th>Analysis</th>
       <th>View Report</th>
       <th>Report Status</th>
@@ -112,6 +134,20 @@
         <td>{{sample.date_added.strftime('%Y-%m-%d')}}</td>
         <td><a href="{{ url_for('main_bp.sample', sample_id = sample.name, _id=sample._id) }}">{{sample.name}}</a></td>
         <td>{{sample.clarity_id}}</td>
+        <td>
+          {% if sample.is_control %}
+            Yes
+          {% else %}
+            No
+          {% endif %}
+        </td>
+        <td>
+          {% if sample.run_number %}
+            {{sample.run_number}}
+          {% else %}
+            Not Available
+          {% endif %}
+        </td>
         <td>        
           {% if sample.vquest %}
           <a style="display: flex; align-items: center;"  href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}" > Re-Run &nbsp;<img height=20 src="{{ url_for('static', filename='icons/restart-96.png') }}"></a>
