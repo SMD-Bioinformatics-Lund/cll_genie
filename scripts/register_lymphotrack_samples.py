@@ -45,7 +45,8 @@ class Config:
     _LOG_DIR = f"{_LYMPHOTRACK_ROOT_DIR}/logs/register_logs"  # Define log directory separately
     _CONFIG: dict[str, Any] = {
         "SAMPLESHEET_KEYWORDS": ["lymphotrack", "IGH", "SHM", "LEADER"],
-        "EXCLUDE_SAMPLE_TAGS": ["POS", "NEG", "IGHSHM"],
+        # "EXCLUDE_SAMPLE_TAGS": ["POS", "NEG", "IGHSHM"],
+        "EXCLUDE_SAMPLE_TAGS": [],
         "DATETIME": _DATETIME,
         "ROOT_DIR": str(Path(__file__).resolve().parent.parent),
         "LOG_DIR": f"{_LYMPHOTRACK_ROOT_DIR}/logs/register_logs",
@@ -76,7 +77,7 @@ class Config:
     # env_config = dotenv_values(f"{_CONFIG["ROOT_DIR"]}/.env")
 
     # Load .env file
-    load_dotenv(f"{_CONFIG["ROOT_DIR"]}/.env")
+    load_dotenv(f"{_CONFIG['ROOT_DIR']}/.env")
 
     # Extract only DB_HOST and DB_PORT
     env_config = {
@@ -201,10 +202,11 @@ class CllGenieSampleRegister:
             logger.info(f"Woah.. Found {len(runs)} run(s) for lymphotrack samples hunting.")
 
         for run in runs:
+            # 260128_M03651_0284_000000000-M8NG4
+            short_run_number = run.split("_")[2] if len(run.split("_")) > 2 else 0000
             samplesheet = self.get_samplesheet(run)
             run_stats = self.get_run_stats_file(run)
-            samples, instrument_type = self.parse_samplesheet(samplesheet)
-            print(samples)
+            samples, instrument_type = self.parse_samplesheet(samplesheet, short_run_number)
             demux_stats = self.parse_run_stats(run_stats)
             _stats = demux_stats.get("stats", {})
 
@@ -216,8 +218,8 @@ class CllGenieSampleRegister:
             # run metadata
             run_metadata = {
                 "run_id": run,
-                "run_path": f"{self.config["RUN_ROOT_DIR"]}/{run}",
-                "run_number": demux_stats.get("RunNumber", None),  # run_number
+                "run_path": f"{self.config['RUN_ROOT_DIR']}/{run}",
+                "run_number": short_run_number,  # run_number
                 "flowcell_id": demux_stats.get("Flowcell", None),
                 "sequencer": instrument_type,
                 "assay": "lymphotrack",
@@ -274,7 +276,9 @@ class CllGenieSampleRegister:
             return os.path.join(self.config["RUN_ROOT_DIR"], run, self.config["RUN_STATS"])
         return None
 
-    def parse_samplesheet(self, samplesheet: str) -> tuple[List[Dict[str, Any]], str]:
+    def parse_samplesheet(
+        self, samplesheet: str, run_number: int
+    ) -> tuple[List[Dict[str, Any]], str]:
         """
         Parse the samplesheet and return a list of samples with clarity IDs.
         """
@@ -298,12 +302,12 @@ class CllGenieSampleRegister:
                         header = line.strip()
                         found_header = True
                 else:
-                    sample_clarity_pair = self.parse_sample_elements(line, header)
+                    sample_clarity_pair = self.parse_sample_elements(line, header, run_number)
                     if sample_clarity_pair:
                         samples.append(sample_clarity_pair)
         return samples, instrument_type
 
-    def parse_sample_elements(self, raw_sample, header) -> dict:
+    def parse_sample_elements(self, raw_sample, header, run_number: int) -> dict:
         """
         Parse sample elements from the samplesheet.
         """
@@ -311,14 +315,23 @@ class CllGenieSampleRegister:
         sample_dict = {}
 
         sample_id_pattern = r"\d{2}[A-Z]{2}\d{5}-SHM"  # 00MD00000-SHM
+        control_samples_pattern = r"POS-SHM|NEG-SHM|IGHSHM-SHM"  # Control samples to include
 
         # Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Description
         sample_elements_dict = dict(zip(header.split(","), raw_sample.split(",")))
         sample_id = sample_elements_dict.get("Sample_ID")
         sample_pattern_match = re.match(sample_id_pattern, sample_id)
+        control_samples_match = re.search(control_samples_pattern, sample_id)
         if sample_pattern_match:
             clarity_id = sample_elements_dict.get("Description", "_").split("_")[1]
             sample_dict[sample_id] = clarity_id
+        elif control_samples_match:
+            logger.info(
+                f"control sample: {sample_id}, appending run_number to sample_id and adding to the list."
+            )
+            sample_dict[f"{sample_id}-R{run_number}"] = sample_elements_dict.get(
+                "Description", "_"
+            ).split("_")[1]
         return sample_dict
 
     def parse_run_stats(self, run_stats: str) -> dict:
@@ -366,9 +379,21 @@ class CllGenieSampleRegister:
         for sample in samples:
             sample_id, clarity_id = next(iter(sample.items()))
             logger.info(f"Gathering information for sample: {sample_id} ({clarity_id})")
+            run_number = run_metadata.get("run_number", "0000")
             # Insert sample into the database
-            sample_raw_reads = demux_stats.get(sample_id, {}).get("TRR", 0)
-            sample_raw_bases = demux_stats.get(sample_id, {}).get("TRB", 0)
+            if (
+                sample_id.startswith("POS-")
+                or sample_id.startswith("NEG-")
+                or sample_id.startswith("IGHSHM-")
+            ):
+                _control_sample_id = sample_id.rsplit(f"-R{run_number}", 1)[
+                    0
+                ]  # Remove run number suffix
+                sample_raw_reads = demux_stats.get(_control_sample_id, {}).get("TRR", 0)
+                sample_raw_bases = demux_stats.get(_control_sample_id, {}).get("TRB", 0)
+            else:
+                sample_raw_reads = demux_stats.get(sample_id, {}).get("TRR", 0)
+                sample_raw_bases = demux_stats.get(sample_id, {}).get("TRB", 0)
             sample_obj = self.create_sample_obj(
                 sample_id, clarity_id, deepcopy(run_metadata), sample_raw_reads, sample_raw_bases
             )
@@ -397,6 +422,13 @@ class CllGenieSampleRegister:
             "q30_per": "",
             "date_added": datetime.datetime.utcnow(),
         }
+
+        if (
+            sample_id.startswith("POS-")
+            or sample_id.startswith("NEG-")
+            or sample_id.startswith("IGHSHM-")
+        ):
+            sample_obj["is_control"] = True
 
         # return sample_obj.update(run_metadata)
         merged_dict = {**sample_obj, **run_metadata}
@@ -489,9 +521,9 @@ class CllGenieAddLymphotrackResults:
         lymphotrack_files = {"excel": [], "qc": []}
         for root, _, files in os.walk(self.config["LYMPHOTRACK_ROOT_DIR"]):
             for file in files:
-                if (file.endswith(".xlsm") or file.endswith(".xlsx") or file.endswith(".xls")) and not os.path.isfile(
-                    os.path.join(root, f"{file}.added")
-                ):
+                if (
+                    file.endswith(".xlsm") or file.endswith(".xlsx") or file.endswith(".xls")
+                ) and not os.path.isfile(os.path.join(root, f"{file}.added")):
                     lymphotrack_files["excel"].append(os.path.join(root, file))
                 elif file.endswith(".fastq_indexQ30.tsv") and not os.path.isfile(
                     os.path.join(root, f"{file}.added")

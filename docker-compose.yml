@@ -9,7 +9,7 @@ services:
       context: .
       network: host
       target: cll_genie_app
-    image: cll_genie:1.0.0
+    image: cll_genie:1.1.0
     network_mode: bridge
     ports:
       - "5813:8000"

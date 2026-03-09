@@ -32,6 +32,7 @@ class ReportController:
     Example:
         results = self.process_zip_results_for_report()
     """
+
     sample_handler = sample_handler
     results_handler = results_handler
     swedish_number_string = [
@@ -94,9 +95,9 @@ class ReportController:
             dict | None: The processed parameters for the report, or None if not found.
         """
         try:
-            return ReportController.results_handler.get_results(_id)["results"][
-                submission_id
-            ]["vquest_parameters"]
+            return ReportController.results_handler.get_results(_id)["results"][submission_id][
+                "vquest_parameters"
+            ]
         except:
             return None
 
@@ -127,9 +128,9 @@ class ReportController:
             return {k: d[k] for k in l if k in d}
 
         if ReportController.results_handler.results_document_exists(_id):
-            detailed_results = ReportController.results_handler.get_results(_id)[
-                "results"
-            ][submission_id]["vquest_results"]
+            detailed_results = ReportController.results_handler.get_results(_id)["results"][
+                submission_id
+            ]["vquest_results"]
             summary_results = {}
 
             for seq_id in detailed_results.keys():
@@ -165,9 +166,9 @@ class ReportController:
         """
 
         if ReportController.results_handler.results_document_exists(_id):
-            comments = ReportController.results_handler.get_results(_id)["results"][
-                submission_id
-            ]["submission_comments"]
+            comments = ReportController.results_handler.get_results(_id)["results"][submission_id][
+                "submission_comments"
+            ]
             return comments
         else:
             return None
@@ -184,9 +185,7 @@ class ReportController:
         Returns:
             int: The number of submission reports.
         """
-        return len(
-            ReportController.sample_handler.get_submission_reports(_id, submission_id)
-        )
+        return len(ReportController.sample_handler.get_submission_reports(_id, submission_id))
 
     @staticmethod
     def get_report_counts_per_submission(_id: str, results: dict = None) -> dict:
@@ -203,15 +202,13 @@ class ReportController:
         submissions_counts = {}
 
         if results is None:
-            results = ReportController.results_handler.get_results(_id).get(
-                "results", {}
-            )
+            results = ReportController.results_handler.get_results(_id).get("results", {})
 
         if results:
             for sid in results.keys():
                 if sid not in submissions_counts:
-                    submissions_counts[sid] = (
-                        ReportController.get_submission_report_counts(_id, sid)
+                    submissions_counts[sid] = ReportController.get_submission_report_counts(
+                        _id, sid
                     )
 
         return submissions_counts
@@ -312,9 +309,9 @@ class ReportController:
             str: The generated summary text.
         """
         try:
-            results_summary = ReportController.results_handler.get_results(_id)[
-                "results"
-            ][submission_id]["vquest_results"]
+            results_summary = ReportController.results_handler.get_results(_id)["results"][
+                submission_id
+            ]["vquest_results"]
             number_of_submitted_seqs = int(
                 ReportController.get_parameters_for_report(_id, submission_id)[
                     "Number of submitted sequences"
@@ -360,8 +357,10 @@ class ReportController:
                 summary_string += f"{subset_string}\n\n"
 
                 # Clinical Comments
-                if "(U-CLL)" in summary_string or "(M-CLL)" in summary_string:
-                    summary_string += "IGHV-mutationsstatus, i detta fall [M-CLL/U-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
+                if "(U-CLL)" in summary_string:
+                    summary_string += "IGHV-mutationsstatus, i detta fall [U-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
+                elif "(M-CLL)" in summary_string:
+                    summary_string += "IGHV-mutationsstatus, i detta fall [M-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
                 elif "borderline" in summary_string:
                     summary_string += "5)	IGHV-mutationsstatus med borderlinetillhörighet bör beaktas med försiktighet (ERIC Guidelines 2022). \n\n"
 
@@ -388,20 +387,13 @@ class ReportController:
         """
         seqs = list(results.keys())
         v_identity = {
-            seq_id: round(float(results[seq_id]["V-REGION identity %"]), 2)
-            for seq_id in seqs
+            seq_id: round(float(results[seq_id]["V-REGION identity %"]), 2) for seq_id in seqs
         }
         mutation_status = {}
         for seq_id in seqs:
-            if (
-                v_identity[seq_id]
-                < cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
-            ):
+            if v_identity[seq_id] < cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]:
                 mutation_status[seq_id] = "M-CLL"
-            elif (
-                v_identity[seq_id]
-                > cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
-            ):
+            elif v_identity[seq_id] > cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]:
                 mutation_status[seq_id] = "U-CLL"
             else:
                 mutation_status[seq_id] = "Borderline"
@@ -431,8 +423,7 @@ class ReportController:
         v_identity_string = "%, ".join(str(x) for x in deepcopy(v_identity))
 
         if all(
-            float(v_identity_per)
-            > cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
+            float(v_identity_per) > cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
             for v_identity_per in v_identity
         ):
             if seq_count == 1:
@@ -441,8 +432,7 @@ class ReportController:
                 return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna påvisar samstämmig avsaknad av somatisk hypermutation (U-CLL) ({v_identity_string}% identitet mot IGHV-genen)."  # 2.e
 
         elif all(
-            float(v_identity_per)
-            < cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
+            float(v_identity_per) < cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
             for v_identity_per in v_identity
         ):
             if seq_count == 1:
@@ -451,10 +441,8 @@ class ReportController:
                 return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna påvisar samstämmig förekomst av somatisk hypermutation (M-CLL) ({v_identity_string}% identitet mot IGHV-genen)."  # 2.d
 
         elif all(
-            float(v_identity_per)
-            >= cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
-            and float(v_identity_per)
-            <= cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
+            float(v_identity_per) >= cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
+            and float(v_identity_per) <= cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
             for v_identity_per in v_identity
         ):
             if seq_count == 1:
@@ -496,9 +484,7 @@ class ReportController:
         subset_count = len(subset_ids)
 
         if subset_count == 1 and subset_ids[0] is not None:
-            return_string = (
-                f"Vidare påvisas subsettillhörighet till subset {subset_ids[0]}."
-            )
+            return_string = f"Vidare påvisas subsettillhörighet till subset {subset_ids[0]}."
             return_subset = subset_ids[0]
 
         elif (subset_count == 1 and subset_ids[0] is None) or subset_count == 0:
@@ -527,9 +513,7 @@ class ReportController:
             ReportController.sample_handler.samples_collection().find_one_and_update(
                 ReportController.sample_handler._query_id(_id), update_instructions
             )
-            cll_app.logger.info(
-                f"Report deletion for the report id {report_id} is SUCCESSFUL"
-            )
+            cll_app.logger.info(f"Report deletion for the report id {report_id} is SUCCESSFUL")
             return True
         except PyMongoError as e:
             cll_app.logger.error(
@@ -565,9 +549,7 @@ class ReportController:
 
         try:
             os.remove(report_path)
-            cll_app.logger.info(
-                f"Report deletion for the report id {report_id} is SUCCESSFUL"
-            )
+            cll_app.logger.info(f"Report deletion for the report id {report_id} is SUCCESSFUL")
             return True
         except Exception as e:
             cll_app.logger.error(
@@ -716,11 +698,7 @@ class ReportController:
         if unhidden_reports_ids:
             if report_id is None or report_id == "":
                 report_id_show = unhidden_reports_ids[-1]
-            elif (
-                report_id is not None
-                or report_id != ""
-                and report_id in unhidden_reports_ids
-            ):
+            elif report_id is not None or report_id != "" and report_id in unhidden_reports_ids:
                 report_id_show = report_id
             else:
                 report_id_show = None
