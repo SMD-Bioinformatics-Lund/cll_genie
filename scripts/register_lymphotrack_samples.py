@@ -329,7 +329,7 @@ class CllGenieSampleRegister:
             logger.info(
                 f"control sample: {sample_id}, appending run_number to sample_id and adding to the list."
             )
-            sample_dict[f"{sample_id}_R{run_number}"] = sample_elements_dict.get(
+            sample_dict[f"{sample_id}-R{run_number}"] = sample_elements_dict.get(
                 "Description", "_"
             ).split("_")[1]
         return sample_dict
@@ -379,13 +379,16 @@ class CllGenieSampleRegister:
         for sample in samples:
             sample_id, clarity_id = next(iter(sample.items()))
             logger.info(f"Gathering information for sample: {sample_id} ({clarity_id})")
+            run_number = run_metadata.get("run_number", "0000")
             # Insert sample into the database
             if (
                 sample_id.startswith("POS-")
                 or sample_id.startswith("NEG-")
                 or sample_id.startswith("IGHSHM-")
             ):
-                _control_sample_id = sample_id.rsplit("_R", 1)[0]  # Remove run number suffix
+                _control_sample_id = sample_id.rsplit(f"-R{run_number}", 1)[
+                    0
+                ]  # Remove run number suffix
                 sample_raw_reads = demux_stats.get(_control_sample_id, {}).get("TRR", 0)
                 sample_raw_bases = demux_stats.get(_control_sample_id, {}).get("TRB", 0)
             else:
