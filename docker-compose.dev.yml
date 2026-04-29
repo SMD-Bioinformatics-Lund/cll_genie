@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 # usage:
 # docker-compose up -d
 # docker-compose down
@@ -13,7 +13,7 @@ services:
     image: cll_genie:1.1_0_dev
     network_mode: bridge
     ports:
-      - "5814:8000"
+      - "6001:8000"
     environment:
       - PYHTONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
@@ -21,7 +21,7 @@ services:
       - FLASK_DEBUG=1
       - SCRIPT_NAME=''
     env_file:
-      - .env
+      - .env_dev
     restart: always
     volumes:
       - "./cll_genie:/cll_genie/cll_genie"
@@ -30,6 +30,7 @@ services:
       - "./version.py:/cll_genie/version.py"
       - "/data/lymphotrack/cll_results/:/cll_genie/results/"
       - "/data/lymphotrack/cll_results_dev/:/cll_genie/results_dev/"
-      - "/data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/"
+      - "/data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/ly\
+        mphotrack_dx/"
       - "/data/lymphotrack/logs:/cll_genie/logs"
     command: "python3 /cll_genie/wsgi.py"
