@@ -33,9 +33,7 @@ def create_app():
             cll_app.config.from_object(config.TestConfig())
 
     # Load instance configuration
-    cll_app.logger = configure_logging(
-        cll_app.config["LOG_LEVEL"], cll_app.config["LOG_FILE"]
-    )
+    cll_app.logger = configure_logging(cll_app.config["LOG_LEVEL"], cll_app.config["LOG_FILE"])
 
     with cll_app.app_context():
         # Initialize blueprints
@@ -125,12 +123,10 @@ def init_samples_handler(app: Flask) -> None:
     Args:
         app (Flask): The Flask application instance.
     """
-    app.logger.info("Initializing SampleHandler")
+    app.logger.info(f"Initializing SampleHandler, {app.config['DB_SAMPLES_COLLECTION']}")
     from cll_genie.extensions import sample_handler, mongo
 
-    sample_handler.initialize(
-        mongo.cx, app.config["DB_NAME"], app.config["DB_SAMPLES_COLLECTION"]
-    )
+    sample_handler.initialize(mongo.cx, app.config["DB_NAME"], app.config["DB_SAMPLES_COLLECTION"])
 
 
 def init_results_handler(app: Flask) -> None:
@@ -142,9 +138,7 @@ def init_results_handler(app: Flask) -> None:
     Args:
         app (Flask): The Flask application instance.
     """
-    app.logger.info("Initializing Results handler")
+    app.logger.info(f"Initializing Results handler, {app.config['DB_RESULTS_COLLECTION']}")
     from cll_genie.extensions import results_handler, mongo
 
-    results_handler.initialize(
-        mongo.cx, app.config["DB_NAME"], app.config["DB_RESULTS_COLLECTION"]
-    )
+    results_handler.initialize(mongo.cx, app.config["DB_NAME"], app.config["DB_RESULTS_COLLECTION"])
