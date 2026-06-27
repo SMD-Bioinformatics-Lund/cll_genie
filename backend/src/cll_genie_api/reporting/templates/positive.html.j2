@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <title>IGHV-rapport – {{ sample.name }}</title>
+  <style>
+    @page { @top-right { content:"Sida " counter(page) " av " counter(pages); font:10px Arial } }
+    *{box-sizing:border-box}body{font:11px Arial,sans-serif;color:#17232b;margin:24px;line-height:1.45}
+    main{max-width:1000px;margin:auto}h1,h2{color:#7B4925}h1{font-size:16px}h2{margin-top:20px;font-size:13px}
+    table{border-collapse:collapse;width:100%;margin:10px 0 20px;font-size:11px}th,td{border:1px solid #bcc8ce;padding:5px;text-align:left;vertical-align:top}
+    th{background:#FFF8F5}.meta th{width:28%}.summary{white-space:pre-wrap;background:#fff8d8;border:1px solid #d7ca83;border-left:5px solid #c84f7a;padding:14px;font-size:12px}
+    .placeholder{color:#7b3f58}.preview{background:#ffdada;border:1px solid #db7474;padding:10px;text-align:center;font-weight:bold;font-size:12px}
+    .sequence{break-inside:avoid;page-break-inside:avoid}.method{break-before:page;page-break-before:always}.muted{color:#52636d}
+    a{color:#DF7849}@media print{body{margin:0}.preview{display:none}}
+  </style>
+</head>
+<body><main>
+  {% if preview %}<div class="preview">*** PREVIEW OF REPORT ***</div>{% endif %}
+  <h1>Analysrapport, IGHV-mutationsanalys – {{ sample.name }}</h1>
+  <table class="meta">
+    <tr><th>Patientnamn</th><td class="placeholder">&lt;PATIENT_NAME&gt;</td></tr>
+    <tr><th>Personnummer</th><td class="placeholder">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td></tr>
+    <tr><th>Prov-ID</th><td>{{ sample.name }}</td></tr>
+    <tr><th>Registreringsdatum</th><td class="placeholder">&lt;REGISTRATION_DATE&gt;</td></tr>
+    <tr><th>Provtyp</th><td class="placeholder">&lt;SAMPLE_TYPE&gt;</td></tr>
+    <tr><th>Frågeställning</th><td>IGHV mutationsanalys</td></tr>
+    <tr><th>Analysmetod</th><td>LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande analys i IMGT/V-QUEST</td></tr>
+    <tr><th>Analys genomförd av</th><td>{{ analysis_run_at or '-' }}</td></tr>
+    <tr><th>Rapportdatum</th><td>{{ report_date }}</td></tr>
+    <tr><th>Rapport skapad av</th><td>{{ author }}</td></tr>
+    <tr><th>Rapport-ID</th><td>{{ report_id }}</td></tr>
+    <tr><th>Rapportversion</th><td>{{ app_version }}</td></tr>
+    <tr><th>Submission</th><td>{{ submission_id }}</td></tr>
+  </table>
+
+  <h2>Analysresultat</h2>
+  <table><thead><tr><th>Sekvens-ID</th><th>Sekvenslängd</th><th>V-gen identitet</th><th>IGHV-mutationsstatus</th><th>CLL subset</th></tr></thead><tbody>
+  {% for sequence_id, result in submission.vquest_results.items() %}
+    {% set s = result.summary %}
+    <tr>
+      <td>{{ sequence_id.split('_')[0] }}</td><td>{{ s.get('Analysed sequence length') or '-' }}</td>
+      <td>{{ s.get('V-REGION identity %') }}% ({{ s.get('V-REGION identity nt') or '-' }}){% if s.get('V-REGION identity % (with ins/del events)') is not none %} [{{ s.get('V-REGION identity % (with ins/del events)') }}% ({{ s.get('V-REGION identity nt (with ins/del events)') or '-' }})]{% endif %}</td>
+      <td>{{ mutation_statuses.get(sequence_id, '-') }}</td><td>{{ s.get('CLL subset') or '-' }}</td>
+    </tr>
+  {% else %}<tr><td colspan="5">Inga detekterade varianter</td></tr>{% endfor %}
+  </tbody></table>
+
+  <h2>Slutsats</h2><div class="summary">{{ summary }}</div>
+
+  <h2 class="method">Detaljerade analysresultat</h2>
+  {% for sequence_id, result in submission.vquest_results.items() %}
+    {% set s = result.summary %}{% set j = result.junction %}
+    <section class="sequence">
+      <h2>{{ sequence_id.split('_')[0] }} – {{ s.get('Analysed sequence length') or '-' }} nt ({{ mutation_statuses.get(sequence_id, '-') }})</h2>
+      <table>
+        <tr><th>Sekvensanalyskategori</th><td>{{ s.get('Sequence analysis category') or '-' }}</td><th>CLL subset</th><td>{{ s.get('CLL subset') or '-' }}</td></tr>
+        {% if s.get('V-REGION insertions') or s.get('V-REGION deletions') %}<tr><th>Indel summary</th><td colspan="3">{{ s.get('V-REGION insertions') or s.get('V-REGION deletions') }}</td></tr>{% endif %}
+        <tr><th>V-DOMAIN functionality</th><td colspan="3">{{ s.get('V-DOMAIN Functionality') or '-' }}{% if s.get('V-DOMAIN Functionality comment') %}<br>{{ s.get('V-DOMAIN Functionality comment') }}{% endif %}</td></tr>
+        <tr><th>V-GENE and allele</th><td>{{ s.get('V-GENE and allele') or '-' }}</td><td><b>Score:</b> {{ s.get('V-REGION score') or '-' }}</td><td><b>Identity:</b> {{ s.get('V-REGION identity %') }}% ({{ s.get('V-REGION identity nt') or '-' }})</td></tr>
+        <tr><th>J-GENE and allele</th><td>{{ s.get('J-GENE and allele') or '-' }}</td><td><b>Score:</b> {{ s.get('J-REGION score') or '-' }}</td><td><b>Identity:</b> {{ s.get('J-REGION identity %') or '-' }}% ({{ s.get('J-REGION identity nt') or '-' }})</td></tr>
+        <tr><th>D-GENE and allele</th><td>{{ s.get('D-GENE and allele') or '-' }}</td><th>D-REGION reading frame</th><td>{{ s.get('D-REGION reading frame') or '-' }}</td></tr>
+        <tr><th>FR/CDR lengths</th><td>{{ s.get('FR-IMGT lengths') or '-' }} / {{ s.get('CDR-IMGT lengths') or '-' }}</td><th>AA JUNCTION</th><td>{{ s.get('AA JUNCTION') or '-' }}</td></tr>
+        <tr><th>JUNCTION length/decryption</th><td colspan="3">{{ j.get('JUNCTION-nt nb') or '-' }} nt = {{ j.get('JUNCTION decryption') or '-' }}</td></tr>
+        <tr><th>Merge count</th><td>{{ s.get('Merge Count') or '-' }}</td><th>Total reads</th><td>{{ s.get('Total Reads Per') or '-' }}%</td></tr>
+      </table>
+    </section>
+  {% endfor %}
+
+  <section>
+    <h2>Analysbeskrivning</h2>
+    <p>DNA har extraherats från insänt prov (färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS) på Illuminas MiSeq-system (läslängd 2x301 bp). Sekvensanalysen omfattar LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) och klonalitetsanalys i LymphoTrack Dx Software. Efterföljande analys av funktionell klonal sekvens utförs i CLL Genie via IMGT/V-QUEST och avser funktionellt IGHV-D-J-rearrangemang, IGHV-mutationsstatus samt subsettillhörighet.</p>
+    <p>En sekvens med &lt;98% identitet mot germline bedöms som hypermuterad (M-CLL), medan ≥98% bedöms som icke-muterad (U-CLL). Borderlinetillhörighet anges vid 97–97,99%. Analysen och rapporteringen följer rekommendationer från ERIC.</p>
+    <p><b>Referenser</b><br>[1] Nationellt vårdprogram kronisk lymfatisk leukemi, KLL – RCC Kunskapsbanken.<br>[2] Brochet X, Lefranc MP, Giudicelli V. IMGT/V-QUEST. Nucleic Acids Res. 2008;36:W503–W508.<br>[3] Agathangelidis A et al. Immunoglobulin gene sequence analysis in chronic lymphocytic leukemia: the 2022 ERIC update. Leukemia. 2022;36:1961–1968.</p>
+  </section>
+</main></body></html>

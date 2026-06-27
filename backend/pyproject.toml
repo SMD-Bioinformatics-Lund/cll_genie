@@ -1,0 +1,46 @@
+[project]
+name = "cll-genie-api"
+version = "2.0.0"
+description = "CLL Genie API"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi==0.115.12",
+  "uvicorn[standard]==0.34.2",
+  "pydantic==2.11.4",
+  "pydantic-settings==2.9.1",
+  "pymongo==3.13.0",
+  "ldap3==2.9.1",
+  "Werkzeug==3.1.3",
+  "openpyxl==3.1.5",
+  "httpx==0.28.1",
+  "Jinja2==3.1.6",
+  "python-multipart==0.0.20",
+  "celery[redis]==5.5.2",
+  "weasyprint==63.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.5",
+  "httpx==0.28.1",
+  "mongomock==4.3.0",
+  "ruff==0.11.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cll_genie_api"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

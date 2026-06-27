@@ -1,119 +1,94 @@
-# CLL Genie
+# CLL Genie 2.0
 
-![Python 3.12+](https://img.shields.io/badge/python-3.12+-orange.svg)
-![Flask](https://img.shields.io/badge/framework-Flask-indigo)
-![MongoDB](https://img.shields.io/badge/database-MongoDB-brightgreen)
-![Dockerized](https://img.shields.io/badge/docker-ready-blue)
-![License](https://img.shields.io/badge/license-Proprietary-red)
-[![Issues](https://img.shields.io/github/issues/ramsainanduri/cll_genie)](https://github.com/ramsainanduri/cll_genie/issues)
+CLL Genie is the clinical workflow for LymphoTrack Dx processing,
+IMGT/V-QUEST analysis, result review, and Clarity-compatible IGHV reporting.
 
-## Overview
+This repository contains only the current application: FastAPI, React,
+Tailwind CSS 4, Material UI, Celery, Redis, and Nginx. Production connects to
+the existing organizational MongoDB 3.4 service. Development can start an
+isolated MongoDB 3.4 container through `compose.dev.yaml`. Artifacts remain on
+the local filesystem; the application does not deploy MinIO or database-backup
+tooling.
 
-`cll_genie` is a Flask-based web application for processing sequencing data and generating clinical reports. It automates the second stage of analysis and integrates with Clarity for final PDF report generation, including patient information.
+## Application URL
 
----
+Every browser, API, health, and static route is beneath `/cll_genie`:
 
-## Table of Contents
+- UI: `https://server/cll_genie/`
+- API: `https://server/cll_genie/api/v1/`
+- health: `https://server/cll_genie/health/live`
 
-- [Description](#description)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Workflow](#workflow)
-- [Installation](#installation)
-- [Who Built It?](#who-built-it)
-- [License](#license)
-- [Contact](#contact)
+The prefix is retained through Apache and Nginx; it is not stripped by proxying.
 
----
+## Capabilities
 
-## Description
+- existing Werkzeug local login and optional TLS-protected LDAP authentication;
+- canonical local `coyote.users` profiles, groups, and permissions for both methods;
+- automated MiSeq/sample registration and LymphoTrack Excel/QC attachment;
+- filtered sequence selection and durable queued IMGT/V-QUEST processing;
+- exact MongoDB 3.4 `vquest_results` compatibility;
+- immutable local artifacts, comments, audit events, and administrative controls;
+- deterministic database-driven Swedish clinical summary rules;
+- full positive/no-result Clarity-compatible HTML reports; and
+- responsive accessible React interface with light/dark modes and Lucide icons.
 
-`cll_genie` provides a streamlined workflow for processing sequencing data and generating clinical reports. The application is designed to handle the second stage of analysis and reporting, integrating with Clarity for final PDF report generation including patient information.
+## Start
 
----
-
-## Features
-
-- Web interface for secondary analysis, sample tracking, and managing lymphotrack Dx results
-- Automated second-stage analysis of LymphoTrack Dx output
-- Report generation and integration with Clarity for final PDF creation
-- User authentication
-- Dockerized deployment for easy setup
-
----
-
-## Architecture
-
-- **Frontend:** Flask templates (Jinja2), CSS3 and JavaScript for UI
-- **Backend:** Flask, Python 3.11+
-- **Database:** MongoDB
-- **Containerization:** Docker support for reproducible deployments
-- **CI/CD:** GitHub Actions
-
----
-
-## Workflow
-
-1. **Sequencing, Demultiplexing, and QC**  
-   Prepare raw sequencing data by performing sequencing, demultiplexing, and quality control. The samples are then registered in the cll_genie database.
-
-2. **Run LymphoTrack Dx Software**  
-   Process FASTQ files using LymphoTrack Dx to generate first-stage results. This will output excel  file with all the results. And a text file with QC metrics. Thiese results are add to the samples that were registered in the cll_genie database.
-
-3. **cll_genie**  
-    Each sample is then analysed in the `cll_genie` application, The data is sent to IMGT-vquest server and the results are retrived. These secondary analysis results along with the subset information is displayed in the aplication. From here the user can create an HTML report without the patient information. The HTML report can be downloaded and sent to Clarity for final PDF report generation.
----
-
-## Installation
-
-### Prerequisites
-
-- Python 3.11 or higher
-- MongoDB installed and running
-- `.env` file configured (see `.env.example`)
-- Docker and `docker-compose` (optional, for containerized deployment)
-
-### Quick Start
-
-To install, simply run the provided shell script or use Docker Compose:
-
-
-#### Using shell script
-```bash
-./scripts/install.sh
-```
-
-#### Or with Docker Compose
-```bash
-docker-compose up -d
-```
-
-### Clone the repository
+### Development with MongoDB 3.4 in Docker
 
 ```bash
-git clone https://github.com/SMD-Bioinformatics-Lund/cll_genie.git
-cd cll_genie
+cp .env.example .env
+docker compose -f compose.yaml -f compose.dev.yaml up -d mongo redis
+docker compose -f compose.yaml -f compose.dev.yaml run --rm api python -m cll_genie_api.scripts.ensure_indexes
+docker compose -f compose.yaml -f compose.dev.yaml run --rm api python -m cll_genie_api.scripts.seed_rules
+docker compose -f compose.yaml -f compose.dev.yaml up -d
+docker compose -f compose.yaml -f compose.dev.yaml exec -T api python -m cll_genie_api.scripts.load_design_samples < .design/cll_genie.sample.jsonl
 ```
----
-## Who Built It?
 
-CLL Genie is developed and maintained by the bioinformaticians at Section for Molecular Diagnostics (SMD), Lund, in close collaboration with clinical geneticists. The system is in active use for diagnostics casework, variant interpretation, and report creation.
+MongoDB is available to the containers as `mongo:27017` and to host-side tools
+at `127.0.0.1:${MONGO_DEV_PORT:-27017}`. The final command imports only sample
+fixtures and clears matching analysis/result/report records; it never imports
+`.design/cll_genie.vquest.jsonl`.
 
----
+### Production with external MongoDB
 
-## License
+```bash
+cp .env.example .env
+# Configure MongoDB, LDAP, local paths, cookies, and IMGT in .env.
+docker compose build
+docker compose run --rm api python -m cll_genie_api.scripts.ensure_indexes
+docker compose run --rm api python -m cll_genie_api.scripts.seed_rules
+docker compose up -d
+```
 
-© 2025 Section for Molecular Diagnostics (SMD), Lund.
-All rights reserved. Internal use only.
+Open `http://localhost:8080/cll_genie/`. Only Nginx publishes a host port.
 
----
+## Repository
 
-## Contact
+```text
+backend/       FastAPI, domain logic, parsers, workers, reports, scripts, tests
+frontend/      React/TypeScript client
+docker/        production image and Nginx configuration
+docs/          complete codebase and operations reference
+.design/       de-identified Mongo Extended JSON compatibility fixtures
+compose.yaml   API, worker, scheduler, Redis, and single proxy entrypoint
+compose.dev.yaml  development-only MongoDB 3.4 override
+```
 
-For inquiries, feedback, or deployment support, please contact the SMD development team at Lund.   
-**Email:** ram.nanduri@skane.se  
-**GitHub Issues:** [cll_genie/issues](https://github.com/SMD-Bioinformatics-Lund//cll_genie/issues)
-  
-  
-  
-  
+Start with the [documentation index](docs/README.md). Deployment and Apache
+configuration are documented in
+[Deployment and operations](docs/DEPLOYMENT_AND_OPERATIONS.md).
+The original repository analysis remains available in the
+[Technical Remodeling Blueprint](docs/TECHNICAL_REMODELING_BLUEPRINT.md).
+
+## Verify
+
+```bash
+ruff format --check backend/src backend/tests
+ruff check backend/src backend/tests
+pytest -q backend/tests
+cd frontend && npm ci && npm run lint && npm run test && npm run build
+cd .. && docker compose config --quiet && docker compose build
+```
+
+Internal software developed by Section for Molecular Diagnostics (SMD), Lund.

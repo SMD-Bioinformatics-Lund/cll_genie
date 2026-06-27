@@ -1,0 +1,323 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-detail: var(--brand-detail);
+  --color-brand-accent: var(--brand-accent);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-paper: var(--surface-paper);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-secondary: var(--text-secondary);
+  --font-sans: Inter, "Segoe UI", system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    --brand-primary: #7B4925;
+    --brand-detail: #DF7849;
+    --brand-accent: #C26336;
+    --surface-soft: #edf4f5;
+    --border-subtle: #d9e3e6;
+    --text-secondary: #536471;
+    --surface-paper: #ffffff;
+  }
+
+  :root[data-theme="dark"] {
+    --brand-primary: #DF7849;
+    --brand-detail: #EBA98C;
+    --brand-accent: #E89A76;
+    --surface-soft: #17252d;
+    --border-subtle: #2b3b45;
+    --text-secondary: #a9bac4;
+    --surface-paper: #131e25;
+  }
+
+  body {
+    @apply m-0 min-w-80 font-sans;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .brand {
+    @apply inline-flex min-w-max items-center gap-2.5;
+  }
+
+  .brand__mark {
+    @apply size-10;
+  }
+
+  .brand__wordmark {
+    @apply text-xl tracking-[-0.035em];
+  }
+
+  .brand__primary {
+    stroke: var(--brand-primary);
+  }
+
+  .brand__detail {
+    stroke: var(--brand-detail);
+  }
+
+  .brand__accent {
+    stroke: var(--brand-accent);
+  }
+
+  .centered-progress {
+    @apply grid min-h-screen place-items-center;
+  }
+
+  .login-page {
+    @apply relative grid min-h-screen grid-rows-[auto_1fr_auto] overflow-hidden px-[clamp(20px,5vw,76px)] py-6;
+  }
+
+  .login-page::before {
+    content: "";
+    @apply pointer-events-none fixed -bottom-70 -left-52 size-130 rounded-full blur-[10px];
+    background: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+  }
+
+  .login-header {
+    @apply z-1 flex items-center justify-between;
+  }
+
+  .login-layout {
+    @apply z-1 m-auto grid w-full max-w-[1100px] grid-cols-[minmax(0,1.1fr)_minmax(340px,430px)] items-center gap-[clamp(40px,7vw,96px)] py-10;
+  }
+
+  .login-intro {
+    @apply max-w-[620px];
+  }
+
+  .login-orbit {
+    @apply mb-6 grid size-24 place-items-center rounded-full border border-border-subtle text-brand-accent;
+    background: color-mix(in srgb, var(--surface-soft) 84%, transparent);
+  }
+
+  .login-title {
+    @apply leading-[1.02]! font-[760]! tracking-[-0.055em]!;
+  }
+
+  .login-description {
+    @apply mt-4! max-w-[560px] text-[0.92rem]! leading-6! text-text-secondary;
+  }
+
+  .login-features {
+    @apply mt-5 flex flex-wrap gap-4 text-[0.8rem] text-text-secondary;
+  }
+
+  .login-features span {
+    @apply inline-flex items-center gap-2;
+  }
+
+  .login-card {
+    @apply border border-border-subtle p-[clamp(22px,3vw,34px)] backdrop-blur-2xl;
+  }
+
+  .login-footer {
+    @apply z-1 flex items-center gap-4 text-[0.82rem] text-text-secondary;
+  }
+
+  .login-footer span:last-child {
+    @apply ml-auto;
+  }
+
+  .environment-badge {
+    @apply font-extrabold tracking-[0.08em] text-brand-accent uppercase;
+  }
+
+  .app-header {
+    @apply border-b border-border-subtle;
+  }
+
+  .user-avatar {
+    @apply mx-1.5 mr-2.5 bg-brand-primary! text-[#07171a]!;
+  }
+
+  .page-heading {
+    @apply flex items-end justify-between gap-6;
+  }
+
+  .data-panel,
+  .form-panel {
+    @apply overflow-hidden border border-border-subtle;
+  }
+
+  .form-panel {
+    @apply p-5;
+  }
+
+  .toolbar-row {
+    @apply flex items-center justify-between gap-5 border-b border-border-subtle px-5 py-2.5;
+  }
+
+  .responsive-table {
+    @apply w-full overflow-x-auto;
+  }
+
+  .responsive-table table {
+    @apply w-full min-w-[720px] border-collapse;
+  }
+
+  .responsive-table th {
+    @apply bg-surface-soft text-left text-[0.78rem] tracking-[0.035em] text-text-secondary uppercase;
+  }
+
+  .responsive-table th,
+  .responsive-table td {
+    @apply border-b border-border-subtle px-1.5 py-1 align-middle text-[0.8rem];
+  }
+
+  .responsive-table tbody tr:hover {
+    background: color-mix(in srgb, var(--brand-primary) 5%, transparent);
+  }
+
+  .responsive-table a {
+    @apply font-bold text-brand-primary no-underline;
+  }
+
+  .empty-cell {
+    @apply p-12! text-center text-text-secondary;
+  }
+
+  .detail-grid {
+    @apply grid grid-cols-4 gap-px border border-border-subtle bg-border-subtle;
+  }
+
+  .detail-grid > div {
+    @apply grid gap-1 bg-surface-paper p-3.5;
+  }
+
+  .detail-grid span {
+    @apply text-[0.8rem] text-text-secondary;
+  }
+
+  .action-row {
+    @apply flex flex-wrap gap-3;
+  }
+
+  .form-grid {
+    @apply my-5 grid grid-cols-2 gap-4;
+  }
+
+  .content-grid {
+    @apply mt-5 grid grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)] items-start gap-5;
+  }
+
+  .sticky-panel {
+    @apply sticky top-24;
+  }
+
+  .comment {
+    @apply mt-3 border-l-3 border-brand-accent bg-surface-soft px-3 py-2.5;
+  }
+
+  .truncate-cell {
+    @apply max-w-[460px] overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+}
+
+@media (max-width: 850px) {
+  .login-layout {
+    @apply grid-cols-1 gap-9.5 py-10;
+  }
+
+  .login-intro {
+    @apply mx-auto text-center;
+  }
+
+  .login-orbit {
+    @apply hidden;
+  }
+
+  .login-features {
+    @apply justify-center;
+  }
+
+  .login-title {
+    font-size: clamp(2.5rem, 11vw, 4rem) !important;
+  }
+
+  .login-card {
+    @apply mx-auto w-full max-w-[480px];
+  }
+
+  .MuiDrawer-root {
+    @apply hidden!;
+  }
+
+  .content-grid {
+    @apply grid-cols-1;
+  }
+
+  .sticky-panel {
+    @apply static;
+  }
+
+  .detail-grid {
+    @apply grid-cols-2;
+  }
+}
+
+@media (max-width: 560px) {
+  .login-page {
+    @apply p-4.5;
+  }
+
+  .login-header .brand__mark {
+    @apply size-10;
+  }
+
+  .login-layout {
+    @apply py-8.5;
+  }
+
+  .login-description,
+  .login-features {
+    @apply hidden;
+  }
+
+  .login-footer {
+    @apply flex-wrap;
+  }
+
+  .login-footer span:last-child {
+    @apply ml-0 w-full;
+  }
+
+  .app-header .brand__wordmark {
+    @apply hidden;
+  }
+
+  .page-heading {
+    @apply flex-col items-start;
+  }
+
+  .form-grid,
+  .detail-grid {
+    @apply grid-cols-1;
+  }
+
+  .toolbar-row {
+    @apply flex-col items-stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

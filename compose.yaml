@@ -1,0 +1,123 @@
+name: cll-genie
+
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: docker/proxy.Dockerfile
+    ports:
+      - "${CLL_GENIE_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [edge, backend]
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017}
+      APP_VERSION: ${APP_VERSION:-2.0.0}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-local}
+      ARTIFACT_ROOT: /var/lib/cll-genie/artifacts
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    expose: ["8000"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - "${CLL_ARTIFACT_ROOT:-./var/artifacts}:/var/lib/cll-genie/artifacts"
+      - "${LYMPHOTRACK_RESULTS_ROOT:-/data/lymphotrack/results/lymphotrack_dx}:/data/lymphotrack/results/lymphotrack_dx:ro"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/cll_genie/health/live')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    command: ["celery", "-A", "cll_genie_api.worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017}
+      APP_VERSION: ${APP_VERSION:-2.0.0}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-local}
+      ARTIFACT_ROOT: /var/lib/cll-genie/artifacts
+      REPORTS_ROOT: /data/lymphotrack/cll_genie_reports
+      ANALYSIS_ROOT: /data/lymphotrack/cll_genie_analysis
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - "${CLL_ARTIFACT_ROOT:-./var/artifacts}:/var/lib/cll-genie/artifacts"
+      - "${LYMPHOTRACK_RESULTS_ROOT:-/data/lymphotrack/results/lymphotrack_dx}:/data/lymphotrack/results/lymphotrack_dx:ro"
+      - "${LYMPHOTRACK_SAVED_REPORTS_ROOT:-/data/lymphotrack/cll_genie_reports}:/data/lymphotrack/cll_genie_reports"
+      - "${LYMPHOTRACK_SAVED_ANALYSIS_ROOT:-/data/lymphotrack/cll_genie_analysis}:/data/lymphotrack/cll_genie_analysis"
+    networks: [backend]
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    command: ["celery", "-A", "cll_genie_api.worker.celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017}
+      REDIS_URL: redis://redis:6379/0
+      RUN_ROOT: /data/MiSeq
+      LYMPHOTRACK_RESULTS_ROOT: /data/lymphotrack/results/lymphotrack_dx
+      REPORTS_ROOT: /data/lymphotrack/cll_genie_reports
+      ANALYSIS_ROOT: /data/lymphotrack/cll_genie_analysis
+    depends_on:
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - "${MISEQ_RUN_ROOT:-/data/MiSeq}:/data/MiSeq"
+      - "${LYMPHOTRACK_RESULTS_ROOT:-/data/lymphotrack/results/lymphotrack_dx}:/data/lymphotrack/results/lymphotrack_dx:ro"
+      - "${LYMPHOTRACK_SAVED_REPORTS_ROOT:-/data/lymphotrack/cll_genie_reports}:/data/lymphotrack/cll_genie_reports"
+      - "${LYMPHOTRACK_SAVED_ANALYSIS_ROOT:-/data/lymphotrack/cll_genie_analysis}:/data/lymphotrack/cll_genie_analysis"
+    networks: [backend]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+networks:
+  edge: {}
+  backend: {}
+
+volumes:
+  redis_data: {}

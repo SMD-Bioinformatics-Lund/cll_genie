@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" fill="none">
+  <!-- Antibody Y-shape -->
+  <path d="M50 55 V90" stroke="#EBA98C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M50 55 L25 25" stroke="#EBA98C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M50 55 L75 25" stroke="#EBA98C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Antibody tips -->
+  <circle cx="25" cy="25" r="5" fill="#FFA37A" />
+  <circle cx="75" cy="25" r="5" fill="#FFA37A" />
+  
+  <!-- DNA Helix looping around -->
+  <path d="M20 70 Q 35 45, 50 60 T 80 50" stroke="#7B4925" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9" />
+  <path d="M20 50 Q 35 75, 50 60 T 80 70" stroke="#DF7849" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9" />
+  
+  <!-- Base pairs connecting helix -->
+  <line x1="33" y1="56" x2="33" y2="64" stroke="#A9643B" stroke-width="2" />
+  <line x1="43" y1="58" x2="43" y2="62" stroke="#A9643B" stroke-width="2" />
+  <line x1="57" y1="58" x2="57" y2="62" stroke="#A9643B" stroke-width="2" />
+  <line x1="67" y1="56" x2="67" y2="64" stroke="#A9643B" stroke-width="2" />
+</svg>

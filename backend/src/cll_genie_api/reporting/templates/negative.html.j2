@@ -1,0 +1,16 @@
+<!doctype html><html lang="sv"><head><meta charset="utf-8"><title>IGHV-rapport – {{ sample.name }}</title>
+<style>
+    @page { @top-right { content:"Sida " counter(page) " av " counter(pages); font:10px Arial } }
+    *{box-sizing:border-box}body{font:11px Arial,sans-serif;color:#17232b;margin:24px;line-height:1.45}
+    main{max-width:1000px;margin:auto}h1,h2{color:#7B4925}h1{font-size:16px}h2{margin-top:20px;font-size:13px}
+    table{border-collapse:collapse;width:100%;margin:10px 0 20px;font-size:11px}th,td{border:1px solid #bcc8ce;padding:5px;text-align:left;vertical-align:top}
+    th{background:#FFF8F5}.meta th{width:28%}.summary{white-space:pre-wrap;background:#fff8d8;border:1px solid #d7ca83;border-left:5px solid #c84f7a;padding:14px;font-size:12px}
+    .placeholder{color:#7b3f58}.preview{background:#ffdada;border:1px solid #db7474;padding:10px;text-align:center;font-weight:bold;font-size:12px}
+    .sequence{break-inside:avoid;page-break-inside:avoid}.method{break-before:page;page-break-before:always}.muted{color:#52636d}
+    a{color:#DF7849}@media print{body{margin:0}.preview{display:none}}
+  </style>
+</head><body><main><h1>Analysrapport, IGHV-mutationsanalys – {{ sample.name }}</h1>
+<table><tr><th>Patientnamn</th><td class="placeholder">&lt;PATIENT_NAME&gt;</td></tr><tr><th>Personnummer</th><td class="placeholder">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td></tr><tr><th>Prov-ID</th><td>{{ sample.name }}</td></tr><tr><th>Registreringsdatum</th><td class="placeholder">&lt;REGISTRATION_DATE&gt;</td></tr><tr><th>Provtyp</th><td class="placeholder">&lt;SAMPLE_TYPE&gt;</td></tr><tr><th>Frågeställning</th><td>IGHV mutationsanalys</td></tr><tr><th>Analys genomförd av</th><td>{{ analysis_run_at or '-' }}</td></tr><tr><th>Rapportdatum</th><td>{{ report_date }}</td></tr><tr><th>Rapport skapad av</th><td>{{ author }}</td></tr><tr><th>Rapport-ID</th><td>{{ report_id }}</td></tr><tr><th>Rapportversion</th><td>{{ app_version }}</td></tr></table>
+<h2>Slutsats</h2><div class="summary">{{ summary }}</div>
+<h2>Analysmetod</h2><p>LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande bedömning i CLL Genie. Patientuppgifter ersätts av Clarity vid slutlig rapportframställning.</p>
+</main></body></html>

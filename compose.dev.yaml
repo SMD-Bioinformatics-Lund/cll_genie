@@ -1,0 +1,44 @@
+services:
+  api:
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      ENVIRONMENT: development
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  worker:
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      ENVIRONMENT: development
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  scheduler:
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      ENVIRONMENT: development
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:3.4
+    platform: linux/amd64
+    command: ["mongod", "--bind_ip", "0.0.0.0"]
+    ports:
+      - "127.0.0.1:${MONGO_DEV_PORT:-27017}:27017"
+    volumes:
+      - mongo_dev_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "quit(db.runCommand({ping:1}).ok ? 0 : 2)"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    networks: [backend]
+    restart: unless-stopped
+
+volumes:
+  mongo_dev_data: {}
