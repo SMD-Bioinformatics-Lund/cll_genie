@@ -26,7 +26,6 @@ class MongoCollections:
         self.artifacts: Collection = application_db[settings.artifacts_collection]
         self.reports: Collection = application_db[settings.reports_collection]
         self.rules: Collection = application_db[settings.rules_collection]
-        self.audit: Collection = application_db[settings.audit_collection]
 
     def ensure_indexes(self) -> None:
         self.sessions.create_index("expires_at", expireAfterSeconds=0, name="ttl_session_expiry")
@@ -43,7 +42,6 @@ class MongoCollections:
         self.artifacts.create_index("relative_path", unique=True, name="uq_artifact_path")
         self.reports.create_index([("sample_id", 1), ("created_at", -1)], name="ix_reports_sample")
         self.rules.create_index([("rule_key", 1), ("version", 1)], unique=True)
-        self.audit.create_index([("occurred_at", -1)], name="ix_audit_time")
 
     def ping(self) -> None:
         self.client.admin.command("ping")

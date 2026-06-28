@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -86,8 +87,8 @@ def run_vquest(job_id: str, sample_id: str, sequences: list[dict], options: dict
         services.jobs.transition(
             job_id, "SUCCEEDED", progress=100, message="Analysis complete", result=result
         )
-        services.audit.record(
-            actor, "vquest.submission.created", f"sample:{sample_id}", result
+        logging.getLogger("audit").info(
+            f"AUDIT: vquest.submission.created by {actor} on sample:{sample_id} - {result}"
         )
         return result
     except Exception as exc:

@@ -15,7 +15,6 @@ from cll_genie_api.infrastructure.authentication import (
 )
 from cll_genie_api.infrastructure.mongo import MongoCollections, get_collections
 from cll_genie_api.infrastructure.repositories import (
-    AuditRepository,
     JobRepository,
     ReportRepository,
     RuleRepository,
@@ -39,7 +38,6 @@ class Services:
     vquest: VquestRepository | None = None
     reports: ReportRepository | None = None
     rules: RuleRepository | None = None
-    audit: AuditRepository | None = None
     artifacts: LocalArtifactStore | None = None
 
 
@@ -66,7 +64,6 @@ def get_services() -> Services:
         vquest=VquestRepository(collections.results),
         reports=ReportRepository(collections.reports),
         rules=RuleRepository(collections.rules),
-        audit=AuditRepository(collections.audit),
         artifacts=LocalArtifactStore(settings.artifact_root, collections.artifacts),
     )
 
@@ -99,21 +96,21 @@ def require_csrf(
     return session
 
 
-def permission_dependency(permission: str):
+def role_dependency(roles: list[str]):
     def check(session: Annotated[Session, Depends(get_current_session)]) -> Session:
-        if permission not in session.user.permissions:
+        if not any(role in session.user.roles or role in session.user.groups for role in roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to perform this action",
+                detail="You do not have the required role to perform this action",
             )
         return session
 
     return check
 
 
-def assert_permission(session: Session, permission: str) -> None:
-    if permission not in session.user.permissions:
+def assert_role(session: Session, roles: list[str]) -> None:
+    if not any(role in session.user.roles or role in session.user.groups for role in roles):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to perform this action",
+            detail="You do not have the required role to perform this action",
         )

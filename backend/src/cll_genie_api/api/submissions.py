@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 
 from cll_genie_api.api.common import serialize
+import logging
 from cll_genie_api.api.dependencies import (
     Services,
-    assert_permission,
+    assert_role,
     get_current_session,
     get_services,
     require_csrf,
@@ -22,16 +23,7 @@ router = APIRouter(tags=["submissions"])
 
 
 def visible_submission(submission: dict, session: Session) -> dict:
-    if "results:delete" in session.user.permissions:
-        return submission
-    return {
-        **submission,
-        "submission_comments": [
-            comment
-            for comment in submission.get("submission_comments", [])
-            if not comment.get("hidden")
-        ],
-    }
+    return submission
 
 
 @router.post("/samples/{sample_id}/submit-vquest", status_code=status.HTTP_202_ACCEPTED)
@@ -41,7 +33,7 @@ def submit_vquest(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "analysis:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     if not payload.sequences:
         raise HTTPException(status_code=422, detail="No sequences provided")
     
@@ -107,7 +99,7 @@ def add_comment(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "comments:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     comment = {
         "id": ObjectId(),
         "text": payload.text,
@@ -131,16 +123,13 @@ def update_comment(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "results:delete")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     if not services.vquest.set_comment_hidden(
         sample_id, submission_id, comment_id, payload.hidden, session.user.fullname
     ):
         raise HTTPException(status_code=404, detail="Comment not found")
-    services.audit.record(
-        session.user.username,
-        "vquest.comment.hidden" if payload.hidden else "vquest.comment.restored",
-        f"sample:{sample_id}",
-        {"submission_id": submission_id, "comment_id": comment_id},
+    logging.getLogger("audit").info(
+        f"AUDIT: {'vquest.comment.hidden' if payload.hidden else 'vquest.comment.restored'} by {session.user.username} on sample:{sample_id} - {{\"submission_id\": \"{submission_id}\", \"comment_id\": \"{comment_id}\"}}"
     )
     return {"updated": True}
 
@@ -152,15 +141,12 @@ def delete_submission(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "results:delete")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     if not services.vquest.delete_submission(sample_id, submission_id):
         raise HTTPException(status_code=404, detail="Submission not found")
     remaining = services.vquest.get(sample_id)
     services.samples.update(sample_id, {"vquest": bool((remaining or {}).get("results"))})
-    services.audit.record(
-        session.user.username,
-        "vquest.submission.deleted",
-        f"sample:{sample_id}",
-        {"submission_id": submission_id},
+    logging.getLogger("audit").info(
+        f"AUDIT: vquest.submission.deleted by {session.user.username} on sample:{sample_id} - {{\"submission_id\": \"{submission_id}\"}}"
     )
     return None

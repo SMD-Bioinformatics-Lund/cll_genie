@@ -15,7 +15,56 @@
   </style>
 </head>
 <body><main>
-  {% if preview %}<div class="preview">*** PREVIEW OF REPORT ***</div>{% endif %}
+  {% if preview %}
+  <div class="preview" id="preview-banner">
+    <div style="margin-bottom: 10px;">*** PREVIEW OF REPORT ***</div>
+    <button id="save-btn" style="padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; background: #DF7849; color: white; border: none; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+      Save HTML Report
+    </button>
+    <div id="save-msg" style="display: none; margin-top: 8px; font-size: 12px;"></div>
+  </div>
+  <script>
+    document.getElementById('save-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('save-btn');
+      const msg = document.getElementById('save-msg');
+      btn.disabled = true;
+      btn.innerText = 'Saving...';
+      
+      try {
+        const url = '{{ base_url }}/cll_genie/api/v1/samples/{{ sample._id }}/submissions/{{ submission_id }}/reports';
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({ summary: {{ summary|tojson }} })
+        });
+        
+        if (response.ok) {
+          msg.innerText = 'Report saved successfully! You can close this window.';
+          msg.style.display = 'block';
+          msg.style.color = '#166534';
+          btn.style.display = 'none';
+          document.getElementById('preview-banner').style.background = '#dcfce7';
+          document.getElementById('preview-banner').style.borderColor = '#22c55e';
+          
+          if (window.opener) {
+            window.opener.postMessage({ type: 'report-saved' }, '*');
+          }
+        } else {
+          throw new Error('Failed to save report');
+        }
+      } catch (e) {
+        btn.disabled = false;
+        btn.innerText = 'Save HTML Report';
+        msg.innerText = 'Error saving report: ' + e.message;
+        msg.style.display = 'block';
+        msg.style.color = '#991b1b';
+      }
+    });
+  </script>
+  {% endif %}
   <h1>Analysrapport, IGHV-mutationsanalys – {{ sample.name }}</h1>
   <table class="meta">
     <tr><th>Patientnamn</th><td class="placeholder">&lt;PATIENT_NAME&gt;</td></tr>

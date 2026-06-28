@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -122,10 +123,7 @@ def update_me(
     if not result.matched_count:
         raise HTTPException(status_code=404, detail="User not found")
         
-    services.audit.record(
-        session.user.username,
-        "user.updated",
-        f"user:{session.user.username}",
-        {"fields": sorted(values)},
+    logging.getLogger("audit").info(
+        f"AUDIT: user.updated by {session.user.username} on user:{session.user.username} - {{\"fields\": {sorted(values)}}}"
     )
     return {"updated": True}

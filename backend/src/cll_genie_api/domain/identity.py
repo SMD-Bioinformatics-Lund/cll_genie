@@ -35,31 +35,15 @@ class LocalUser:
         return bool({"admin", "lymphotrack_admin"}.intersection(self.roles) or {"admin", "lymphotrack_admin"}.intersection(self.groups))
 
     @property
-    def permissions(self) -> tuple[str, ...]:
-        permissions = {"samples:read", "results:read", "reports:read"}
-        if {"lymphotrack", "lymphotrack_admin"}.intersection(self.roles) or {"lymphotrack", "lymphotrack_admin"}.intersection(self.groups):
-            permissions.update(
-                {
-                    "analysis:create",
-                    "comments:create",
-                    "reports:create",
-                }
-            )
-        if self.is_admin:
-            permissions.update(
-                {
-                    "results:delete",
-                    "reports:publish",
-                    "rules:manage",
-                    "users:manage",
-                }
-            )
-        return tuple(sorted(permissions))
+    def is_lymphotrack(self) -> bool:
+        return bool({"lymphotrack", "lymphotrack_admin"}.intersection(self.roles) or {"lymphotrack", "lymphotrack_admin"}.intersection(self.groups))
 
 
 @dataclass(frozen=True, slots=True)
 class Session:
-    token: str
+    """The verified identity and context of a request."""
+
+    token_id: str
     csrf_token: str
     user: LocalUser
     provider: str

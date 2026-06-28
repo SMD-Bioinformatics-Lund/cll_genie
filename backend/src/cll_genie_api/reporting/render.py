@@ -29,6 +29,8 @@ class ReportRenderer:
         app_version: str = "",
         analysis_run_at: str = "",
         preview: bool = False,
+        csrf_token: str = "",
+        base_url: str | None = None,
     ) -> str:
         facts = report_facts(submission)
         mutation_statuses = {
@@ -45,6 +47,8 @@ class ReportRenderer:
             analysis_run_at=analysis_run_at,
             mutation_statuses=mutation_statuses,
             preview=preview,
+            csrf_token=csrf_token,
+            base_url=base_url or "",
             report_date=date.today().isoformat(),
         )
 

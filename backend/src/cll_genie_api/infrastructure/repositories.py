@@ -195,7 +195,24 @@ class VquestRepository:
             return True
         return False
 
+    def hide_submission(self, sample_id: str, submission_id: str) -> bool:
+        result = self.collection.update_one(
+            {"_id": object_id(sample_id), f"results.{submission_id}": {"$exists": True}},
+            {"$set": {f"results.{submission_id}.hidden": True}},
+        )
+        return result.modified_count == 1
 
+    def delete(self, sample_id: str) -> bool:
+        result = self.collection.delete_one({"_id": object_id(sample_id)})
+        return result.deleted_count == 1
+
+    def update(self, sample_id: str, payload: dict[str, Any]) -> bool:
+        if "_id" in payload:
+            del payload["_id"]
+        result = self.collection.replace_one(
+            {"_id": object_id(sample_id)}, payload
+        )
+        return result.matched_count == 1
 class ReportRepository:
     def __init__(self, collection) -> None:
         self.collection = collection
@@ -212,6 +229,10 @@ class ReportRepository:
     def list_all(self, limit: int = 250) -> list[dict[str, Any]]:
         return list(self.collection.find().sort("created_at", -1).limit(limit))
 
+    def delete_by_sample(self, sample_id: str) -> int:
+        result = self.collection.delete_many({"sample_id": object_id(sample_id)})
+        return result.deleted_count
+
     def get(self, report_id: str) -> dict[str, Any] | None:
         return self.collection.find_one({"_id": object_id(report_id)})
 
@@ -227,6 +248,18 @@ class ReportRepository:
             },
         )
         return result.matched_count == 1
+    def set_hidden_by_submission(self, submission_id: str, hidden: bool, actor: str) -> int:
+        result = self.collection.update_many(
+            {"submission_id": submission_id},
+            {
+                "$set": {
+                    "hidden": hidden,
+                    "hidden_by": actor if hidden else None,
+                    "hidden_at": utcnow() if hidden else None,
+                }
+            },
+        )
+        return result.modified_count
 
 
 class RuleRepository:
@@ -256,20 +289,3 @@ class RuleRepository:
         return result.matched_count == 1
 
 
-class AuditRepository:
-    def __init__(self, collection) -> None:
-        self.collection = collection
-
-    def record(self, actor: str, action: str, target: str, details: dict[str, Any]) -> None:
-        self.collection.insert_one(
-            {
-                "actor": actor,
-                "action": action,
-                "target": target,
-                "details": details,
-                "occurred_at": utcnow(),
-            }
-        )
-
-    def list(self, limit: int = 100) -> list[dict[str, Any]]:
-        return list(self.collection.find().sort("occurred_at", -1).limit(limit))

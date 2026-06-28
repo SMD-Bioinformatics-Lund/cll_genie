@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from bson import ObjectId
@@ -7,7 +8,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from cll_genie_api.api.common import serialize
 from cll_genie_api.api.dependencies import (
     Services,
-    assert_permission,
+    assert_role,
     get_current_session,
     get_services,
     require_csrf,
@@ -66,7 +67,7 @@ def generate_report(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "reports:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
@@ -117,11 +118,8 @@ def generate_report(
     }
     services.vquest.add_comment(sample_id, submission_id, comment)
     services.samples.update(sample_id, {"report": True})
-    services.audit.record(
-        session.user.username,
-        "report.created",
-        f"report:{report_id}",
-        {"sample_id": sample_id, "submission_id": submission_id},
+    logging.getLogger("audit").info(
+        f"AUDIT: report.created by {session.user.username} on report:{report_id} - {{\"sample_id\": \"{sample_id}\", \"submission_id\": \"{submission_id}\"}}"
     )
     return {"report_id": report_id, "artifact": serialize(artifact)}
 
@@ -137,7 +135,7 @@ def preview_report(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "reports:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
@@ -165,7 +163,7 @@ def download_report_pdf(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "reports:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
@@ -199,7 +197,7 @@ def generate_negative_report(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "reports:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
         raise HTTPException(status_code=404, detail="Sample not found")
@@ -234,11 +232,8 @@ def generate_negative_report(
         }
     )
     services.samples.update(sample_id, {"report": True, "is_eligible_for_vquest": False})
-    services.audit.record(
-        session.user.username,
-        "report.created",
-        f"report:{report_id}",
-        {"sample_id": sample_id, "report_type": "NEGATIVE"},
+    logging.getLogger("audit").info(
+        f"AUDIT: report.created by {session.user.username} on report:{report_id} - {{\"sample_id\": \"{sample_id}\", \"report_type\": \"NEGATIVE\"}}"
     )
     return {"report_id": report_id, "artifact": serialize(artifact)}
 
@@ -250,8 +245,6 @@ def list_reports(
     services: Annotated[Services, Depends(get_services)],
 ):
     reports = services.reports.list_for_sample(sample_id)
-    if "results:delete" not in session.user.permissions:
-        reports = [report for report in reports if not report.get("hidden")]
     return serialize(reports)
 
 
@@ -261,8 +254,6 @@ def all_reports(
     services: Annotated[Services, Depends(get_services)],
 ):
     reports = services.reports.list_all()
-    if "results:delete" not in session.user.permissions:
-        reports = [report for report in reports if not report.get("hidden")]
     return serialize(reports)
 
 
@@ -274,8 +265,10 @@ def report_artifact(
 ):
     del session
     report = services.reports.get(report_id)
-    if report is None or report.get("hidden"):
+    if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
+    if report.get("hidden") and not any(role in session.user.roles or role in session.user.groups for role in ["admin", "lymphotrack_admin"]):
+        raise HTTPException(status_code=403, detail="Report is hidden")
     stored = services.artifacts.get(report["artifact_id"])
     if stored is None or not stored[1].is_file():
         raise HTTPException(status_code=404, detail="Report artifact is unavailable")
@@ -293,7 +286,7 @@ def update_report_status(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "results:delete")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     hidden = bool(payload.get("hidden"))
     report = services.reports.get(report_id)
     if report is None:
@@ -305,10 +298,7 @@ def update_report_status(
         if not item.get("hidden")
     ]
     services.samples.update(str(report["sample_id"]), {"report": bool(visible)})
-    services.audit.record(
-        session.user.username,
-        "report.hidden" if hidden else "report.restored",
-        f"report:{report_id}",
-        {"sample_id": str(report["sample_id"])},
+    logging.getLogger("audit").info(
+        f"AUDIT: {'report.hidden' if hidden else 'report.restored'} by {session.user.username} on report:{report_id} - {{\"sample_id\": \"{str(report['sample_id'])}\"}}"
     )
     return {"updated": True}

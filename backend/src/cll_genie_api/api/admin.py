@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -7,7 +8,7 @@ from werkzeug.security import generate_password_hash
 from cll_genie_api.api.common import serialize
 from cll_genie_api.api.dependencies import (
     Services,
-    assert_permission,
+    assert_role,
     get_current_session,
     get_services,
     require_csrf,
@@ -24,7 +25,7 @@ def list_rules(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "rules:manage")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     return serialize(services.rules.list())
 
 
@@ -34,7 +35,7 @@ def create_rule(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "rules:manage")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     try:
         evaluate(payload.condition, _simulation_facts())
         rule_id = services.rules.create(
@@ -44,11 +45,8 @@ def create_rule(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except DuplicateKeyError as exc:
         raise HTTPException(status_code=409, detail="Rule key and version already exist") from exc
-    services.audit.record(
-        session.user.username,
-        "report_rule.created",
-        f"rule:{rule_id}",
-        {"rule_key": payload.rule_key, "version": payload.version, "status": payload.status},
+    logging.getLogger("audit").info(
+        f"AUDIT: report_rule.created by {session.user.username} on rule:{rule_id} - {{\"rule_key\": \"{payload.rule_key}\", \"version\": {payload.version}, \"status\": \"{payload.status}\"}}"
     )
     return {"rule_id": rule_id}
 
@@ -60,18 +58,15 @@ def update_rule(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "rules:manage")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     try:
         evaluate(payload.condition, _simulation_facts())
     except RuleValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not services.rules.update(rule_id, payload.model_dump()):
         raise HTTPException(status_code=404, detail="Rule not found")
-    services.audit.record(
-        session.user.username,
-        "report_rule.updated",
-        f"rule:{rule_id}",
-        {"rule_key": payload.rule_key, "version": payload.version, "status": payload.status},
+    logging.getLogger("audit").info(
+        f"AUDIT: report_rule.updated by {session.user.username} on rule:{rule_id} - {{\"rule_key\": \"{payload.rule_key}\", \"version\": {payload.version}, \"status\": \"{payload.status}\"}}"
     )
     return {"updated": True}
 
@@ -81,7 +76,7 @@ def simulate_rule(
     payload: RuleRequest,
     session: Annotated[Session, Depends(require_csrf)],
 ):
-    assert_permission(session, "rules:manage")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     facts = _simulation_facts()
     try:
         matched = evaluate(payload.condition, facts)
@@ -96,7 +91,7 @@ def list_users(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "users:manage")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     users = list(services.collections.users.find({}, {"password": 0}).sort("_id", 1))
     return serialize(users)
 
@@ -107,7 +102,7 @@ def create_user(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "users:manage")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     document = payload.model_dump(exclude={"password"})
     document["_id"] = document.pop("username")
     if payload.password:
@@ -116,11 +111,8 @@ def create_user(
         services.collections.users.insert_one(document)
     except DuplicateKeyError as exc:
         raise HTTPException(status_code=409, detail="User already exists") from exc
-    services.audit.record(
-        session.user.username,
-        "user.created",
-        f"user:{document['_id']}",
-        {"roles": document.get("roles", []), "groups": document.get("groups", []), "enabled": document.get("enabled", True)},
+    logging.getLogger("audit").info(
+        f"AUDIT: user.created by {session.user.username} on user:{document['_id']} - {{\"roles\": {document.get('roles', [])}, \"groups\": {document.get('groups', [])}, \"enabled\": {document.get('enabled', True)}}}"
     )
     return {"username": document["_id"]}
 
@@ -132,7 +124,7 @@ def update_user(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "users:manage")
+    assert_role(session, ["admin", "lymphotrack_admin"])
     values = payload.model_dump(exclude_none=True, exclude={"password"})
     if payload.password:
         values["password"] = generate_password_hash(payload.password, method="pbkdf2:sha256")
@@ -141,23 +133,13 @@ def update_user(
     result = services.collections.users.update_one({"_id": username}, {"$set": values})
     if not result.matched_count:
         raise HTTPException(status_code=404, detail="User not found")
-    services.audit.record(
-        session.user.username,
-        "user.updated",
-        f"user:{username}",
-        {"fields": sorted(values)},
+    logging.getLogger("audit").info(
+        f"AUDIT: user.updated by {session.user.username} on user:{username} - {{\"fields\": {sorted(values)}}}"
     )
     return {"updated": True}
 
 
-@router.get("/audit")
-def audit_events(
-    session: Annotated[Session, Depends(get_current_session)],
-    services: Annotated[Services, Depends(get_services)],
-    limit: int = Query(default=100, ge=1, le=500),
-):
-    assert_permission(session, "users:manage")
-    return serialize(services.audit.list(limit))
+
 
 
 def _simulation_facts() -> dict:

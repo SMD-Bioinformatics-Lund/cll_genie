@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 from typing import Annotated
 
 from bson import ObjectId
@@ -7,7 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from cll_genie_api.api.common import serialize
 from cll_genie_api.api.dependencies import (
     Services,
-    assert_permission,
+    assert_role,
     get_current_session,
     get_services,
     require_csrf,
@@ -53,21 +54,7 @@ def get_sample(
         raise HTTPException(status_code=404, detail="Sample not found")
     result_document = services.vquest.get(sample_id)
     submissions = (result_document or {}).get("results", {})
-    if "results:delete" not in session.user.permissions:
-        submissions = {
-            key: {
-                **submission,
-                "submission_comments": [
-                    comment
-                    for comment in submission.get("submission_comments", [])
-                    if not comment.get("hidden")
-                ],
-            }
-            for key, submission in submissions.items()
-        }
     reports = services.reports.list_for_sample(sample_id)
-    if "results:delete" not in session.user.permissions:
-        reports = [report for report in reports if not report.get("hidden")]
     return {
         "sample": serialize(sample),
         "submissions": serialize(submissions),
@@ -82,7 +69,7 @@ def upload_excel(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "analysis:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
         raise HTTPException(status_code=404, detail="Sample not found")
@@ -106,11 +93,8 @@ def upload_excel(
             "lymphotrack_excel_path": str(services.artifacts.resolve(artifact["relative_path"])),
         },
     )
-    services.audit.record(
-        session.user.username,
-        "sample.lymphotrack_excel.uploaded",
-        f"sample:{sample_id}",
-        {"artifact_id": str(artifact["_id"])},
+    logging.getLogger("audit").info(
+        f"AUDIT: sample.lymphotrack_excel.uploaded by {session.user.username} on sample:{sample_id} - {{\"artifact_id\": \"{str(artifact['_id'])}\"}}"
     )
     return serialize(artifact)
 
@@ -122,7 +106,7 @@ def upload_qc(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "analysis:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     if services.samples.get(sample_id) is None:
         raise HTTPException(status_code=404, detail="Sample not found")
     artifact = services.artifacts.save_stream(
@@ -156,7 +140,7 @@ def preview_sequences(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_permission(session, "analysis:create")
+    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
         raise HTTPException(status_code=404, detail="Sample not found")
