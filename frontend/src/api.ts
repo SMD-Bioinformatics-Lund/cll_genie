@@ -139,12 +139,32 @@ export function uploadSampleArtifact(
   );
 }
 
+export function deleteSample(sampleId: string, csrfToken: string) {
+  return apiRequest(
+    `/api/v1/samples/${sampleId}`,
+    { method: "DELETE" },
+    csrfToken,
+  );
+}
+
+export function updateSampleJson(
+  sampleId: string,
+  payload: Record<string, unknown>,
+  csrfToken: string,
+) {
+  return apiRequest(
+    `/api/v1/samples/${sampleId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    csrfToken,
+  );
+}
+
 export function previewSequences(
   sampleId: string,
   filters: Record<string, unknown>,
   csrfToken: string,
 ) {
-  return apiRequest<{ sequences: any[] }>(
+  return apiRequest<{ job_id: string }>(
     `/api/v1/samples/${sampleId}/preview-sequences`,
     { method: "POST", body: JSON.stringify(filters) },
     csrfToken,
@@ -172,6 +192,30 @@ export function submitVquest(
     csrfToken,
   );
 }
+
+export function deleteSubmission(
+  sampleId: string,
+  submissionId: string,
+  csrfToken: string,
+) {
+  return apiRequest(
+    `/api/v1/samples/${sampleId}/submissions/${submissionId}`,
+    { method: "DELETE" },
+    csrfToken,
+  );
+}
+
+export function deleteReport(
+  reportId: string,
+  csrfToken: string,
+) {
+  return apiRequest(
+    `/api/v1/reports/${reportId}`,
+    { method: "DELETE" },
+    csrfToken,
+  );
+}
+
 
 export function getSubmission(sampleId: string, submissionId: string) {
   return apiRequest<Record<string, unknown>>(
@@ -219,7 +263,7 @@ export async function previewReport(
         "Content-Type": "application/json",
         "X-CSRF-Token": csrfToken,
       },
-      body: JSON.stringify({ summary }),
+      body: JSON.stringify({ summary, base_url: window.location.origin }),
     },
   );
   if (!response.ok) throw await parseError(response);

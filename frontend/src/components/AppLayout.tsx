@@ -30,7 +30,7 @@ export function AppLayout() {
       ? [
           { to: "/admin/rules", label: "Report rules", icon: Settings },
           { to: "/admin/users", label: "Users", icon: Users },
-          { to: "/admin/audit", label: "Audit", icon: Shield },
+
         ]
       : []),
   ];
@@ -51,14 +51,19 @@ export function AppLayout() {
         
         <div className="flex items-center gap-2 sm:gap-4 relative">
           <ThemeControl />
-          <button 
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 hover:bg-white/10 p-1 rounded-full transition relative"
-          >
-            <div className="flex size-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white border border-white/10 shadow-inner">
-              {session.user.fullname[0]?.toUpperCase()}
-            </div>
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="hidden md:inline-block text-sm font-medium text-white">
+              {session.user.fullname || session.user.username}
+            </span>
+            <button 
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="flex items-center gap-2 hover:bg-white/10 p-1 rounded-full transition relative"
+            >
+              <div className="flex size-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white border border-white/10 shadow-inner">
+                {(session.user.fullname || session.user.username)[0]?.toUpperCase()}
+              </div>
+            </button>
+          </div>
           
           {showDropdown && (
             <>

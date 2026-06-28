@@ -19,7 +19,7 @@ import { useSession } from "../session-context";
 import { timeAgo } from "../dateUtils";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { listSamples } from "../api";
+import { listSamples, applicationUrl } from "../api";
 
 export function WorklistPage() {
   const [search, setSearch] = useState("");
@@ -29,6 +29,17 @@ export function WorklistPage() {
     queryKey: ["samples", search, tab, page],
     queryFn: () => listSamples(search, tab === "finished", page),
   });
+  
+  const openCountQuery = useQuery({
+    queryKey: ["samples_count", "open"],
+    queryFn: () => listSamples("", false, 1),
+  });
+  
+  const finishedCountQuery = useQuery({
+    queryKey: ["samples_count", "finished"],
+    queryFn: () => listSamples("", true, 1),
+  });
+
   const { sortedData, sortKey, sortOrder, requestSort } = useSortableTable(
     query.data?.items,
     "date_added",
@@ -41,11 +52,33 @@ export function WorklistPage() {
         Clinical worklist
       </Typography>
       <Typography variant="h3" component="h1">
-        Samples
+        Samples Overview
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
         Track LymphoTrack data, IMGT/V-QUEST analysis, and report completion.
       </Typography>
+
+      <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="overline" color="text.secondary">Open Samples</Typography>
+          <Typography variant="h3" color="primary.main">
+            {openCountQuery.data?.total ?? "..."}
+          </Typography>
+        </Paper>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="overline" color="text.secondary">Finished Samples</Typography>
+          <Typography variant="h3" color="success.main">
+            {finishedCountQuery.data?.total ?? "..."}
+          </Typography>
+        </Paper>
+        <Paper elevation={0} sx={{ p: 3, flex: 1, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="overline" color="text.secondary">System Status</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'success.main' }} />
+            <Typography variant="h6">All Systems Operational</Typography>
+          </Box>
+        </Paper>
+      </Box>
       <Paper elevation={0} className="data-panel">
         <Box className="toolbar-row">
           <Tabs
@@ -87,6 +120,7 @@ export function WorklistPage() {
                 <th>Data</th>
                 <th>Analysis</th>
                 <th>Report</th>
+                {tab === "finished" && <th>Latest Report</th>}
                 <th />
               </tr>
             </thead>
@@ -135,10 +169,26 @@ export function WorklistPage() {
                   <td>
                     <Chip
                       size="small"
-                      color={sample.report ? "success" : "default"}
-                      label={sample.report ? "Created" : "Pending"}
+                      color={sample.report ? (sample.latest_report_type === "NEGATIVE" ? "warning" : "success") : "default"}
+                      label={sample.report ? (sample.latest_report_type === "NEGATIVE" ? "Created (NR)" : "Created") : "Pending"}
                     />
                   </td>
+                  {tab === "finished" && (
+                    <td>
+                      {sample.latest_report_id ? (
+                        <a
+                          href={applicationUrl(`/api/v1/reports/${sample.latest_report_oid}/artifact`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-700 font-medium text-sm"
+                        >
+                          {sample.latest_report_id}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-sm">None</span>
+                      )}
+                    </td>
+                  )}
                   <td>
                     <IconButton
                       component={Link}

@@ -17,6 +17,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import Markdown from "react-markdown";
 import {
   apiRequest,
@@ -27,6 +28,7 @@ import {
   previewReport,
   downloadReportPdf,
   getSample,
+  deleteSubmission,
 } from "../api";
 import { useSession } from "../session-context";
 
@@ -49,8 +51,8 @@ type Submission = {
 export function SubmissionPage() {
   const { sampleId = "", submissionId = "" } = useParams();
   const { session } = useSession();
-  const canReport = session.user.permissions.includes("reports:create");
-  const canComment = session.user.permissions.includes("comments:create");
+  const canReport = session.user.is_admin || session.user.is_lymphotrack;
+  const canComment = session.user.is_admin || session.user.is_lymphotrack;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const submission = useQuery({
@@ -83,14 +85,51 @@ export function SubmissionPage() {
         `_blank`,
       ),
   });
+  
+  const removeSubmission = useMutation({
+    mutationFn: () =>
+      deleteSubmission(sampleId, submissionId, session.csrf_token),
+    onSuccess: () => {
+      toast.success("Submission deleted successfully");
+      navigate(`/samples/${sampleId}`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete submission: ${error.message}`);
+    }
+  });
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'REPORT_SAVED') {
+        queryClient.invalidateQueries({
+          queryKey: ["sample", sampleId],
+        });
+        toast.success("Report saved successfully");
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [queryClient, sampleId, submissionId]);
+
   const preview = useMutation({
     mutationFn: () =>
       previewReport(sampleId, submissionId, latestCommentText, session.csrf_token),
+    onError: (error: Error) => {
+      toast.error(`Failed to generate preview: ${error.message}`);
+    }
   });
+  
   const downloadPdf = useMutation({
     mutationFn: () =>
       downloadReportPdf(sampleId, submissionId, latestCommentText, session.csrf_token),
+    onSuccess: () => {
+      toast.success("PDF downloaded successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to download PDF: ${error.message}`);
+    }
   });
+
   const addComment = useMutation({
     mutationFn: () =>
       apiRequest(
@@ -104,7 +143,11 @@ export function SubmissionPage() {
       queryClient.invalidateQueries({
         queryKey: ["submission", sampleId, submissionId],
       });
+      toast.success("Comment posted successfully");
     },
+    onError: (error: Error) => {
+      toast.error(`Failed to post comment: ${error.message}`);
+    }
   });
   const toggleComment = useMutation({
     mutationFn: (
@@ -118,20 +161,17 @@ export function SubmissionPage() {
         },
         session.csrf_token,
       ),
-    onSuccess: () =>
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["submission", sampleId, submissionId],
-      }),
+      });
+      toast.success("Comment status updated");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update comment: ${error.message}`);
+    }
   });
-  const removeSubmission = useMutation({
-    mutationFn: () =>
-      apiRequest<void>(
-        `/api/v1/samples/${sampleId}/submissions/${submissionId}`,
-        { method: "DELETE" },
-        session.csrf_token,
-      ),
-    onSuccess: () => navigate(`/samples/${sampleId}`, { replace: true }),
-  });
+
 
   if (submission.isLoading) return <LinearProgress />;
   if (!submission.data)
@@ -163,7 +203,7 @@ export function SubmissionPage() {
               <Download size={16} />
               Download ZIP
             </a>
-            {session.user.permissions.includes("results:delete") && (
+            {session.user.is_admin && (
               <button
                 disabled={removeSubmission.isPending}
                 onClick={() => {
@@ -330,9 +370,8 @@ export function SubmissionPage() {
             </div>
             <div className="flex-1 overflow-y-auto max-h-[340px] pr-1.5 mb-4 space-y-4">
               {submission.data.submission_comments
-                ?.filter((item) => !item.hidden || session.user.permissions.includes("results:delete"))
-                .map((item) => (
-                  <div key={item.id} className={`rounded-xl border p-4 text-xs shadow-sm ${item.hidden ? "border-red-200 bg-red-50 text-red-900 dark:bg-red-900/10 dark:border-red-900/30 dark:text-red-300" : "border-gray-200 bg-gray-50 dark:bg-neutral-900/50 dark:border-neutral-700/50"}`}>
+                ?.map((item) => (
+                  <div key={item.id} className={`rounded-xl border p-4 text-xs shadow-sm ${item.hidden ? "border-red-200 bg-red-50 text-red-900 dark:bg-red-900/10 dark:border-red-900/30 dark:text-red-300 opacity-50" : "border-gray-200 bg-gray-50 dark:bg-neutral-900/50 dark:border-neutral-700/50"}`}>
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="flex size-7 items-center justify-center rounded-full bg-[#7B4925] dark:bg-[#EBA98C] text-xs font-bold text-white dark:text-gray-900">
@@ -340,7 +379,7 @@ export function SubmissionPage() {
                         </div>
                         <span className="font-bold text-gray-900 dark:text-gray-200">{item.author}</span>
                       </div>
-                      {session.user.permissions.includes("results:delete") && (
+                      {session.user.is_admin && (
                         <button
                           onClick={() => toggleComment.mutate(item)}
                           className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-bold transition ${item.hidden ? "bg-white text-blue-700 hover:bg-blue-50 dark:bg-neutral-700 dark:text-blue-400" : "bg-white text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:bg-neutral-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
@@ -350,9 +389,13 @@ export function SubmissionPage() {
                       )}
                     </div>
                     <div className="pl-9 text-gray-700 dark:text-gray-300">
-                      <Markdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1">
-                        {item.text}
-                      </Markdown>
+                      {item.hidden && !session.user.is_admin ? (
+                        <div className="italic text-gray-500">This comment has been hidden.</div>
+                      ) : (
+                        <Markdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1">
+                          {item.text}
+                        </Markdown>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -381,16 +424,16 @@ export function SubmissionPage() {
                       </button>
                     )}
                   </div>
-                  <div className="flex bg-gray-100 dark:bg-neutral-700 rounded-lg p-0.5">
+                  <div className="flex bg-gray-100 dark:bg-neutral-700 rounded-lg p-1">
                     <button
                       onClick={() => setCommentTab("edit")}
-                      className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold transition ${commentTab === "edit" ? "bg-white dark:bg-gray-700 text-[#7B4925] dark:text-[#EBA98C] shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
+                      className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold transition ${commentTab === "edit" ? "bg-white dark:bg-gray-700 text-[#7B4925] dark:text-[#EBA98C] shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => setCommentTab("preview")}
-                      className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold transition ${commentTab === "preview" ? "bg-white dark:bg-gray-700 text-[#7B4925] dark:text-[#EBA98C] shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
+                      className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold transition ${commentTab === "preview" ? "bg-white dark:bg-gray-700 text-[#7B4925] dark:text-[#EBA98C] shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
                     >
                       Preview
                     </button>
@@ -400,14 +443,14 @@ export function SubmissionPage() {
                 <div className="mb-3">
                   {commentTab === "edit" ? (
                     <textarea
-                      className="w-full resize-y rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-900 p-3 text-sm shadow-inner focus:border-[#7B4925] dark:focus:border-[#EBA98C] focus:outline-none focus:ring-1 focus:ring-[#7B4925] dark:focus:ring-[#EBA98C] dark:text-gray-100 font-mono"
-                      rows={6}
+                      className="w-full resize-y rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-900 p-4 text-base shadow-inner min-h-[220px] focus:border-[#7B4925] dark:focus:border-[#EBA98C] focus:outline-none focus:ring-1 focus:ring-[#7B4925] dark:focus:ring-[#EBA98C] dark:text-gray-100 font-mono"
+                      rows={10}
                       placeholder="Supports Markdown styling..."
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                     />
                   ) : (
-                    <div className="w-full rounded-lg border border-gray-200 dark:border-neutral-700/50 bg-gray-50 dark:bg-neutral-900/50 p-4 min-h-[140px] overflow-y-auto">
+                    <div className="w-full rounded-lg border border-gray-200 dark:border-neutral-700/50 bg-gray-50 dark:bg-neutral-900/50 p-4 min-h-[220px] overflow-y-auto">
                       {comment.trim() ? (
                         <Markdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1">
                           {comment}
@@ -422,7 +465,7 @@ export function SubmissionPage() {
                   <button
                     onClick={() => addComment.mutate()}
                     disabled={!comment.trim()}
-                    className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-700 px-6 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-neutral-600 disabled:opacity-50"
+                    className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-700 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-neutral-600 disabled:opacity-50"
                   >
                     Post Comment
                   </button>
@@ -436,21 +479,15 @@ export function SubmissionPage() {
                   <span>Report Actions</span>
                   <span className="text-xs text-gray-500 font-normal">Using latest comment as conclusion</span>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex flex-col gap-3 sm:flex-row items-center">
                   <button
                     onClick={() => preview.mutate()}
-                    disabled={!latestCommentText.trim()}
+                    disabled={!latestCommentText.trim() || preview.isPending}
                     className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-700 px-2.5 py-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                   >
                     Preview HTML
                   </button>
-                  <button
-                    onClick={() => report.mutate()}
-                    disabled={!latestCommentText.trim() || report.isPending}
-                    className="flex-1 rounded-lg border border-[#7B4925]/30 bg-[#7B4925]/10 dark:bg-[#DF7849]/10 px-2.5 py-1.5 text-sm font-bold text-[#7B4925] dark:text-[#EBA98C] shadow-sm transition hover:bg-[#7B4925]/20 dark:hover:bg-[#DF7849]/20 disabled:opacity-50"
-                  >
-                    Save HTML Report
-                  </button>
+
                   <button
                     onClick={() => downloadPdf.mutate()}
                     disabled={!latestCommentText.trim() || downloadPdf.isPending}
@@ -458,10 +495,13 @@ export function SubmissionPage() {
                   >
                     {downloadPdf.isPending ? "Generating..." : "Download PDF"}
                   </button>
+                  {!latestCommentText.trim() && (
+                    <span className="text-xs font-semibold text-[#DF7849] ml-2">
+                      ⚠️ Please post a comment first to generate a report.
+                    </span>
+                  )}
                 </div>
-                {report.error && (
-                  <div className="mt-3 text-xs font-semibold text-red-600">{report.error.message}</div>
-                )}
+
                 {downloadPdf.error && (
                   <div className="mt-3 text-xs font-semibold text-red-600">{downloadPdf.error.message}</div>
                 )}

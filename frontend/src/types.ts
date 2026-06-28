@@ -15,8 +15,8 @@ export type User = {
   email: string | null;
   roles: string[];
   groups: string[];
-  permissions: string[];
   is_admin: boolean;
+  is_lymphotrack: boolean;
 };
 
 export type Session = {
@@ -45,6 +45,9 @@ export type Sample = {
   q30_per?: number | string;
   date_added?: string;
   duplicate_count?: number;
+  latest_report_id?: string;
+  latest_report_oid?: string;
+  latest_report_type?: string;
 };
 
 export type SamplesPayload = {
@@ -73,6 +76,10 @@ export type DraftSequence = {
   in_frame: boolean;
   no_stop_codon: boolean;
   length?: number;
+  v_gene?: string;
+  j_gene?: string;
+  d_gene?: string;
+  v_mutation?: number;
 };
 
 export type Draft = {
@@ -85,10 +92,12 @@ export type Draft = {
 
 export type Report = {
   _id: string;
+  display_id?: string;
   report_type: string;
   submission_id: string | null;
   summary: string;
   created_by: string;
   created_at: string;
   hidden: boolean;
+  file_size?: number;
 };

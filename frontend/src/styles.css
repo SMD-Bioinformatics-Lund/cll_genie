@@ -190,7 +190,7 @@
   }
 
   .detail-grid {
-    @apply grid grid-cols-4 gap-px border border-border-subtle bg-border-subtle;
+    @apply grid grid-cols-3 md:grid-cols-5 xl:grid-cols-7 gap-px border border-border-subtle bg-border-subtle;
   }
 
   .detail-grid > div {

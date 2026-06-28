@@ -9,7 +9,7 @@ export function Brand({ compact = false, inverse = false }: { compact?: boolean,
       <img 
         src={`${APP_BASE_PATH}/logo.svg`} 
         alt="CLL Genie Logo" 
-        className="size-10 rounded-lg shadow-sm object-cover bg-transparent" 
+        className="size-10 rounded-lg shadow-sm object-cover bg-white" 
       />
       {!compact && (
         <div className="flex flex-col pt-1">

@@ -2,6 +2,7 @@ import { CircularProgress } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Toaster } from "sonner";
 import { APP_BASE_PATH, getSession, logout } from "./api";
 import { AppLayout } from "./components/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -32,9 +33,7 @@ const AdminRulesPage = lazy(() =>
 const AdminUsersPage = lazy(() =>
   import("./pages/AdminUsersPage").then((m) => ({ default: m.AdminUsersPage })),
 );
-const AuditPage = lazy(() =>
-  import("./pages/AuditPage").then((m) => ({ default: m.AuditPage })),
-);
+
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -106,17 +105,13 @@ export default function App() {
                     )
                   }
                 />
-                <Route
-                  path="admin/audit"
-                  element={
-                    session.user.is_admin ? <AuditPage /> : <Navigate to="/" />
-                  }
-                />
-                <Route path="*" element={<Navigate to="/" />} />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
           </Suspense>
         </BrowserRouter>
+        <Toaster position="bottom-right" richColors />
       </SessionContext.Provider>
     </QueryClientProvider>
   );

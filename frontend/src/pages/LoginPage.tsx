@@ -182,7 +182,7 @@ export function LoginPage({ onAuthenticated }: Props) {
 
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5 }}>
             {provider === "ldap"
-              ? "Use your organization credentials. Your CLL Genie permissions come from your local user profile."
+              ? "Use your organization credentials. Your CLL Genie access comes from your local user profile."
               : "Use your existing CLL Genie local account."}
           </Typography>
         </Paper>

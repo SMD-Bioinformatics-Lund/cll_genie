@@ -16,8 +16,9 @@ import {
 } from "@mui/material";
 import { Play, Send } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Fragment, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { getJob, getSample, previewSequences, submitVquest } from "../api";
 import { useSession } from "../session-context";
 
@@ -68,6 +69,27 @@ export function AnalysisPage() {
     queryFn: () => getSample(sampleId),
   });
 
+  const [previewJobId, setPreviewJobId] = useState<string | null>(null);
+
+  const previewJob = useQuery({
+    queryKey: ["job", previewJobId],
+    queryFn: () => getJob(previewJobId!),
+    enabled: Boolean(previewJobId),
+    refetchInterval: (q) =>
+      ["SUCCEEDED", "FAILED_FINAL"].includes(q.state.data?.status ?? "")
+        ? false
+        : 1500,
+  });
+
+  useEffect(() => {
+    const result = previewJob.data?.result;
+    if (previewJob.data?.status === "SUCCEEDED" && result?.sequences) {
+      setSequences(result.sequences as unknown as any[]);
+      setUiStep(1);
+      setPreviewJobId(null);
+    }
+  }, [previewJob.data]);
+
   const analysisJob = useQuery({
     queryKey: ["job", analysisJobId],
     queryFn: () => getJob(analysisJobId!),
@@ -82,21 +104,31 @@ export function AnalysisPage() {
     if (analysisJob.data?.status === "SUCCEEDED" && result?.submission_id)
       navigate(`/samples/${sampleId}/submissions/${result.submission_id}`);
   }, [analysisJob.data, navigate, sampleId]);
+  
   const parse = useMutation({
     mutationFn: () => previewSequences(sampleId, filters, session.csrf_token),
     onSuccess: (value) => {
-      setSequences(value.sequences);
-      setUiStep(1);
+      setPreviewJobId(value.job_id);
     },
+    onError: (error: Error) => {
+      toast.error(`Failed to read workbook: ${error.message}`);
+    }
   });
+  
   const submit = useMutation({
     mutationFn: () => {
       const selectedSequences = sequences.filter(s => selected.includes(s.sequence_id));
       return submitVquest(sampleId, selectedSequences, options, session.csrf_token);
     },
-    onSuccess: (value) => setAnalysisJobId(value.job_id),
+    onSuccess: (value) => {
+      setAnalysisJobId(value.job_id);
+      toast.success("Analysis started successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to start analysis: ${error.message}`);
+    }
   });
-  const activeStep = analysisJobId ? 2 : uiStep;
+  const activeStep = analysisJobId ? 2 : (previewJobId ? 0 : uiStep);
   
   // Create FASTA format for readonly text area
   const fastaPreview = sequences
@@ -191,6 +223,21 @@ export function AnalysisPage() {
               {parse.error?.message}
             </Alert>
           )}
+          {previewJob.data && (
+            <Box sx={{ mt: 3 }}>
+              <Typography>{previewJob.data.message}</Typography>
+              <LinearProgress
+                variant="determinate"
+                value={previewJob.data.progress}
+                sx={{ mt: 1 }}
+              />
+              {previewJob.data.error && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {previewJob.data.error}
+                </Alert>
+              )}
+            </Box>
+          )}
         </Paper>
       )}
       {uiStep === 1 && sequences.length > 0 && (
@@ -217,8 +264,12 @@ export function AnalysisPage() {
                   <th>Select</th>
                   <th>Sequence</th>
                   <th>Length</th>
-                  <th>Merge count</th>
+                  <th>Total seq. read</th>
                   <th>Reads %</th>
+                  <th>V-gene</th>
+                  <th>J-gene</th>
+                  <th>D-gene</th>
+                  <th>V-mutation</th>
                   <th>Productivity</th>
                 </tr>
               </thead>
@@ -241,6 +292,10 @@ export function AnalysisPage() {
                     <td>{seq.length ?? seq.sequence.length}</td>
                     <td>{seq.merge_count.toLocaleString()}</td>
                     <td>{seq.total_reads_percent.toFixed(2)}%</td>
+                    <td>{seq.v_gene || "–"}</td>
+                    <td>{seq.j_gene || "–"}</td>
+                    <td>{seq.d_gene || "–"}</td>
+                    <td>{seq.v_mutation !== undefined ? `${seq.v_mutation}%` : "–"}</td>
                     <td>
                       <Chip
                         size="small"

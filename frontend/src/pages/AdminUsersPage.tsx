@@ -123,7 +123,7 @@ export function AdminUsersPage() {
         </Button>
       </Box>
       <Alert severity="info" sx={{ my: 3 }}>
-        LDAP authenticates passwords only. Full name, groups, permissions, and
+        LDAP authenticates passwords only. Full name, groups, and
         enabled state always come from this local user object.
       </Alert>
       <Paper className="data-panel" elevation={0}>

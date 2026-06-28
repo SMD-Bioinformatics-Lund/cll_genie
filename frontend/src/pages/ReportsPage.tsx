@@ -16,7 +16,7 @@ import { timeAgo } from "../dateUtils";
 export function ReportsPage() {
   const { session } = useSession();
   const queryClient = useQueryClient();
-  const canArchive = session.user.permissions.includes("results:delete");
+  const canArchive = session.user.is_admin;
   const query = useQuery({
     queryKey: ["reports"],
     queryFn: () => apiRequest<Report[]>("/api/v1/reports"),
@@ -62,7 +62,7 @@ export function ReportsPage() {
             </thead>
             <tbody>
               {query.data?.map((report) => (
-                <tr key={report._id}>
+                <tr key={report._id} style={{ opacity: report.hidden ? 0.5 : 1 }}>
                   <td>{timeAgo(report.created_at)}</td>
                   <td>
                     {(report as Report & { sample_name?: string }).sample_name}
@@ -82,6 +82,7 @@ export function ReportsPage() {
                         `/api/v1/reports/${report._id}/artifact`,
                       )}
                       target="_blank"
+                      disabled={report.hidden && !canArchive}
                       endIcon={<ExternalLink size={16} />}
                     >
                       Open
