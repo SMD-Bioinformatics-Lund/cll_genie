@@ -2,7 +2,7 @@
 name = "cll-genie-api"
 version = "2.0.0"
 description = "CLL Genie API"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.12"
 dependencies = [
   "fastapi==0.115.12",
   "uvicorn[standard]==0.34.2",
@@ -40,7 +40,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]

@@ -74,6 +74,13 @@ def generate_report(
         raise HTTPException(status_code=404, detail="Sample or submission not found")
     _suggested, facts, trace = suggestion(services, submission)
     report_oid = ObjectId()
+    
+    # Calculate report number
+    report_count = services.reports.collection.count_documents(
+        {"sample_id": ObjectId(sample_id), "submission_id": submission_id}
+    )
+    report_num = report_count + 1
+
     html = ReportRenderer().render_positive(
         sample=sample,
         submission_id=submission_id,
@@ -85,12 +92,13 @@ def generate_report(
         analysis_run_at=services.settings.pdf_analysis_run_at,
     )
     artifact = services.artifacts.save_bytes(
-        f"samples/{sample_id}/reports",
-        f"{sample['name']}_{submission_id}_{int(utcnow().timestamp())}.html",
+        "reports",
+        f"{sample['name']}_{submission_id}_{report_num}.html",
         html.encode("utf-8"),
         media_type="text/html; charset=utf-8",
         actor=session.user.username,
         kind="positive-report-html",
+        flat=True,
     )
     report_id = services.reports.create(
         {
@@ -211,12 +219,13 @@ def generate_negative_report(
         analysis_run_at=services.settings.pdf_analysis_run_at,
     )
     artifact = services.artifacts.save_bytes(
-        f"samples/{sample_id}/reports",
-        f"{sample['name']}_NR_{int(utcnow().timestamp())}.html",
+        "reports",
+        f"{sample['name']}_NR.html",
         html.encode("utf-8"),
         media_type="text/html; charset=utf-8",
         actor=session.user.username,
         kind="negative-report-html",
+        flat=True,
     )
     report_id = services.reports.create(
         {

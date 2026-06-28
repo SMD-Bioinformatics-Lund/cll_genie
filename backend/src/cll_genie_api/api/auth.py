@@ -60,7 +60,7 @@ def login(
     session = services.sessions.create(user, payload.provider)
     response.set_cookie(
         key=services.settings.session_cookie_name,
-        value=session.token,
+        value=session.token_id,
         max_age=services.settings.session_ttl_seconds,
         secure=services.settings.cookie_secure,
         httponly=True,
@@ -80,7 +80,7 @@ def logout(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ) -> MessageResponse:
-    services.sessions.delete(session.token)
+    services.sessions.delete(session.token_id)
     response.delete_cookie(
         services.settings.session_cookie_name,
         path=services.settings.application_prefix,

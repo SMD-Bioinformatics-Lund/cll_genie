@@ -31,6 +31,8 @@ import {
   deleteSubmission,
 } from "../api";
 import { useSession } from "../session-context";
+import { timeAgo } from "../dateUtils";
+import { ConfirmModal } from "../components/ConfirmModal";
 
 type SequenceResult = {
   summary: Record<string, unknown>;
@@ -69,10 +71,32 @@ export function SubmissionPage() {
     enabled: Boolean(submission.data),
   });
   
-  const validComments = submission.data?.submission_comments?.filter(c => !c.hidden) || [];
-  const latestCommentText = validComments.length > 0 ? validComments[validComments.length - 1].text : "";
+  const validComments = [...(submission.data?.submission_comments || [])].filter(c => !c.hidden).sort((a, b) => new Date(b.time_created).getTime() - new Date(a.time_created).getTime());
+  const latestCommentText = validComments.length > 0 ? validComments[0].text : "";
   const [comment, setComment] = useState("");
   const [commentTab, setCommentTab] = useState<"edit" | "preview">("edit");
+  const [commentPage, setCommentPage] = useState(1);
+  
+  const COMMENTS_PER_PAGE = 2;
+  const allComments = [...(submission.data?.submission_comments || [])].sort((a, b) => new Date(b.time_created).getTime() - new Date(a.time_created).getTime());
+  const totalCommentPages = Math.ceil(allComments.length / COMMENTS_PER_PAGE);
+  const paginatedComments = allComments.slice((commentPage - 1) * COMMENTS_PER_PAGE, commentPage * COMMENTS_PER_PAGE);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const confirmAction = (title: string, message: string, destructive: boolean, onConfirm: () => void) => {
+    setConfirmConfig({ isOpen: true, title, message, destructive, onConfirm });
+  };
 
   // Removed auto-set summary useEffect
 
@@ -207,8 +231,12 @@ export function SubmissionPage() {
               <button
                 disabled={removeSubmission.isPending}
                 onClick={() => {
-                  if (window.confirm("Delete this analysis submission? This cannot be undone."))
-                    removeSubmission.mutate();
+                  confirmAction(
+                    "Delete Submission",
+                    "Delete this analysis submission? This cannot be undone.",
+                    true,
+                    () => removeSubmission.mutate()
+                  );
                 }}
                 className="flex items-center gap-2 rounded-lg bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 border border-red-200 shadow-sm transition hover:bg-red-100 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/20"
               >
@@ -369,8 +397,7 @@ export function SubmissionPage() {
               </h2>
             </div>
             <div className="flex-1 overflow-y-auto max-h-[340px] pr-1.5 mb-4 space-y-4">
-              {submission.data.submission_comments
-                ?.map((item) => (
+              {paginatedComments.map((item) => (
                   <div key={item.id} className={`rounded-xl border p-4 text-xs shadow-sm ${item.hidden ? "border-red-200 bg-red-50 text-red-900 dark:bg-red-900/10 dark:border-red-900/30 dark:text-red-300 opacity-50" : "border-gray-200 bg-gray-50 dark:bg-neutral-900/50 dark:border-neutral-700/50"}`}>
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -378,6 +405,8 @@ export function SubmissionPage() {
                           {item.author.charAt(0).toUpperCase()}
                         </div>
                         <span className="font-bold text-gray-900 dark:text-gray-200">{item.author}</span>
+                        <span className="text-gray-400 dark:text-gray-500">•</span>
+                        <span className="text-gray-500 dark:text-gray-400">{timeAgo(item.time_created)}</span>
                       </div>
                       {session.user.is_admin && (
                         <button
@@ -399,9 +428,29 @@ export function SubmissionPage() {
                     </div>
                   </div>
                 ))}
-                {!submission.data.submission_comments?.length && (
+                {!allComments.length && (
                   <div className="text-xs text-gray-500 dark:text-gray-400 italic text-center py-8">
                     No comments yet.
+                  </div>
+                )}
+                
+                {totalCommentPages > 1 && (
+                  <div className="mt-2 flex items-center justify-between px-2 pt-2 border-t border-gray-100 dark:border-neutral-700/50">
+                    <button
+                      onClick={() => setCommentPage(p => Math.max(1, p - 1))}
+                      disabled={commentPage === 1}
+                      className="text-xs font-semibold text-[#7B4925] dark:text-[#EBA98C] transition hover:opacity-70 disabled:opacity-30"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-xs font-medium text-gray-500">Page {commentPage} of {totalCommentPages}</span>
+                    <button
+                      onClick={() => setCommentPage(p => Math.min(totalCommentPages, p + 1))}
+                      disabled={commentPage === totalCommentPages}
+                      className="text-xs font-semibold text-[#7B4925] dark:text-[#EBA98C] transition hover:opacity-70 disabled:opacity-30"
+                    >
+                      Next
+                    </button>
                   </div>
                 )}
             </div>
@@ -517,6 +566,19 @@ export function SubmissionPage() {
           Return to Sample
         </Link>
       </div>
+
+      {confirmConfig.isOpen && (
+        <ConfirmModal
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          destructive={confirmConfig.destructive}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+          }}
+          onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        />
+      )}
     </div>
   );
 }

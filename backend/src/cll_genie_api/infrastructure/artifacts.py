@@ -36,12 +36,16 @@ class LocalArtifactStore:
         media_type: str,
         actor: str,
         kind: str,
+        flat: bool = False,
     ) -> dict:
         artifact_id = ObjectId()
         safe_name = self.safe_filename(filename)
         # Every artifact gets an immutable filesystem location. Re-uploading a
         # workbook with the same name therefore never overwrites clinical data.
-        relative_path = str(Path(relative_dir) / str(artifact_id) / safe_name)
+        if flat:
+            relative_path = str(Path(relative_dir) / safe_name)
+        else:
+            relative_path = str(Path(relative_dir) / str(artifact_id) / safe_name)
         target = self.resolve(relative_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         digest = hashlib.sha256()

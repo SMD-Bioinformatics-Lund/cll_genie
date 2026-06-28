@@ -34,7 +34,7 @@ class MongoSessionRepository:
                 "expires_at": now + timedelta(seconds=self.ttl_seconds),
             }
         )
-        return Session(token=token, csrf_token=csrf_token, user=user, provider=provider)
+        return Session(token_id=token, csrf_token=csrf_token, user=user, provider=provider)
 
     def get(self, token: str) -> Session | None:
         now = _utcnow()
@@ -49,7 +49,7 @@ class MongoSessionRepository:
             {"$set": {"last_seen_at": now}},
         )
         return Session(
-            token=token,
+            token_id=token,
             csrf_token=document["csrf_token"],
             user=user,
             provider=document["provider"],

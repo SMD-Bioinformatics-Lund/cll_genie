@@ -1,44 +1,24 @@
 services:
   api:
+    command: ["uvicorn", "cll_genie_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--proxy-headers", "--forwarded-allow-ips=*"]
     environment:
-      MONGODB_URI: mongodb://mongo:27017
       ENVIRONMENT: development
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
 
   worker:
     environment:
-      MONGODB_URI: mongodb://mongo:27017
       ENVIRONMENT: development
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
 
   scheduler:
     environment:
-      MONGODB_URI: mongodb://mongo:27017
       ENVIRONMENT: development
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
 
   mongo:
-    image: mongo:3.4
-    platform: linux/amd64
-    command: ["mongod", "--bind_ip", "0.0.0.0"]
+    profiles: ["mongo"]
     ports:
-      - "127.0.0.1:${MONGO_DEV_PORT:-27017}:27017"
-    volumes:
-      - mongo_dev_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongo", "--quiet", "--eval", "quit(db.runCommand({ping:1}).ok ? 0 : 2)"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 15s
-    networks: [backend]
-    restart: unless-stopped
-
-volumes:
-  mongo_dev_data: {}
+      - "127.0.0.1:27017:27017"

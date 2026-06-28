@@ -15,8 +15,8 @@ class UserResponse(BaseModel):
     email: str | None
     roles: list[str]
     groups: list[str]
-    permissions: list[str]
     is_admin: bool
+    is_lymphotrack: bool
 
 
 class SessionResponse(BaseModel):
@@ -116,6 +116,6 @@ def user_response(user) -> UserResponse:
         email=user.email,
         roles=list(user.roles),
         groups=list(user.groups),
-        permissions=list(user.permissions),
         is_admin=user.is_admin,
+        is_lymphotrack=user.is_lymphotrack,
     )

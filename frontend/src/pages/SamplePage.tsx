@@ -44,6 +44,7 @@ import { formatBytes } from "../utils";
 import { useSession } from "../session-context";
 import type { Report, Sample } from "../types";
 import { timeAgo } from "../dateUtils";
+import { ConfirmModal } from "../components/ConfirmModal";
 
 export function SamplePage() {
   const { sampleId = "" } = useParams();
@@ -58,6 +59,22 @@ export function SamplePage() {
   );
   const [jsonOpen, setJsonOpen] = useState(false);
   const [jsonText, setJsonText] = useState("");
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const confirmAction = (title: string, message: string, destructive: boolean, onConfirm: () => void) => {
+    setConfirmConfig({ isOpen: true, title, message, destructive, onConfirm });
+  };
 
   const query = useQuery({
     queryKey: ["sample", sampleId],
@@ -195,9 +212,12 @@ export function SamplePage() {
                 variant="outlined"
                 color="error"
                 onClick={() => {
-                  if (confirm("Are you sure you want to permanently delete this sample and all related data? This action cannot be undone.")) {
-                    removeSample.mutate();
-                  }
+                  confirmAction(
+                    "Delete Sample",
+                    "Are you sure you want to permanently delete this sample and all related data? This action cannot be undone.",
+                    true,
+                    () => removeSample.mutate()
+                  );
                 }}
                 disabled={removeSample.isPending}
               >
@@ -333,9 +353,12 @@ export function SamplePage() {
                               size="small"
                               variant="outlined"
                               onClick={() => {
-                                if (window.confirm("Are you sure you want to delete this submission and its reports?")) {
-                                  delSubmission.mutate(id);
-                                }
+                                confirmAction(
+                                  "Delete Submission",
+                                  "Are you sure you want to delete this submission and its reports?",
+                                  true,
+                                  () => delSubmission.mutate(id)
+                                );
                               }}
                             >
                               Delete
@@ -397,9 +420,12 @@ export function SamplePage() {
                               variant="outlined"
                               disabled={toggleReport.isPending}
                               onClick={() => {
-                                if (window.confirm("Are you sure you want to restore this report?")) {
-                                  toggleReport.mutate(report);
-                                }
+                                confirmAction(
+                                  "Restore Report",
+                                  "Are you sure you want to restore this report?",
+                                  false,
+                                  () => toggleReport.mutate(report)
+                                );
                               }}
                             >
                               Restore
@@ -411,9 +437,12 @@ export function SamplePage() {
                               variant="outlined"
                               disabled={toggleReport.isPending}
                               onClick={() => {
-                                if (window.confirm("Are you sure you want to hide this report?")) {
-                                  toggleReport.mutate(report);
-                                }
+                                confirmAction(
+                                  "Delete Report",
+                                  "Are you sure you want to hide this report?",
+                                  true,
+                                  () => toggleReport.mutate(report)
+                                );
                               }}
                             >
                               Delete
@@ -425,7 +454,7 @@ export function SamplePage() {
                             `/api/v1/reports/${report._id}/artifact`,
                           )}
                           target="_blank"
-                          disabled={report.hidden && !canArchive}
+                          disabled={report.hidden && !canDelete}
                           endIcon={<ExternalLink size={15} />}
                         >
                           Open report
@@ -524,6 +553,19 @@ export function SamplePage() {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {confirmConfig.isOpen && (
+        <ConfirmModal
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          destructive={confirmConfig.destructive}
+          onConfirm={() => {
+            confirmConfig.onConfirm();
+            setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+          }}
+          onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        />
+      )}
     </Container>
   );
 }
