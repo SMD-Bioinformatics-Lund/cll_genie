@@ -13,7 +13,7 @@ import {
   Stepper,
   TextField,
   Typography,
-} from "@mui/material";
+} from "../components/ui";
 import { Play, Send } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect, useState } from "react";

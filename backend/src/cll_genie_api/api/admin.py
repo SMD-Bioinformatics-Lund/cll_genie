@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -19,6 +20,26 @@ from cll_genie_api.domain.identity import Session
 from cll_genie_api.reporting.rules import RuleValidationError, evaluate
 
 router = APIRouter(prefix="/admin", tags=["administration"])
+
+
+@router.get("/audit-logs")
+def list_audit_logs(
+    session: Annotated[Session, Depends(get_current_session)],
+    services: Annotated[Services, Depends(get_services)],
+    limit: Annotated[int, Query(ge=1, le=2000)] = 250,
+):
+    """Return the newest audit records from the application log."""
+    assert_role(session, ["admin", "lymphotrack_admin"])
+    log_path = services.settings.log_root / "app.log"
+    if not log_path.is_file():
+        return {"items": [], "source": str(log_path)}
+
+    records: deque[str] = deque(maxlen=limit)
+    with log_path.open(encoding="utf-8", errors="replace") as log_file:
+        for line in log_file:
+            if " - audit - " in line:
+                records.append(line.rstrip("\n"))
+    return {"items": list(reversed(records)), "source": str(log_path)}
 
 
 @router.get("/rules")
@@ -47,7 +68,13 @@ def create_rule(
     except DuplicateKeyError as exc:
         raise HTTPException(status_code=409, detail="Rule key and version already exist") from exc
     logging.getLogger("audit").info(
-        f"AUDIT: report_rule.created by {session.user.username} on rule:{rule_id} - {{\"rule_key\": \"{payload.rule_key}\", \"version\": {payload.version}, \"status\": \"{payload.status}\"}}"
+        "AUDIT: report_rule.created by %s on rule:%s - "
+        '{"rule_key": "%s", "version": %s, "status": "%s"}',
+        session.user.username,
+        rule_id,
+        payload.rule_key,
+        payload.version,
+        payload.status,
     )
     return {"rule_id": rule_id}
 
@@ -67,7 +94,13 @@ def update_rule(
     if not services.rules.update(rule_id, payload.model_dump()):
         raise HTTPException(status_code=404, detail="Rule not found")
     logging.getLogger("audit").info(
-        f"AUDIT: report_rule.updated by {session.user.username} on rule:{rule_id} - {{\"rule_key\": \"{payload.rule_key}\", \"version\": {payload.version}, \"status\": \"{payload.status}\"}}"
+        "AUDIT: report_rule.updated by %s on rule:%s - "
+        '{"rule_key": "%s", "version": %s, "status": "%s"}',
+        session.user.username,
+        rule_id,
+        payload.rule_key,
+        payload.version,
+        payload.status,
     )
     return {"updated": True}
 
@@ -123,7 +156,12 @@ def create_user(
     except DuplicateKeyError as exc:
         raise HTTPException(status_code=409, detail="Username or email already exists") from exc
     logging.getLogger("audit").info(
-        f"AUDIT: user.created by {session.user.username} on user:{document['username']} - {{\"roles\": {document.get('roles', [])}, \"enabled\": {document.get('enabled', True)}}}"
+        "AUDIT: user.created by %s on user:%s - "
+        '{"roles": %s, "enabled": %s}',
+        session.user.username,
+        document["username"],
+        document.get("roles", []),
+        document.get("enabled", True),
     )
     return {"user_id": str(result.inserted_id), "username": document["username"]}
 
@@ -153,13 +191,12 @@ def update_user(
     if not result.matched_count:
         raise HTTPException(status_code=404, detail="User not found")
     logging.getLogger("audit").info(
-        f"AUDIT: user.updated by {session.user.username} on user:{username} - {{\"fields\": {sorted(values)}}}"
+        'AUDIT: user.updated by %s on user:%s - {"fields": %s}',
+        session.user.username,
+        username,
+        sorted(values),
     )
     return {"updated": True}
-
-
-
-
 
 def _simulation_facts() -> dict:
     return {

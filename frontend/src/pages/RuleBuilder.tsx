@@ -1,4 +1,4 @@
-import { Box, Button, IconButton, MenuItem, Select, TextField, Typography } from "@mui/material";
+import { Box, Button, IconButton, MenuItem, Select, TextField, Typography } from "../components/ui";
 import { Plus, Trash } from "lucide-react";
 
 export type VisualCondition = {

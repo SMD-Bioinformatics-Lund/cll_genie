@@ -10,7 +10,7 @@ import {
   Tabs,
   TextField,
   Typography,
-} from "@mui/material";
+} from "../components/ui";
 import { ChevronRight, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSortableTable } from "../hooks/useSortableTable";

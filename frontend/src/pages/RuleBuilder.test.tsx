@@ -1,26 +1,16 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import { RuleBuilder } from './RuleBuilder';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { RuleBuilder } from "./RuleBuilder";
 
-// Mock matchMedia for MUI
-window.matchMedia = window.matchMedia || function() {
-    return {
-        matches: false,
-        addListener: function() {},
-        removeListener: function() {}
-    };
-};
+describe("RuleBuilder", () => {
+  it("renders the empty visual rule editor", () => {
+    render(<RuleBuilder conditions={[]} onChange={() => {}} />);
 
-const queryClient = new QueryClient();
-
-describe('RuleBuilder', () => {
-  it('renders loading state initially', () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <RuleBuilder conditions={[]} onChange={() => {}} />
-      </QueryClientProvider>
-    );
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(
+      screen.getByText("No conditions defined. This rule will always match."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add Condition" }),
+    ).toBeInTheDocument();
   });
 });

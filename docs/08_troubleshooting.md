@@ -40,3 +40,5 @@ docker-compose logs -f
 ## System Audit Logs
 
 All sensitive actions (creating samples, updating users, submitting analysis, and hiding reports) are written through the audit logger into `${LOG_ROOT}/app.log`. The file rotates daily and retains 30 backups.
+
+Users with the `admin` or `lymphotrack_admin` role can also inspect the newest audit records from **Administration → Audit logs**. This view is role-protected by the API; it does not use LDAP groups.

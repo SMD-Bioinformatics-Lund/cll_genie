@@ -23,7 +23,7 @@ This documentation is unified. Depending on your role, you will find specific va
 ## Core Architecture
 
 CLL Genie is a modern decoupled system:
-- **Frontend (SPA):** Built with React, Vite, and Material UI. It is highly responsive and designed for complex data tables and rule builders.
+- **Frontend (SPA):** Built with React, Vite, and Tailwind CSS. It is highly responsive and designed for complex data tables and rule builders.
 - **Backend (API):** A robust Python FastAPI server. It manages data ingestion, handles authentication (RBAC), and serves data.
 - **Task Workers:** Celery workers backed by Redis handle the long-running task of querying the external IMGT/V-QUEST service, ensuring the main application never freezes.
 - **Persistence:** MongoDB is used for structured data (users, rules, samples), while a local file system is used to store immutable artifacts (PDF reports, Excel uploads, raw HTML responses from IMGT).

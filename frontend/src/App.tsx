@@ -1,4 +1,4 @@
-import { CircularProgress } from "@mui/material";
+import { CircularProgress } from "./components/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -33,7 +33,11 @@ const AdminRulesPage = lazy(() =>
 const AdminUsersPage = lazy(() =>
   import("./pages/AdminUsersPage").then((m) => ({ default: m.AdminUsersPage })),
 );
-
+const AdminAuditLogsPage = lazy(() =>
+  import("./pages/AdminAuditLogsPage").then((m) => ({
+    default: m.AdminAuditLogsPage,
+  })),
+);
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -100,6 +104,16 @@ export default function App() {
                   element={
                     session.user.is_admin ? (
                       <AdminUsersPage />
+                    ) : (
+                      <Navigate to="/" />
+                    )
+                  }
+                />
+                <Route
+                  path="admin/audit-logs"
+                  element={
+                    session.user.is_admin ? (
+                      <AdminAuditLogsPage />
                     ) : (
                       <Navigate to="/" />
                     )

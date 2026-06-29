@@ -10,7 +10,7 @@ import {
   Tabs,
   TextField,
   Typography,
-} from "@mui/material";
+} from "../components/ui";
 import {
   Database,
   Dna,

@@ -11,7 +11,7 @@ import {
   Paper,
   TextField,
   Typography,
-} from "@mui/material";
+} from "../components/ui";
 import { FlaskConical, Pencil, Plus, Save, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";

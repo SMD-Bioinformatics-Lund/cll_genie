@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -94,6 +94,11 @@ class UserCreateRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool = True
 
+    @field_validator("roles")
+    @classmethod
+    def normalize_roles(cls, roles: list[str]) -> list[str]:
+        return sorted({role.strip().lower() for role in roles if role.strip()})
+
 
 class UserUpdateRequest(BaseModel):
     fullname: str | None = Field(default=None, min_length=1, max_length=300)
@@ -103,6 +108,13 @@ class UserUpdateRequest(BaseModel):
     roles: list[str] | None = None
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool | None = None
+
+    @field_validator("roles")
+    @classmethod
+    def normalize_roles(cls, roles: list[str] | None) -> list[str] | None:
+        if roles is None:
+            return None
+        return sorted({role.strip().lower() for role in roles if role.strip()})
 
 
 class UserSettingsRequest(BaseModel):

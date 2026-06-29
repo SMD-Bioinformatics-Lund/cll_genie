@@ -251,10 +251,6 @@
     @apply mx-auto w-full max-w-[480px];
   }
 
-  .MuiDrawer-root {
-    @apply hidden!;
-  }
-
   .content-grid {
     @apply grid-cols-1;
   }

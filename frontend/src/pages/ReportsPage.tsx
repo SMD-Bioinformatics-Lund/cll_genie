@@ -5,7 +5,7 @@ import {
   Container,
   Paper,
   Typography,
-} from "@mui/material";
+} from "../components/ui";
 import { EyeOff, ExternalLink, RotateCcw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, applicationUrl } from "../api";

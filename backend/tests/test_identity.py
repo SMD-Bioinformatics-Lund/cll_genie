@@ -75,3 +75,16 @@ def test_ldap_provider_still_returns_the_local_user_object() -> None:
     assert authenticated is user
     assert authenticated.is_admin
     assert authenticated.email == "local-profile@example.test"
+
+
+def test_roles_from_mongo_are_normalized_for_authorization() -> None:
+    user = LocalUser.from_document(
+        {
+            "username": "admin-user",
+            "fullname": "Admin User",
+            "roles": [" Admin ", "USER"],
+        }
+    )
+
+    assert user.roles == ("admin", "user")
+    assert user.is_admin

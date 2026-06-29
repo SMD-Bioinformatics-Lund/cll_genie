@@ -17,7 +17,11 @@ class LocalUser:
     def from_document(cls, document: dict[str, Any]) -> "LocalUser":
         username = str(document["username"])
         fullname = str(document.get("fullname") or username)
-        roles = tuple(str(role) for role in document.get("roles", []))
+        roles = tuple(
+            normalized
+            for role in document.get("roles", [])
+            if (normalized := str(role).strip().lower())
+        )
         return cls(
             username=username,
             fullname=fullname,
