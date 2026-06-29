@@ -1,18 +1,87 @@
 services:
+  proxy:
+    env_file:
+      - .env.dev
+    volumes:
+      - ./docker/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+
+  frontend:
+    image: node:22-alpine
+    container_name: cll-genie-frontend
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    env_file:
+      - .env.dev
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    expose:
+      - "5173"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    networks:
+      - cll_genie
+    restart: unless-stopped
+
   api:
-    command: ["uvicorn", "cll_genie_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--proxy-headers", "--forwarded-allow-ips=*"]
+    env_file:
+      - .env.dev
+    environment:
+      PYTHONPATH: /app/src
+    command:
+      [
+        "uvicorn",
+        "cll_genie_api.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-dir",
+        "/app/src",
+        "--proxy-headers",
+        "--forwarded-allow-ips=*",
+      ]
     volumes:
       - ./backend/src:/app/src
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/cll_genie_dev/health/live')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
 
   worker:
+    env_file:
+      - .env.dev
+    environment:
+      PYTHONPATH: /app/src
     volumes:
       - ./backend/src:/app/src
 
   scheduler:
+    env_file:
+      - .env.dev
+    environment:
+      PYTHONPATH: /app/src
     volumes:
       - ./backend/src:/app/src
 
   mongo:
     profiles: ["mongo"]
     ports:
-      - "127.0.0.1:${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env}:27017"
+      - "127.0.0.1:${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env.dev}:27017"
+
+volumes:
+  frontend_node_modules: {}
