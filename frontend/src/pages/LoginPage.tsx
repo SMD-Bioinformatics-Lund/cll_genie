@@ -29,7 +29,7 @@ type Props = { onAuthenticated: (session: Session) => void };
 
 export function LoginPage({ onAuthenticated }: Props) {
   const [metadata, setMetadata] = useState<ProvidersPayload | null>(null);
-  const [provider, setProvider] = useState<Provider["id"]>("local");
+  const [provider, setProvider] = useState<Provider["id"]>("ldap");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,10 +40,7 @@ export function LoginPage({ onAuthenticated }: Props) {
     getProviders()
       .then((payload) => {
         setMetadata(payload);
-        if (
-          !payload.providers.some((item) => item.id === "local") &&
-          payload.providers[0]
-        ) {
+        if (payload.providers[0]) {
           setProvider(payload.providers[0].id);
         }
       })
@@ -128,9 +125,9 @@ export function LoginPage({ onAuthenticated }: Props) {
 
           <Box component="form" onSubmit={submit} noValidate>
             <TextField
-              label="Username"
+              label={provider === "ldap" ? "Email" : "Username"}
               name="username"
-              autoComplete="username"
+              autoComplete={provider === "ldap" ? "email" : "username"}
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               required

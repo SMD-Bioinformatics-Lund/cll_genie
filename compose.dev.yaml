@@ -1,24 +1,18 @@
 services:
   api:
     command: ["uvicorn", "cll_genie_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--proxy-headers", "--forwarded-allow-ips=*"]
-    environment:
-      ENVIRONMENT: development
     volumes:
       - ./backend/src:/app/src
 
   worker:
-    environment:
-      ENVIRONMENT: development
     volumes:
       - ./backend/src:/app/src
 
   scheduler:
-    environment:
-      ENVIRONMENT: development
     volumes:
       - ./backend/src:/app/src
 
   mongo:
     profiles: ["mongo"]
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env}:27017"

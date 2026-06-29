@@ -14,14 +14,18 @@ class UserRepository:
         self.user = user
 
     def get(self, username: str) -> LocalUser | None:
-        return self.user if self.user and self.user.username == username else None
+        return (
+            self.user
+            if self.user and username in {self.user.username, self.user.email}
+            else None
+        )
 
 
 def test_existing_werkzeug_password_and_local_profile_are_preserved() -> None:
     user = LocalUser(
         username="analyst",
         fullname="CLL Analyst",
-        groups=("lymphotrack",),
+        roles=("lymphotrack",),
         email="analyst@example.test",
         password_hash=generate_password_hash("correct horse", method="pbkdf2:sha256"),
     )
@@ -30,7 +34,7 @@ def test_existing_werkzeug_password_and_local_profile_are_preserved() -> None:
     authenticated = service.authenticate("local", "analyst", "correct horse")
 
     assert authenticated is user
-    assert "analysis:create" in authenticated.permissions
+    assert authenticated.is_lymphotrack
     assert authenticated.fullname == "CLL Analyst"
 
 
@@ -38,7 +42,7 @@ def test_local_login_rejects_wrong_password() -> None:
     user = LocalUser(
         username="analyst",
         fullname="CLL Analyst",
-        groups=("lymphotrack",),
+        roles=("lymphotrack",),
         email=None,
         password_hash=generate_password_hash("correct horse", method="pbkdf2:sha256"),
     )
@@ -52,7 +56,7 @@ def test_ldap_provider_still_returns_the_local_user_object() -> None:
     user = LocalUser(
         username="directory-user",
         fullname="Local Display Name",
-        groups=("lymphotrack_admin",),
+        roles=("lymphotrack_admin",),
         email="local-profile@example.test",
         password_hash=None,
     )
@@ -64,7 +68,9 @@ def test_ldap_provider_still_returns_the_local_user_object() -> None:
 
     service = AuthenticationService(UserRepository(user), {"ldap": SuccessfulLdap()})
 
-    authenticated = service.authenticate("ldap", "directory-user", "directory-password")
+    authenticated = service.authenticate(
+        "ldap", "local-profile@example.test", "directory-password"
+    )
 
     assert authenticated is user
     assert authenticated.is_admin

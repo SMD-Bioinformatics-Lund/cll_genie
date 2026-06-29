@@ -14,7 +14,6 @@ export type User = {
   fullname: string;
   email: string | null;
   roles: string[];
-  groups: string[];
   is_admin: boolean;
   is_lymphotrack: boolean;
 };

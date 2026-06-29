@@ -98,7 +98,7 @@ def require_csrf(
 
 def role_dependency(roles: list[str]):
     def check(session: Annotated[Session, Depends(get_current_session)]) -> Session:
-        if not any(role in session.user.roles or role in session.user.groups for role in roles):
+        if not any(role in session.user.roles for role in roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have the required role to perform this action",
@@ -109,7 +109,7 @@ def role_dependency(roles: list[str]):
 
 
 def assert_role(session: Session, roles: list[str]) -> None:
-    if not any(role in session.user.roles or role in session.user.groups for role in roles):
+    if not any(role in session.user.roles for role in roles):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have the required role to perform this action",

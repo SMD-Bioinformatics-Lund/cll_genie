@@ -22,18 +22,15 @@ class Settings(BaseSettings):
 
     mongodb_uri: str = "mongodb://host.docker.internal:27017"
     application_database: str = "cll_genie"
-    identity_database: str = "coyote"
     users_collection: str = "users"
     sessions_collection: str = "cll_genie_sessions"
     samples_collection: str = "samples"
     results_collection: str = "vquest_results"
-    drafts_collection: str = "analysis_drafts"
     jobs_collection: str = "analysis_jobs"
     counters_collection: str = "submission_counters"
     artifacts_collection: str = "artifacts"
     reports_collection: str = "reports"
     rules_collection: str = "report_rules"
-    audit_collection: str = "audit_events"
 
     auth_providers: Annotated[list[Literal["local", "ldap"]], NoDecode] = Field(
         default_factory=lambda: ["local"]
@@ -43,19 +40,22 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     cookie_samesite: Literal["lax", "strict"] = "lax"
 
-    ldap_uri: str | None = None
+    ldap_host: str | None = None
     ldap_base_dn: str | None = None
-    ldap_user_filter: str = "(uid={username})"
-    ldap_bind_dn: str | None = None
-    ldap_bind_password: str | None = None
+    ldap_user_login_attr: str = "mail"
+    ldap_use_ssl: bool = False
+    ldap_use_tls: bool = True
+    ldap_binddn: str | None = None
+    ldap_secret: str | None = None
+    ldap_user_dn: str | None = None
     ldap_connect_timeout_seconds: float = 5.0
+    log_root: Path = Path("/var/log/cll-genie")
     artifact_root: Path = Path("/var/lib/cll-genie/artifacts")
     redis_url: str = "redis://redis:6379/0"
     celery_eager: bool = False
     imgt_vquest_url: str = "https://www.imgt.org/IMGT_vquest/analysis"
     imgt_connect_timeout_seconds: float = 5.0
     imgt_read_timeout_seconds: float = 180.0
-    page_size_default: int = 25
     page_size_max: int = 100
     mutation_borderline_lower: float = 97.0
     mutation_borderline_upper: float = 97.99
@@ -74,7 +74,9 @@ class Settings(BaseSettings):
         return value
 
     def ldap_is_configured(self) -> bool:
-        return "ldap" in self.auth_providers and bool(self.ldap_uri and self.ldap_base_dn)
+        return "ldap" in self.auth_providers and bool(
+            self.ldap_host and self.ldap_base_dn and self.ldap_user_login_attr
+        )
 
 
 @lru_cache

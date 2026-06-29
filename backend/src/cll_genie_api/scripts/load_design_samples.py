@@ -1,8 +1,8 @@
 """Load sample-only Extended JSON fixtures into a development database.
 
 Input is read from stdin so design fixtures never need to be copied into the
-runtime image. Matching result, report, draft, job, and counter records are
-removed to leave each sample ready for a new analysis workflow.
+runtime image. Matching result, report, job, and counter records are removed
+to leave each sample ready for a new analysis workflow.
 """
 
 import sys
@@ -36,9 +36,6 @@ def load(stream: TextIO) -> dict[str, int]:
             {"_id": {"$in": sample_ids}}
         ).deleted_count,
         "reports_removed": collections.reports.delete_many(
-            {"sample_id": {"$in": sample_ids}}
-        ).deleted_count,
-        "drafts_removed": collections.drafts.delete_many(
             {"sample_id": {"$in": sample_ids}}
         ).deleted_count,
         "jobs_removed": collections.jobs.delete_many(

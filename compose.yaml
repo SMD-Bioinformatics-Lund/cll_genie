@@ -1,17 +1,16 @@
-name: cll-genie
-
 services:
   proxy:
     container_name: cll-genie-proxy
     build:
       context: .
       dockerfile: docker/proxy.Dockerfile
+      network: host
     ports:
-      - "${CLL_GENIE_PORT:-8080}:80"
+      - "${CLL_GENIE_PORT:?CLL_GENIE_PORT must be set in .env}:80"
     depends_on:
       api:
         condition: service_healthy
-    networks: [edge, backend]
+    networks: [cll_genie]
     restart: unless-stopped
 
   api:
@@ -19,31 +18,29 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+      network: host
     env_file:
-      - path: .env
-        required: false
-    environment:
-      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017}
-      APP_VERSION: ${APP_VERSION:-2.0.0}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-local}
-      ARTIFACT_ROOT: /var/lib/cll-genie/artifacts
-      REDIS_URL: redis://redis:6379/0
+      - .env
     depends_on:
       redis:
         condition: service_healthy
     expose: ["8000"]
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
-      - "${CLL_ARTIFACT_ROOT:-./var/artifacts}:/var/lib/cll-genie/artifacts"
-      - "${LYMPHOTRACK_RESULTS_ROOT:-/data/lymphotrack/results/lymphotrack_dx}:/data/lymphotrack/results/lymphotrack_dx:ro"
+      - "${LOG_ROOT:?LOG_ROOT must be set in .env}:${LOG_ROOT:?LOG_ROOT must be set in .env}"
+      - "${ARTIFACT_ROOT:?ARTIFACT_ROOT must be set in .env}:${ARTIFACT_ROOT:?ARTIFACT_ROOT must be set in .env}"
+      - "${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:ro"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/cll_genie/health/live')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/cll_genie/health/live')",
+        ]
       interval: 10s
       timeout: 3s
       retries: 10
-    networks: [backend]
+    networks: [cll_genie]
     restart: unless-stopped
 
   worker:
@@ -51,26 +48,26 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
-    command: ["celery", "-A", "cll_genie_api.worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+      network: host
+    command:
+      [
+        "celery",
+        "-A",
+        "cll_genie_api.worker.celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--concurrency=2",
+      ]
     env_file:
-      - path: .env
-        required: false
-    environment:
-      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017}
-      APP_VERSION: ${APP_VERSION:-2.0.0}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-local}
-      ARTIFACT_ROOT: /var/lib/cll-genie/artifacts
-      REDIS_URL: redis://redis:6379/0
+      - .env
     depends_on:
       redis:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
-      - "${CLL_ARTIFACT_ROOT:-./var/artifacts}:/var/lib/cll-genie/artifacts"
-      - "${LYMPHOTRACK_RESULTS_ROOT:-/data/lymphotrack/results/lymphotrack_dx}:/data/lymphotrack/results/lymphotrack_dx:ro"
-    networks: [backend]
+      - "${LOG_ROOT:?LOG_ROOT must be set in .env}:${LOG_ROOT:?LOG_ROOT must be set in .env}"
+      - "${ARTIFACT_ROOT:?ARTIFACT_ROOT must be set in .env}:${ARTIFACT_ROOT:?ARTIFACT_ROOT must be set in .env}"
+      - "${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:ro"
+    networks: [cll_genie]
     restart: unless-stopped
 
   scheduler:
@@ -78,24 +75,26 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
-    command: ["celery", "-A", "cll_genie_api.worker.celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+      network: host
+    command:
+      [
+        "celery",
+        "-A",
+        "cll_genie_api.worker.celery_app",
+        "beat",
+        "--loglevel=INFO",
+        "--schedule=/tmp/celerybeat-schedule",
+      ]
     env_file:
-      - path: .env
-        required: false
-    environment:
-      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017}
-      REDIS_URL: redis://redis:6379/0
-      RUN_ROOT: /data/MiSeq
-      LYMPHOTRACK_RESULTS_ROOT: /data/lymphotrack/results/lymphotrack_dx
+      - .env
     depends_on:
       redis:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
-      - "${MISEQ_RUN_ROOT:-/data/MiSeq}:/data/MiSeq"
-      - "${LYMPHOTRACK_RESULTS_ROOT:-/data/lymphotrack/results/lymphotrack_dx}:/data/lymphotrack/results/lymphotrack_dx:ro"
-    networks: [backend]
+      - "${LOG_ROOT:?LOG_ROOT must be set in .env}:${LOG_ROOT:?LOG_ROOT must be set in .env}"
+      - "${RUN_ROOT:?RUN_ROOT must be set in .env}:${RUN_ROOT:?RUN_ROOT must be set in .env}"
+      - "${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:ro"
+    networks: [cll_genie]
     restart: unless-stopped
 
   redis:
@@ -109,7 +108,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
-    networks: [backend]
+    networks: [cll_genie]
     restart: unless-stopped
 
   mongo:
@@ -119,21 +118,29 @@ services:
     profiles: ["mongo"]
     command: ["mongod", "--bind_ip", "0.0.0.0"]
     ports:
-      - "27017:27017"
+      - "${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env}:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongo", "--quiet", "--eval", "quit(db.runCommand({ping:1}).ok ? 0 : 2)"]
+      test:
+        [
+          "CMD",
+          "mongo",
+          "--quiet",
+          "--eval",
+          "quit(db.runCommand({ping:1}).ok ? 0 : 2)",
+        ]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 15s
-    networks: [backend]
+    networks: [cll_genie]
     restart: unless-stopped
 
 networks:
-  edge: {}
-  backend: {}
+  cll_genie:
+    external: true
+    name: cll_genie-net
 
 volumes:
   redis_data: {}

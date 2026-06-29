@@ -14,7 +14,6 @@ class UserResponse(BaseModel):
     fullname: str
     email: str | None
     roles: list[str]
-    groups: list[str]
     is_admin: bool
     is_lymphotrack: bool
 
@@ -88,18 +87,20 @@ class RuleRequest(BaseModel):
 class UserCreateRequest(BaseModel):
     username: str = Field(min_length=1, max_length=128)
     fullname: str = Field(min_length=1, max_length=300)
-    email: str | None = None
+    firstname: str = Field(min_length=1, max_length=150)
+    lastname: str = Field(min_length=1, max_length=150)
+    email: str = Field(min_length=1, max_length=320)
     roles: list[str] = Field(default_factory=list)
-    groups: list[str] = Field(default_factory=list)
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool = True
 
 
 class UserUpdateRequest(BaseModel):
     fullname: str | None = Field(default=None, min_length=1, max_length=300)
+    firstname: str | None = Field(default=None, min_length=1, max_length=150)
+    lastname: str | None = Field(default=None, min_length=1, max_length=150)
     email: str | None = None
     roles: list[str] | None = None
-    groups: list[str] | None = None
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool | None = None
 
@@ -115,7 +116,6 @@ def user_response(user) -> UserResponse:
         fullname=user.fullname,
         email=user.email,
         roles=list(user.roles),
-        groups=list(user.groups),
         is_admin=user.is_admin,
         is_lymphotrack=user.is_lymphotrack,
     )

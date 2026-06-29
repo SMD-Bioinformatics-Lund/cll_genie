@@ -32,40 +32,60 @@ class LdapAuthenticator:
         if not self.settings.ldap_is_configured():
             raise AuthenticationFailed
 
-        assert self.settings.ldap_uri is not None
+        assert self.settings.ldap_host is not None
         assert self.settings.ldap_base_dn is not None
-        parsed = urlparse(self.settings.ldap_uri)
-        use_ssl = parsed.scheme.lower() == "ldaps"
-        host = parsed.hostname
-        if not host or parsed.scheme.lower() not in {"ldap", "ldaps"}:
+        if self.settings.ldap_use_ssl and self.settings.ldap_use_tls:
             raise AuthenticationFailed
 
-        port = parsed.port or (636 if use_ssl else 389)
+        parsed = urlparse(self.settings.ldap_host)
+        scheme = parsed.scheme.lower()
+        host = parsed.hostname
+        expected_scheme = "ldaps" if self.settings.ldap_use_ssl else "ldap"
+        if not host or scheme != expected_scheme:
+            raise AuthenticationFailed
+
+        port = parsed.port or (636 if self.settings.ldap_use_ssl else 389)
         tls = Tls(validate=ssl.CERT_REQUIRED)
-        auto_bind = AUTO_BIND_NO_TLS if use_ssl else AUTO_BIND_TLS_BEFORE_BIND
+        auto_bind = (
+            AUTO_BIND_TLS_BEFORE_BIND
+            if self.settings.ldap_use_tls
+            else AUTO_BIND_NO_TLS
+        )
         server = Server(
             host,
             port=port,
-            use_ssl=use_ssl,
+            use_ssl=self.settings.ldap_use_ssl,
             tls=tls,
             get_info=ALL,
             connect_timeout=self.settings.ldap_connect_timeout_seconds,
         )
 
-        escaped_username = escape_filter_chars(user.username)
-        search_filter = self.settings.ldap_user_filter.replace("{username}", escaped_username)
+        login_value = (
+            user.email
+            if self.settings.ldap_user_login_attr.lower() == "mail" and user.email
+            else user.username
+        )
+        escaped_login = escape_filter_chars(login_value)
+        search_filter = f"({self.settings.ldap_user_login_attr}={escaped_login})"
+        search_base = self.settings.ldap_base_dn.strip(", ")
+        if self.settings.ldap_user_dn:
+            user_dn = self.settings.ldap_user_dn.strip(", ")
+            if not user_dn.lower().endswith(search_base.lower()):
+                search_base = f"{user_dn},{search_base}"
+            else:
+                search_base = user_dn
 
         try:
             with Connection(
                 server,
-                user=self.settings.ldap_bind_dn,
-                password=self.settings.ldap_bind_password,
+                user=self.settings.ldap_binddn,
+                password=self.settings.ldap_secret,
                 auto_bind=auto_bind,
                 raise_exceptions=True,
                 receive_timeout=self.settings.ldap_connect_timeout_seconds,
             ) as search_connection:
                 found = search_connection.search(
-                    self.settings.ldap_base_dn,
+                    search_base,
                     search_filter,
                     search_scope=SUBTREE,
                     attributes=[],

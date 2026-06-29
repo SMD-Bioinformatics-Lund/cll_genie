@@ -145,14 +145,14 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
                 <div className="rounded-lg bg-blue-50 p-4 border border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/50">
                   <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Administrator Settings</h4>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">
-                    As an administrator, you can change your roles and groups from the Users administration page.
+                    As an administrator, you can change user roles from the Users administration page.
                   </p>
                   <Link
                     to="/admin/users"
                     onClick={onClose}
                     className="inline-flex items-center justify-center rounded-md bg-blue-100 px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-200 transition-colors dark:bg-blue-800/40 dark:text-blue-200 dark:hover:bg-blue-800/60"
                   >
-                    Manage Roles & Groups
+                    Manage Roles
                   </Link>
                 </div>
               </div>

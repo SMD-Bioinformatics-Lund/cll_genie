@@ -14,13 +14,11 @@ class MongoCollections:
             connectTimeoutMS=5000,
             socketTimeoutMS=10000,
         )
-        identity_db = self.client[settings.identity_database]
         application_db = self.client[settings.application_database]
-        self.users: Collection = identity_db[settings.users_collection]
-        self.sessions: Collection = identity_db[settings.sessions_collection]
+        self.users: Collection = application_db[settings.users_collection]
+        self.sessions: Collection = application_db[settings.sessions_collection]
         self.samples: Collection = application_db[settings.samples_collection]
         self.results: Collection = application_db[settings.results_collection]
-        self.drafts: Collection = application_db[settings.drafts_collection]
         self.jobs: Collection = application_db[settings.jobs_collection]
         self.counters: Collection = application_db[settings.counters_collection]
         self.artifacts: Collection = application_db[settings.artifacts_collection]
@@ -28,6 +26,8 @@ class MongoCollections:
         self.rules: Collection = application_db[settings.rules_collection]
 
     def ensure_indexes(self) -> None:
+        self.users.create_index("username", unique=True, name="uq_user_username")
+        self.users.create_index("email", unique=True, sparse=True, name="uq_user_email")
         self.sessions.create_index("expires_at", expireAfterSeconds=0, name="ttl_session_expiry")
         self.sessions.create_index("user_id", name="ix_session_user")
         self.samples.create_index(
@@ -38,7 +38,6 @@ class MongoCollections:
         self.results.create_index("name", name="ix_vquest_results_name")
         self.jobs.create_index([("created_at", -1)], name="ix_jobs_created")
         self.jobs.create_index([("sample_id", 1), ("created_at", -1)], name="ix_jobs_sample")
-        self.drafts.create_index([("sample_id", 1), ("created_at", -1)], name="ix_drafts_sample")
         self.artifacts.create_index("relative_path", unique=True, name="uq_artifact_path")
         self.reports.create_index([("sample_id", 1), ("created_at", -1)], name="ix_reports_sample")
         self.rules.create_index([("rule_key", 1), ("version", 1)], unique=True)

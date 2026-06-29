@@ -23,18 +23,21 @@ import { SortableTableHead } from "../components/SortableTableHead";
 
 type AdminUser = {
   _id: string;
+  username: string;
   fullname: string;
+  firstname?: string;
+  lastname?: string;
   email?: string;
   roles: string[];
-  groups: string[];
   enabled?: boolean;
 };
 const initial = {
   username: "",
   fullname: "",
+  firstname: "",
+  lastname: "",
   email: "",
   roles: "admin",
-  groups: "lymphotrack",
   password: "",
   enabled: true,
 };
@@ -51,19 +54,17 @@ export function AdminUsersPage() {
   });
   const { sortedData, sortKey, sortOrder, requestSort } = useSortableTable(
     users.data,
-    "_id",
+    "username",
     "asc"
   );
   const save = useMutation({
     mutationFn: () => {
       const payload = {
         fullname: form.fullname,
-        email: form.email || null,
+        firstname: form.firstname,
+        lastname: form.lastname,
+        email: form.email,
         roles: form.roles
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        groups: form.groups
           .split(",")
           .map((item) => item.trim())
           .filter(Boolean),
@@ -89,13 +90,14 @@ export function AdminUsersPage() {
     },
   });
   const edit = (user: AdminUser) => {
-    setEditing(user._id);
+    setEditing(user.username);
     setForm({
-      username: user._id,
+      username: user.username,
       fullname: user.fullname,
+      firstname: user.firstname ?? "",
+      lastname: user.lastname ?? "",
       email: user.email ?? "",
       roles: user.roles?.join(", ") ?? "",
-      groups: user.groups?.join(", ") ?? "",
       password: "",
       enabled: user.enabled !== false,
     });
@@ -123,19 +125,18 @@ export function AdminUsersPage() {
         </Button>
       </Box>
       <Alert severity="info" sx={{ my: 3 }}>
-        LDAP authenticates passwords only. Full name, groups, and
-        enabled state always come from this local user object.
+        LDAP authenticates passwords only. Identity, roles, and enabled state
+        come from the local CLL Genie user record.
       </Alert>
       <Paper className="data-panel" elevation={0}>
         <div className="responsive-table">
           <table>
             <thead>
               <tr>
-                <SortableTableHead label="Username" sortKey="_id" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
+                <SortableTableHead label="Username" sortKey="username" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
                 <SortableTableHead label="Full name" sortKey="fullname" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
                 <SortableTableHead label="Email" sortKey="email" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
                 <th>Roles</th>
-                <th>Groups</th>
                 <SortableTableHead label="Status" sortKey="enabled" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
                 <th />
               </tr>
@@ -143,11 +144,10 @@ export function AdminUsersPage() {
             <tbody>
               {sortedData.map((user: AdminUser) => (
                 <tr key={user._id}>
-                  <td>{user._id}</td>
+                  <td>{user.username}</td>
                   <td>{user.fullname}</td>
                   <td>{user.email || "–"}</td>
                   <td>{user.roles?.join(", ")}</td>
-                  <td>{user.groups?.join(", ")}</td>
                   <td>{user.enabled !== false ? "Enabled" : "Disabled"}</td>
                   <td>
                     <Button
@@ -187,6 +187,18 @@ export function AdminUsersPage() {
             sx={{ mb: 2 }}
           />
           <TextField
+            label="First name"
+            value={form.firstname}
+            onChange={(e) => setForm({ ...form, firstname: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Last name"
+            value={form.lastname}
+            onChange={(e) => setForm({ ...form, lastname: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          <TextField
             label="Email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -196,12 +208,6 @@ export function AdminUsersPage() {
             label="Roles (comma separated)"
             value={form.roles}
             onChange={(e) => setForm({ ...form, roles: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Groups (comma separated)"
-            value={form.groups}
-            onChange={(e) => setForm({ ...form, groups: e.target.value })}
             sx={{ mb: 2 }}
           />
           <TextField
@@ -235,7 +241,13 @@ export function AdminUsersPage() {
             variant="contained"
             startIcon={<Save size={15} />}
             onClick={() => save.mutate()}
-            disabled={!form.username || !form.fullname}
+            disabled={
+              !form.username ||
+              !form.fullname ||
+              !form.firstname ||
+              !form.lastname ||
+              !form.email
+            }
           >
             Save
           </Button>

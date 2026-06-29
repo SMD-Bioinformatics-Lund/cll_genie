@@ -1,3 +1,6 @@
+import logging
+import logging.handlers
+
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
@@ -9,21 +12,18 @@ from cll_genie_api.api.reports import router as reports_router
 from cll_genie_api.api.samples import router as samples_router
 from cll_genie_api.api.submissions import router as submissions_router
 from cll_genie_api.config import get_settings
-import logging
-import logging.handlers
-from pathlib import Path
-import os
 
-def setup_logger():
+
+def setup_logger() -> None:
     settings = get_settings()
-    log_dir = Path("/var/log/cll-genie") if settings.environment == "production" else Path("/tmp/cll-genie-logs")
+    log_dir = settings.log_root
     log_dir.mkdir(parents=True, exist_ok=True)
-    
+
     log_file = log_dir / "app.log"
-    
+
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    
+
     # Remove existing handlers to avoid duplicates
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
@@ -42,11 +42,12 @@ def setup_logger():
         filename=log_file,
         when="midnight",
         interval=1,
-        backupCount=30,  # Keep 30 days of logs
-        encoding="utf-8"
+        backupCount=30,
+        encoding="utf-8",
     )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+
 
 setup_logger()
 

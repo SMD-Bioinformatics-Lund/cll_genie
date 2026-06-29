@@ -9,7 +9,6 @@ Because CLL Genie relies on scraping the external IMGT/V-QUEST web service, it i
 - **`IMGT/V-QUEST returned HTTP 502/503`**: IMGT is currently down for maintenance or overloaded. Wait 15 minutes and retry the submission.
 - **`IMGT/V-QUEST could not be reached`**: The Celery worker cannot access the internet, or IMGT's servers are completely offline.
 - **`IMGT/V-QUEST returned an unexpected response`**: IMGT may have changed their HTML layout, breaking the scraper. Contact an administrator to update the `vquest.py` parser.
-- **`Authentication Failed / Rejected`**: Your `.env` file is missing `IMGT_USER` or `IMGT_PASSWORD`, or the credentials are invalid.
 
 > [!TIP]
 > If a submission fails, it will be marked as `ERROR` in the UI. You do not need to delete the sample; you can simply create a new submission once the issue is resolved.
@@ -29,17 +28,15 @@ For administrators troubleshooting deeper issues, the Docker logs are your best 
 
 ```bash
 # View backend API logs
-docker compose logs backend
+docker-compose logs api
 
 # View Celery worker logs (where IMGT analysis happens)
-docker compose logs worker
+docker-compose logs worker
 
 # View all logs in real-time
-docker compose logs -f
+docker-compose logs -f
 ```
 
 ## System Audit Logs
 
-All sensitive actions (creating samples, deleting users, submitting analysis, hiding reports) are logged to the file system.
-Administrators can find daily rotated audit logs at:
-`/data/cll_genie_logs/audit.log`
+All sensitive actions (creating samples, updating users, submitting analysis, and hiding reports) are written through the audit logger into `${LOG_ROOT}/app.log`. The file rotates daily and retains 30 backups.

@@ -80,18 +80,18 @@ The entire application runs via Docker Compose.
 git clone https://github.com/your-org/cll_genie.git
 cd cll_genie
 
-# Configure IMGT credentials
+# Configure all deployment values and filesystem paths
 cp .env.example .env
-nano .env # Set IMGT_USER and IMGT_PASSWORD
+nano .env
 
 # Build and launch
-docker compose up --build
+docker-compose up --build
 ```
 
 Access the UI at `http://localhost:8080/cll_genie/`.
 
-> [!TIP]
-> **First-time Login:** Default user is `admin` / `admin`. Be sure to change the password immediately.
+> [!IMPORTANT]
+> **First-time login:** Create or import an enabled administrator in the configured CLL Genie `users` collection. No default account is created.
 
 ## Who Built It?
 

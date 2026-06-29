@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -92,7 +93,7 @@ def list_users(
     services: Annotated[Services, Depends(get_services)],
 ):
     assert_role(session, ["admin", "lymphotrack_admin"])
-    users = list(services.collections.users.find({}, {"password": 0}).sort("_id", 1))
+    users = list(services.collections.users.find({}, {"password": 0}).sort("username", 1))
     return serialize(users)
 
 
@@ -103,18 +104,28 @@ def create_user(
     services: Annotated[Services, Depends(get_services)],
 ):
     assert_role(session, ["admin", "lymphotrack_admin"])
+    now = datetime.now(UTC)
     document = payload.model_dump(exclude={"password"})
-    document["_id"] = document.pop("username")
-    if payload.password:
-        document["password"] = generate_password_hash(payload.password, method="pbkdf2:sha256")
-    try:
-        services.collections.users.insert_one(document)
-    except DuplicateKeyError as exc:
-        raise HTTPException(status_code=409, detail="User already exists") from exc
-    logging.getLogger("audit").info(
-        f"AUDIT: user.created by {session.user.username} on user:{document['_id']} - {{\"roles\": {document.get('roles', [])}, \"groups\": {document.get('groups', [])}, \"enabled\": {document.get('enabled', True)}}}"
+    document.update(
+        {
+            "created_at": now,
+            "updated_at": now,
+            "created_by": session.user.username,
+            "updated_by": session.user.username,
+        }
     )
-    return {"username": document["_id"]}
+    if payload.password:
+        document["password"] = generate_password_hash(
+            payload.password, method="pbkdf2:sha256"
+        )
+    try:
+        result = services.collections.users.insert_one(document)
+    except DuplicateKeyError as exc:
+        raise HTTPException(status_code=409, detail="Username or email already exists") from exc
+    logging.getLogger("audit").info(
+        f"AUDIT: user.created by {session.user.username} on user:{document['username']} - {{\"roles\": {document.get('roles', [])}, \"enabled\": {document.get('enabled', True)}}}"
+    )
+    return {"user_id": str(result.inserted_id), "username": document["username"]}
 
 
 @router.patch("/users/{username}")
@@ -127,10 +138,18 @@ def update_user(
     assert_role(session, ["admin", "lymphotrack_admin"])
     values = payload.model_dump(exclude_none=True, exclude={"password"})
     if payload.password:
-        values["password"] = generate_password_hash(payload.password, method="pbkdf2:sha256")
+        values["password"] = generate_password_hash(
+            payload.password, method="pbkdf2:sha256"
+        )
     if not values:
         return {"updated": False}
-    result = services.collections.users.update_one({"_id": username}, {"$set": values})
+    values.update({"updated_at": datetime.now(UTC), "updated_by": session.user.username})
+    try:
+        result = services.collections.users.update_one(
+            {"username": username}, {"$set": values}
+        )
+    except DuplicateKeyError as exc:
+        raise HTTPException(status_code=409, detail="Email already exists") from exc
     if not result.matched_count:
         raise HTTPException(status_code=404, detail="User not found")
     logging.getLogger("audit").info(

@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -28,10 +29,10 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 @router.get("/providers", response_model=ProvidersResponse)
 def providers(services: Annotated[Services, Depends(get_services)]) -> ProvidersResponse:
     configured = []
-    if "local" in services.settings.auth_providers:
-        configured.append(ProviderResponse(id="local", label="Local account"))
     if services.settings.ldap_is_configured():
         configured.append(ProviderResponse(id="ldap", label="Organization account"))
+    if "local" in services.settings.auth_providers:
+        configured.append(ProviderResponse(id="local", label="Local account"))
     return ProvidersResponse(
         providers=configured,
         version=services.settings.app_version,
@@ -111,18 +112,25 @@ def update_me(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot change password for non-local accounts",
         )
-    
+
     values = payload.model_dump(exclude_none=True, exclude={"password"})
     if payload.password:
-        values["password"] = generate_password_hash(payload.password, method="pbkdf2:sha256")
-        
+        values["password"] = generate_password_hash(
+            payload.password, method="pbkdf2:sha256"
+        )
+
     if not values:
         return {"updated": False}
-        
-    result = services.collections.users.update_one({"_id": session.user.username}, {"$set": values})
+
+    values.update(
+        {"updated_at": datetime.now(UTC), "updated_by": session.user.username}
+    )
+    result = services.collections.users.update_one(
+        {"username": session.user.username}, {"$set": values}
+    )
     if not result.matched_count:
         raise HTTPException(status_code=404, detail="User not found")
-        
+
     logging.getLogger("audit").info(
         f"AUDIT: user.updated by {session.user.username} on user:{session.user.username} - {{\"fields\": {sorted(values)}}}"
     )

@@ -8,7 +8,7 @@ from cll_genie_api.main import create_app
 USER = LocalUser(
     username="analyst",
     fullname="Example Analyst",
-    groups=("lymphotrack",),
+    roles=("lymphotrack",),
     email="analyst@example.test",
     password_hash="not-used-by-fake",
 )
@@ -16,7 +16,8 @@ USER = LocalUser(
 
 class FakeAuthentication:
     def authenticate(self, provider: str, username: str, password: str) -> LocalUser:
-        if provider not in {"local", "ldap"} or username != USER.username or password != "secret":
+        expected_login = USER.email if provider == "ldap" else USER.username
+        if provider not in {"local", "ldap"} or username != expected_login or password != "secret":
             from cll_genie_api.infrastructure.authentication import AuthenticationFailed
 
             raise AuthenticationFailed
@@ -29,7 +30,7 @@ class FakeSessions:
 
     def create(self, user: LocalUser, provider: str) -> Session:
         self.session = Session(
-            token="opaque-token",
+            token_id="opaque-token",
             csrf_token="csrf-token",
             user=user,
             provider=provider,
@@ -54,7 +55,7 @@ def client() -> TestClient:
         _env_file=None,
         environment="test",
         auth_providers=["local", "ldap"],
-        ldap_uri="ldaps://ldap.example.test:636",
+        ldap_host="ldap://ldap.example.test",
         ldap_base_dn="dc=example,dc=test",
     )
     services = Services(
@@ -73,7 +74,7 @@ def test_providers_expose_local_and_ldap() -> None:
         response = test_client.get("/cll_genie/api/v1/auth/providers")
 
     assert response.status_code == 200
-    assert [item["id"] for item in response.json()["providers"]] == ["local", "ldap"]
+    assert [item["id"] for item in response.json()["providers"]] == ["ldap", "local"]
 
 
 def test_every_application_route_uses_cll_genie_prefix() -> None:
@@ -86,7 +87,11 @@ def test_login_me_and_csrf_protected_logout() -> None:
     with client() as test_client:
         login = test_client.post(
             "/cll_genie/api/v1/auth/login",
-            json={"provider": "ldap", "username": "analyst", "password": "secret"},
+            json={
+                "provider": "ldap",
+                "username": "analyst@example.test",
+                "password": "secret",
+            },
         )
         assert login.status_code == 200
         assert login.json()["user"]["fullname"] == "Example Analyst"

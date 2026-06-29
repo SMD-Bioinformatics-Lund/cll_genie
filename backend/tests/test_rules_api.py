@@ -8,7 +8,7 @@ from cll_genie_api.main import create_app
 USER = LocalUser(
     username="analyst",
     fullname="Example Analyst",
-    groups=("lymphotrack",),
+    roles=("lymphotrack",),
     email="analyst@example.test",
     password_hash="not-used-by-fake",
 )
@@ -20,7 +20,7 @@ class FakeAuthentication:
 class FakeSessions:
     def __init__(self) -> None:
         self.session = Session(
-            token="opaque-token",
+            token_id="opaque-token",
             csrf_token="csrf-token",
             user=USER,
             provider="local",

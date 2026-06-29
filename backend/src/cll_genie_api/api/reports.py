@@ -276,7 +276,9 @@ def report_artifact(
     report = services.reports.get(report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
-    if report.get("hidden") and not any(role in session.user.roles or role in session.user.groups for role in ["admin", "lymphotrack_admin"]):
+    if report.get("hidden") and not any(
+        role in session.user.roles for role in ["admin", "lymphotrack_admin"]
+    ):
         raise HTTPException(status_code=403, detail="Report is hidden")
     stored = services.artifacts.get(report["artifact_id"])
     if stored is None or not stored[1].is_file():
