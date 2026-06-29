@@ -30,14 +30,14 @@ export function ThemeControl() {
       <button
         aria-label="Choose color theme"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex size-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+        className="flex size-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
         title="Theme"
       >
         <Icon size={20} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50">
+        <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50">
           <div className="py-1">
             {options.map((option) => (
               <button

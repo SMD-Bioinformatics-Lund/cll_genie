@@ -75,24 +75,13 @@ export function LoginPage({ onAuthenticated }: Props) {
             <Dna size={96} strokeWidth={1.25} />
           </div>
           <Typography component="h1" variant="h2" className="login-title">
-            IGHV analysis,
+            IGHV mutation analysis,
             <br /> from sequence to report.
           </Typography>
           <Typography className="login-description">
-            A focused clinical workspace for LymphoTrack processing,
+            A focused clinical workspace for LymphoTrack post processing,
             IMGT/V-QUEST analysis, interpretation, and traceable CLL reporting.
           </Typography>
-          <div className="login-features" aria-label="System qualities">
-            <span>
-              <ShieldCheck size={18} /> Controlled access
-            </span>
-            <span>
-              <Database size={18} /> Traceable results
-            </span>
-            <span>
-              <LockKeyhole size={18} /> Secure sessions
-            </span>
-          </div>
         </div>
 
         <Paper component="section" elevation={0} className="login-card">

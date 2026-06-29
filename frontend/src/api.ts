@@ -9,11 +9,27 @@ import type {
 
 type ApiErrorBody = { detail?: string };
 
-export const APP_BASE_PATH = "/cll_genie";
+function normalizeBasePath(baseUrl: string): string {
+  let base = baseUrl || "/";
+
+  if (!base.startsWith("/")) {
+    base = `/${base}`;
+  }
+
+  if (base.endsWith("/") && base !== "/") {
+    base = base.slice(0, -1);
+  }
+
+  return base === "/" ? "" : base;
+}
+
+export const APP_BASE_PATH = normalizeBasePath(import.meta.env.BASE_URL);
 
 export function applicationUrl(path: string): string {
-  if (path === APP_BASE_PATH || path.startsWith(`${APP_BASE_PATH}/`))
+  if (path === APP_BASE_PATH || path.startsWith(`${APP_BASE_PATH}/`)) {
     return path;
+  }
+
   return path.startsWith("/") ? `${APP_BASE_PATH}${path}` : path;
 }
 

@@ -91,7 +91,7 @@
   }
 
   .login-layout {
-    @apply z-1 m-auto grid w-full max-w-[1100px] grid-cols-[minmax(0,1.1fr)_minmax(340px,430px)] items-center gap-[clamp(40px,7vw,96px)] py-10;
+    @apply z-1 m-auto grid w-full max-w-[1500px] grid-cols-[minmax(0,1.1fr)_minmax(340px,430px)] items-center gap-[clamp(40px,7vw,96px)] py-10;
   }
 
   .login-intro {
