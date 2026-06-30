@@ -5,8 +5,12 @@
 
 @theme inline {
   --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-hover: var(--brand-primary-hover);
+  --color-brand-hover: var(--brand-hover);
   --color-brand-detail: var(--brand-detail);
+  --color-brand-detail-hover: var(--brand-detail-hover);
   --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-dark: var(--brand-accent-dark);
   --color-surface-soft: var(--surface-soft);
   --color-surface-paper: var(--surface-paper);
   --color-border-subtle: var(--border-subtle);
@@ -19,8 +23,9 @@
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     --brand-primary: #7B4925;
+    --brand-hover: #6a3f20;
     --brand-detail: #DF7849;
-    --brand-accent: #C26336;
+    --brand-accent: #f98c59;
     --surface-soft: #edf4f5;
     --border-subtle: #d9e3e6;
     --text-secondary: #536471;
@@ -28,12 +33,13 @@
   }
 
   :root[data-theme="dark"] {
-    --brand-primary: #DF7849;
-    --brand-detail: #EBA98C;
-    --brand-accent: #E89A76;
+    --brand-primary: #7B4925;
+    --brand-hover: #b46e3c;
+    --brand-detail: #DF7849;
+    --brand-accent: #f98c59;
     --surface-soft: #17252d;
-    --border-subtle: #2b3b45;
-    --text-secondary: #a9bac4;
+    --border-subtle: #2d3748;
+    --text-secondary: #a0aec0;
     --surface-paper: #131e25;
   }
 
@@ -153,11 +159,11 @@
   }
 
   .form-panel {
-    @apply p-5;
+    @apply p-6;
   }
 
   .toolbar-row {
-    @apply flex items-center justify-between gap-5 border-b border-border-subtle px-5 py-2.5;
+    @apply flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-gray-200 dark:border-neutral-700 px-4 pt-4 pb-4;
   }
 
   .responsive-table {
@@ -169,16 +175,16 @@
   }
 
   .responsive-table th {
-    @apply bg-surface-soft text-left text-[0.78rem] tracking-[0.035em] text-text-secondary uppercase;
+    @apply bg-brand-primary/10 dark:bg-brand-primary/20 text-left text-[0.80rem] font-semibold tracking-wider text-brand-primary dark:text-brand-detail uppercase px-4 py-2;
   }
 
   .responsive-table th,
   .responsive-table td {
-    @apply border-b border-border-subtle px-1.5 py-1 align-middle text-[0.8rem];
+    @apply border-b border-gray-100 dark:border-gray-700 px-4 py-2 align-middle text-[0.8rem] transition-colors duration-150;
   }
 
   .responsive-table tbody tr:hover {
-    background: color-mix(in srgb, var(--brand-primary) 5%, transparent);
+    @apply bg-brand-primary/5 dark:bg-brand-detail/2;
   }
 
   .responsive-table a {
@@ -190,7 +196,7 @@
   }
 
   .detail-grid {
-    @apply grid grid-cols-3 md:grid-cols-5 xl:grid-cols-7 gap-px border border-border-subtle bg-border-subtle;
+    @apply grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-px border border-border-subtle bg-border-subtle;
   }
 
   .detail-grid > div {
@@ -206,7 +212,7 @@
   }
 
   .form-grid {
-    @apply my-5 grid grid-cols-2 gap-4;
+    @apply my-4 grid grid-cols-2 gap-3;
   }
 
   .content-grid {

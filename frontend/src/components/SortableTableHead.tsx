@@ -21,7 +21,7 @@ export function SortableTableHead({
 
   return (
     <th
-      className={`cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors select-none ${className}`}
+      className={`cursor-pointer hover:bg-brand-primary/15 dark:hover:bg-brand-detail/20 transition-colors select-none ${className}`}
       onClick={() => onRequestSort(sortKey)}
     >
       <div className="flex items-center gap-1">

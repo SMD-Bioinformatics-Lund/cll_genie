@@ -30,7 +30,7 @@ export function ThemeControl() {
       <button
         aria-label="Choose color theme"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex size-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+        className="flex size-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white transition-colors"
         title="Theme"
       >
         <Icon size={20} />
@@ -48,7 +48,7 @@ export function ThemeControl() {
                 }}
                 className={`w-full text-left px-4 py-2 text-sm ${
                   preference === option.value
-                    ? "bg-[#7B4925]/10 text-[#7B4925] dark:bg-[#EBA98C]/10 dark:text-[#EBA98C] font-semibold"
+                    ? "bg-brand-primary/10 text-brand-primary dark:bg-brand-detail/10 dark:text-brand-detail font-semibold"
                     : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                 }`}
               >

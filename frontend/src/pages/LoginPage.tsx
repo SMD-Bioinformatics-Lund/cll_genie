@@ -11,14 +11,7 @@ import {
   TextField,
   Typography,
 } from "../components/ui";
-import {
-  Database,
-  Dna,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  ShieldCheck,
-} from "lucide-react";
+import { Dna, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { getProviders, login } from "../api";
 import { Brand } from "../components/Brand";
@@ -40,8 +33,9 @@ export function LoginPage({ onAuthenticated }: Props) {
     getProviders()
       .then((payload) => {
         setMetadata(payload);
-        if (payload.providers[0]) {
-          setProvider(payload.providers[0].id);
+        const primary = payload.providers.find((item) => item.id === "ldap");
+        if (primary || payload.providers[0]) {
+          setProvider((primary ?? payload.providers[0]).id);
         }
       })
       .catch(() =>
@@ -84,11 +78,11 @@ export function LoginPage({ onAuthenticated }: Props) {
           </Typography>
         </div>
 
-        <Paper component="section" elevation={0} className="login-card">
+        <Paper component="section" className="login-card">
           <Typography component="h2" variant="h4" fontWeight={750}>
             Welcome back
           </Typography>
-          <Typography color="text.secondary" sx={{ mt: 0.75, mb: 3 }}>
+          <Typography color="text.secondary" className="mt-1.5 mb-6">
             Sign in to continue to CLL Genie.
           </Typography>
 
@@ -98,7 +92,7 @@ export function LoginPage({ onAuthenticated }: Props) {
               onChange={(_, next: Provider["id"]) => setProvider(next)}
               variant="fullWidth"
               aria-label="Authentication provider"
-              sx={{ mb: 3 }}
+              className="mb-6"
             >
               {metadata.providers.map((item) => (
                 <Tab key={item.id} value={item.id} label={item.label} />
@@ -107,7 +101,7 @@ export function LoginPage({ onAuthenticated }: Props) {
           )}
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" className="mb-4">
               {error}
             </Alert>
           )}
@@ -122,7 +116,7 @@ export function LoginPage({ onAuthenticated }: Props) {
               required
               autoFocus
               disabled={loading}
-              sx={{ mb: 2 }}
+              className="mb-4"
             />
             <TextField
               label="Password"
@@ -148,7 +142,7 @@ export function LoginPage({ onAuthenticated }: Props) {
                   </InputAdornment>
                 ),
               }}
-              sx={{ mb: 2.5 }}
+              className="mb-5.0"
             />
             <Button
               type="submit"
@@ -166,7 +160,7 @@ export function LoginPage({ onAuthenticated }: Props) {
             </Button>
           </Box>
 
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5 }}>
+          <Typography variant="body2" color="text.secondary" className="mt-5.0">
             {provider === "ldap"
               ? "Use your organization credentials. Your CLL Genie access comes from your local user profile."
               : "Use your existing CLL Genie local account."}

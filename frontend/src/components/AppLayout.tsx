@@ -38,7 +38,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-gray-100">
       {/* Top App Bar */}
-      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-b border-[#6A3F20] bg-[#7B4925] px-4 shadow-sm">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-brand-primary-hover bg-brand-primary px-4 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -101,8 +101,8 @@ export function AppLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 top-16 z-40 flex flex-col border-r border-[#6A3F20] bg-[#7B4925] transition-all duration-300 shadow-sm ${
-          isExpanded ? "w-56" : "w-16"
+        className={`fixed inset-y-0 left-0 top-16 z-40 flex flex-col border-brand-primary-hover bg-brand-primary transition-all duration-300 shadow-sm ${
+          isExpanded ? "w-50" : "w-16"
         }`}
       >
         <nav className="flex-1 space-y-1 p-2">
@@ -112,9 +112,9 @@ export function AppLayout() {
               <Link
                 key={to}
                 to={to}
-                className={`flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors ${
+                className={`flex items-center gap-2 rounded-xl text-sm p-1.5 transition-colors ${
                   isActive
-                    ? "bg-white/20 text-white font-bold shadow-inner"
+                    ? "bg-white/20 text-white font-semibold shadow-inner"
                     : "text-white/70 hover:bg-white/10 hover:text-white"
                 } ${isExpanded ? "justify-start" : "justify-center"}`}
                 title={!isExpanded ? label : undefined}
@@ -151,7 +151,7 @@ export function AppLayout() {
 
       {/* Main Content */}
       <main
-        className={`flex-1 transition-all duration-300 pt-16 ${
+        className={`min-w-0 flex-1 pt-16 transition-all duration-300 ${
           isExpanded ? "ml-56" : "ml-16"
         }`}
       >

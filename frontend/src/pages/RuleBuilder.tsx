@@ -79,11 +79,11 @@ export function RuleBuilder({
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+    <Box className="flex flex-col gap-4 mb-6">
       <Typography variant="subtitle2" color="text.secondary">Rule Conditions (ALL must match)</Typography>
       
       {conditions.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+        <Typography variant="body2" color="text.secondary" className="italic">
           No conditions defined. This rule will always match.
         </Typography>
       )}
@@ -93,8 +93,8 @@ export function RuleBuilder({
         const selectedFact = isCustom ? "custom" : cond.fact;
 
         return (
-          <Box key={cond.id} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', bgcolor: 'background.paper', p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-            <Box sx={{ flex: 1, display: 'flex', gap: 2 }}>
+          <Box key={cond.id} className="flex gap-4 items-start bg-white dark:bg-neutral-800 p-4">
+            <Box className="flex-1 flex gap-4">
               <TextField
                 select
                 label="Category"
@@ -114,7 +114,7 @@ export function RuleBuilder({
                     updateCondition(cond.id, { fact: newFact, op: "eq", value: "" });
                   }
                 }}
-                sx={{ minWidth: 200 }}
+                className="min-w-[200px]"
               >
                 {CATEGORIES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
               </TextField>
@@ -134,7 +134,7 @@ export function RuleBuilder({
                 size="small"
                 value={cond.op}
                 onChange={(e) => updateCondition(cond.id, { op: e.target.value })}
-                sx={{ minWidth: 150 }}
+                className="min-w-[150px]"
               >
                 <MenuItem value="eq">Is</MenuItem>
                 <MenuItem value="ne">Is Not</MenuItem>
@@ -160,7 +160,7 @@ export function RuleBuilder({
                       size="small"
                       value={cond.value}
                       onChange={(e) => updateCondition(cond.id, { value: e.target.value })}
-                      sx={{ minWidth: 150 }}
+                      className="min-w-[150px]"
                     >
                       <MenuItem value="U-CLL">U-CLL</MenuItem>
                       <MenuItem value="M-CLL">M-CLL</MenuItem>
@@ -174,7 +174,7 @@ export function RuleBuilder({
                       size="small"
                       value={String(cond.value)}
                       onChange={(e) => updateCondition(cond.id, { value: e.target.value === "true" })}
-                      sx={{ minWidth: 150 }}
+                      className="min-w-[150px]"
                     >
                       <MenuItem value="true">Yes</MenuItem>
                       <MenuItem value="false">No</MenuItem>
@@ -186,7 +186,7 @@ export function RuleBuilder({
                       size="small"
                       value={cond.value}
                       onChange={(e) => updateCondition(cond.id, { value: Number(e.target.value) })}
-                      sx={{ width: 100 }}
+                      className="w-[100px]"
                     />
                   ) : (
                     <TextField

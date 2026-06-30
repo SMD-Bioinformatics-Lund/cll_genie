@@ -1,26 +1,28 @@
 import { APP_BASE_PATH } from "../api";
+import { Link } from "react-router-dom";
 
 export function Brand({ compact = false, inverse = false }: { compact?: boolean, inverse?: boolean }) {
   return (
-    <div
-      className={`inline-flex min-w-max items-center gap-3 ${compact ? "opacity-90" : ""}`}
+    <Link
+      to="/"
+      className={`group inline-flex min-w-max items-center gap-3 transition-transform duration-300 hover:scale-105 ${compact ? "opacity-90" : ""}`}
       aria-label="CLL Genie"
     >
       <img 
         src={`${APP_BASE_PATH}/logo.svg`} 
         alt="CLL Genie Logo" 
-        className="size-12 rounded-xl shadow-lg object-cover bg-white" 
+        className="size-10 rounded-xl shadow-lg object-cover bg-white transition-transform duration-[800ms] ease-in-out group-hover:rotate-[360deg]" 
       />
       {!compact && (
-        <div className="flex flex-col pt-1">
-          <div className="text-xl leading-none tracking-wide mb-1 drop-shadow-lg text-[#DF7849]">
+        <div className="flex flex-col pt-0.5">
+          <div className="text-xl leading-none tracking-wide mb-0.5 drop-shadow-lg text-brand-detail">
             <strong className="font-extrabold">CLL</strong> <span className="font-medium">Genie</span>
           </div>
-          <div className="text-[9px] font-bold tracking-wider text-[#FFA37A] leading-none uppercase drop-shadow-lg pb-1">
+          <div className="text-[9px] font-bold tracking-wider text-brand-accent leading-none uppercase drop-shadow-lg pb-1">
             Chronic Lymphocytic Leukemia<br/>Powered by IMGT
           </div>
         </div>
       )}
-    </div>
+    </Link>
   );
 }

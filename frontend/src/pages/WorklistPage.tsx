@@ -47,39 +47,39 @@ export function WorklistPage() {
   );
   const pages = Math.max(1, Math.ceil((query.data?.total ?? 0) / 25));
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="overline" color="primary" fontWeight={800}>
+    <Container maxWidth="xl" className="py-8">
+      <Typography variant="overline" color="primary.main" fontWeight={800}>
         Clinical worklist
       </Typography>
-      <Typography variant="h3" component="h1">
+      <Typography variant="h3" component="h1" className="my-1">
         Samples Overview
       </Typography>
-      <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
+      <Typography color="text.secondary" className="mb-6 text-[14px]">
         Track LymphoTrack data, IMGT/V-QUEST analysis, and report completion.
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
-        <Paper elevation={0} sx={{ p: 3, flex: 1, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Box className="flex gap-6 mb-8">
+        <Paper  className="p-6 flex-1 bg-white dark:bg-neutral-800">
           <Typography variant="overline" color="text.secondary">Open Samples</Typography>
           <Typography variant="h3" color="primary.main">
             {openCountQuery.data?.total ?? "..."}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 3, flex: 1, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+        <Paper  className="p-6 flex-1 bg-white dark:bg-neutral-800">
           <Typography variant="overline" color="text.secondary">Finished Samples</Typography>
           <Typography variant="h3" color="success.main">
             {finishedCountQuery.data?.total ?? "..."}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ p: 3, flex: 1, borderRadius: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+        <Paper  className="p-6 flex-1 bg-white dark:bg-neutral-800">
           <Typography variant="overline" color="text.secondary">System Status</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'success.main' }} />
+          <Box className="flex items-center gap-2 mt-2">
+            <Box className="w-[12px] h-[12px] bg-emerald-500 rounded-full" />
             <Typography variant="h6">All Systems Operational</Typography>
           </Box>
         </Paper>
       </Box>
-      <Paper elevation={0} className="data-panel">
+      <Paper  className="data-panel">
         <Box className="toolbar-row">
           <Tabs
             value={tab}
@@ -99,7 +99,7 @@ export function WorklistPage() {
               setSearch(event.target.value);
               setPage(1);
             }}
-            sx={{ maxWidth: 360 }}
+            sx={{ maxWidth: 480 }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -131,14 +131,14 @@ export function WorklistPage() {
                   <td>
                     <Link to={`/samples/${sample._id}`}>{sample.name}</Link>
                     {sample.is_control && (
-                      <Chip label="Control" size="small" sx={{ ml: 1 }} />
+                      <Chip label="Control" size="small" className="ml-2" />
                     )}
                     {(sample.duplicate_count ?? 0) > 1 && (
                       <Chip
                         label={`${sample.duplicate_count} duplicates`}
                         color="warning"
                         size="small"
-                        sx={{ ml: 1 }}
+                        className="ml-2"
                       />
                     )}
                   </td>
@@ -203,7 +203,7 @@ export function WorklistPage() {
               {!query.isLoading && !query.data?.items.length && (
                 <tr>
                   <td colSpan={8} className="empty-cell">
-                    No matching samples
+                    No samples found! 
                   </td>
                 </tr>
               )}
@@ -211,12 +211,7 @@ export function WorklistPage() {
           </table>
         </div>
         <Box
-          sx={{
-            p: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
+          className="p-4 flex justify-between items-center"
         >
           <Typography variant="body2" color="text.secondary">
             {query.data?.total ?? 0} samples

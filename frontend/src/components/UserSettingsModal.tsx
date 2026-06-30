@@ -3,6 +3,7 @@ import { X, Save, AlertCircle, Loader2 } from "lucide-react";
 import { useSession } from "../session-context";
 import { updateUserSettings } from "../api";
 import { Link } from "react-router-dom";
+import { RoleBadges } from "./RoleBadge";
 
 interface UserSettingsModalProps {
   onClose: () => void;
@@ -43,7 +44,9 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update settings");
+      setError(
+        err instanceof Error ? err.message : "Failed to update settings",
+      );
     } finally {
       setSaving(false);
     }
@@ -52,15 +55,17 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-700/50 bg-neutral-50/50 dark:bg-neutral-800/50 px-6 py-4 shrink-0">
-          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-100">User Settings</h2>
+          <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-100">
+            User Settings
+          </h2>
           <button
             onClick={onClose}
             className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 transition-colors"
@@ -70,16 +75,24 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
         </div>
 
         <div className="overflow-y-auto px-6 py-6">
-          <form id="settings-form" onSubmit={handleSubmit} className="space-y-6">
-            
+          <form
+            id="settings-form"
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
             {error && (
               <div className="rounded-lg bg-red-50 p-4 border border-red-100 dark:bg-red-900/20 dark:border-red-900/50">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-500" aria-hidden="true" />
+                    <AlertCircle
+                      className="h-5 w-5 text-red-400 dark:text-red-500"
+                      aria-hidden="true"
+                    />
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800 dark:text-red-200">{error}</h3>
+                    <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                      {error}
+                    </h3>
                   </div>
                 </div>
               </div>
@@ -98,6 +111,13 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
             </div>
 
             <div>
+              <label className="mb-1.5 block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                Application roles
+              </label>
+              <RoleBadges roles={user.roles} />
+            </div>
+
+            <div>
               <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
                 Full Name
               </label>
@@ -105,7 +125,7 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
                 type="text"
                 value={fullname}
                 onChange={(e) => setFullname(e.target.value)}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-neutral-900 focus:border-[#7B4925] focus:outline-none focus:ring-1 focus:ring-[#7B4925] dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:border-[#B8703B] dark:focus:ring-[#B8703B]"
+                className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-neutral-900 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:border-brand-accent-dark dark:focus:ring-brand-accent-dark"
               />
             </div>
 
@@ -120,7 +140,7 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Leave blank to keep current password"
-                    className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-neutral-900 focus:border-[#7B4925] focus:outline-none focus:ring-1 focus:ring-[#7B4925] dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:border-[#B8703B] dark:focus:ring-[#B8703B]"
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-neutral-900 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:border-brand-accent-dark dark:focus:ring-brand-accent-dark"
                   />
                 </div>
                 {password && (
@@ -133,7 +153,7 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
-                      className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-neutral-900 focus:border-[#7B4925] focus:outline-none focus:ring-1 focus:ring-[#7B4925] dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:border-[#B8703B] dark:focus:ring-[#B8703B]"
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-neutral-900 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:border-brand-accent-dark dark:focus:ring-brand-accent-dark"
                     />
                   </div>
                 )}
@@ -143,9 +163,12 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
             {user.is_admin && (
               <div className="pt-4 border-t border-neutral-100 dark:border-neutral-700/50">
                 <div className="rounded-lg bg-blue-50 p-4 border border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/50">
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Administrator Settings</h4>
+                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                    Administrator Settings
+                  </h4>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mb-3">
-                    As an administrator, you can change user roles from the Users administration page.
+                    As an administrator, you can change user roles from the
+                    Users administration page.
                   </p>
                   <Link
                     to="/admin/users"
@@ -159,7 +182,7 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
             )}
           </form>
         </div>
-        
+
         <div className="border-t border-neutral-100 dark:border-neutral-700/50 bg-neutral-50/50 dark:bg-neutral-800/50 px-6 py-4 flex justify-end gap-3 shrink-0">
           <button
             type="button"
@@ -172,7 +195,7 @@ export function UserSettingsModal({ onClose }: UserSettingsModalProps) {
             form="settings-form"
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-[#7B4925] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#6A3F20] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? (
               <Loader2 size={16} className="animate-spin" />
