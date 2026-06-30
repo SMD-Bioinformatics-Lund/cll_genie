@@ -1,8 +1,6 @@
 from pathlib import Path
-import logging
 from typing import Annotated
 
-from bson import ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
 from cll_genie_api.api.common import serialize
@@ -11,14 +9,34 @@ from cll_genie_api.api.dependencies import (
     assert_role,
     get_current_session,
     get_services,
+    record_audit,
     require_csrf,
 )
 from cll_genie_api.api.schemas import PreviewSequencesRequest
 from cll_genie_api.domain.identity import Session
 from cll_genie_api.parsers.lymphotrack import LymphotrackParseError, parse_qc
 
-
 router = APIRouter(prefix="/samples", tags=["samples"])
+
+
+def _artifact_audit_metadata(artifact: dict) -> dict:
+    return {
+        "artifact_id": str(artifact["_id"]),
+        "filename": artifact.get("filename"),
+        "media_type": artifact.get("media_type"),
+        "size_bytes": artifact.get("size"),
+        "sha256": artifact.get("sha256"),
+        "storage": "local",
+    }
+
+
+def _attempted_upload_metadata(file: UploadFile) -> dict:
+    return {
+        "original_filename": file.filename,
+        "media_type": file.content_type,
+        "declared_size_bytes": file.size,
+        "storage": "local",
+    }
 
 
 @router.get("")
@@ -72,9 +90,42 @@ def upload_excel(
     assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
+        record_audit(
+            services,
+            "sample.lymphotrack_excel.upload_failed",
+            "LymphoTrack workbook upload failed because the sample was not found",
+            severity="warning",
+            category="data",
+            outcome="failure",
+            actor=session.user,
+            provider=session.provider,
+            resource_type="sample",
+            resource_id=sample_id,
+            tags=["sample", "upload", "lymphotrack", "workbook", "failure"],
+            metadata={"reason": "sample_not_found", **_attempted_upload_metadata(file)},
+        )
         raise HTTPException(status_code=404, detail="Sample not found")
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in {".xlsx", ".xlsm"}:
+        record_audit(
+            services,
+            "sample.lymphotrack_excel.upload_failed",
+            "LymphoTrack workbook upload was rejected due to an unsupported file type",
+            severity="warning",
+            category="data",
+            outcome="failure",
+            actor=session.user,
+            provider=session.provider,
+            resource_type="sample",
+            resource_id=sample_id,
+            resource_name=sample.get("name"),
+            tags=["sample", "upload", "lymphotrack", "workbook", "validation", "failure"],
+            metadata={
+                "reason": "unsupported_file_type",
+                "allowed_extensions": [".xlsx", ".xlsm"],
+                **_attempted_upload_metadata(file),
+            },
+        )
         raise HTTPException(status_code=422, detail="Only .xlsx and .xlsm files are supported")
     artifact = services.artifacts.save_stream(
         f"samples/{sample_id}/lymphotrack",
@@ -93,8 +144,24 @@ def upload_excel(
             "lymphotrack_excel_path": str(services.artifacts.resolve(artifact["relative_path"])),
         },
     )
-    logging.getLogger("audit").info(
-        f"AUDIT: sample.lymphotrack_excel.uploaded by {session.user.username} on sample:{sample_id} - {{\"artifact_id\": \"{str(artifact['_id'])}\"}}"
+    record_audit(
+        services,
+        "sample.lymphotrack_excel.uploaded",
+        "LymphoTrack workbook was uploaded",
+        category="data",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="sample",
+        resource_id=sample_id,
+        resource_name=sample.get("name"),
+        tags=["sample", "upload", "lymphotrack", "artifact"],
+        metadata={
+            "ingestion_mode": "personal-upload",
+            "sample_id": sample_id,
+            "clarity_id": sample.get("clarity_id"),
+            "run_id": sample.get("run_id"),
+            **_artifact_audit_metadata(artifact),
+        },
     )
     return serialize(artifact)
 
@@ -107,7 +174,22 @@ def upload_qc(
     services: Annotated[Services, Depends(get_services)],
 ):
     assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
-    if services.samples.get(sample_id) is None:
+    sample = services.samples.get(sample_id)
+    if sample is None:
+        record_audit(
+            services,
+            "sample.lymphotrack_qc.upload_failed",
+            "LymphoTrack QC upload failed because the sample was not found",
+            severity="warning",
+            category="data",
+            outcome="failure",
+            actor=session.user,
+            provider=session.provider,
+            resource_type="sample",
+            resource_id=sample_id,
+            tags=["sample", "upload", "lymphotrack", "quality-control", "failure"],
+            metadata={"reason": "sample_not_found", **_attempted_upload_metadata(file)},
+        )
         raise HTTPException(status_code=404, detail="Sample not found")
     artifact = services.artifacts.save_stream(
         f"samples/{sample_id}/lymphotrack",
@@ -120,6 +202,32 @@ def upload_qc(
     try:
         qc_values = parse_qc(services.artifacts.resolve(artifact["relative_path"]))
     except LymphotrackParseError as exc:
+        record_audit(
+            services,
+            "sample.lymphotrack_qc.upload_failed",
+            "LymphoTrack QC upload was stored but could not be parsed",
+            severity="warning",
+            category="data",
+            outcome="failure",
+            actor=session.user,
+            provider=session.provider,
+            resource_type="sample",
+            resource_id=sample_id,
+            resource_name=sample.get("name"),
+            tags=[
+                "sample",
+                "upload",
+                "lymphotrack",
+                "quality-control",
+                "validation",
+                "failure",
+            ],
+            metadata={
+                "reason": "invalid_qc_content",
+                "error": str(exc),
+                **_artifact_audit_metadata(artifact),
+            },
+        )
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     services.samples.update(
         sample_id,
@@ -128,6 +236,26 @@ def upload_qc(
             "lymphotrack_qc_artifact_id": artifact["_id"],
             "lymphotrack_qc_path": str(services.artifacts.resolve(artifact["relative_path"])),
             **qc_values,
+        },
+    )
+    record_audit(
+        services,
+        "sample.lymphotrack_qc.uploaded",
+        "LymphoTrack QC metrics were uploaded and parsed",
+        category="data",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="sample",
+        resource_id=sample_id,
+        resource_name=sample.get("name"),
+        tags=["sample", "upload", "lymphotrack", "quality-control"],
+        metadata={
+            "ingestion_mode": "personal-upload",
+            "sample_id": sample_id,
+            "clarity_id": sample.get("clarity_id"),
+            "run_id": sample.get("run_id"),
+            "qc_metrics": qc_values,
+            **_artifact_audit_metadata(artifact),
         },
     )
     return {"artifact": serialize(artifact), "qc": qc_values}
@@ -147,7 +275,7 @@ def preview_sequences(
     artifact_id = filters.artifact_id or sample.get("lymphotrack_excel_artifact_id")
     if not artifact_id and not sample.get("lymphotrack_excel_path"):
         raise HTTPException(status_code=409, detail="No LymphoTrack workbook is available")
-    
+
     if artifact_id:
         stored = services.artifacts.get(artifact_id)
         if stored is None:
@@ -155,8 +283,9 @@ def preview_sequences(
         path = stored[1]
     else:
         path = Path(sample.get("lymphotrack_excel_path", ""))
-        
+
     from cll_genie_api.parsers.lymphotrack import parse_workbook
+
     try:
         sequences, _ = parse_workbook(
             path,

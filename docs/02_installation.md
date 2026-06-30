@@ -7,15 +7,23 @@ This application is designed to be entirely containerized, meaning the only prer
 - [Docker Engine](https://docs.docker.com/engine/install/) installed.
 - [Docker Compose](https://docs.docker.com/compose/install/) available on your command line.
 
-The examples below use the standalone Compose 1.29 command, `docker-compose`. With the Compose v2 plugin, use `docker compose` instead.
+The commands below use the current Docker Compose v2 plugin (`docker compose`). Development must explicitly load both Compose files and `.env.dev`; otherwise Compose uses production/base values from `.env`.
 
 ## Environment Variables
 
-Before starting the containers, copy `.env.example` to `.env` in the repository root and review every value. Compose requires this file and does not provide fallback values for deployment-specific settings.
+For development, copy `.env.example` to `.env.dev` in the repository root and review every value.
 
 ```bash
-cp .env.example .env
+cp .env.example .env.dev
 ```
+
+The development MongoDB URI must use the Compose service name, not the host-published port:
+
+```dotenv
+MONGODB_URI=mongodb://mongo:27017
+```
+
+`MONGO_DEV_PORT` controls only optional host access (for example, `27018:27017`). Containers always reach MongoDB as `mongo:27017` through the Compose network.
 
 ### Application and Compose
 
@@ -28,6 +36,33 @@ cp .env.example .env
 | `API_PREFIX` | `/cll_genie/api/v1` | URL prefix applied to the versioned API routes and API documentation. |
 | `CLL_GENIE_PORT` | `8080` | Host port mapped to the Nginx proxy. The UI is served from this port. |
 | `MONGO_DEV_PORT` | `27017` | Host port mapped to the optional MongoDB container enabled by the `mongo` profile. |
+
+### Container resource limits
+
+Every container has an environment-controlled hard CPU and memory ceiling. CPU values represent CPU cores and may be fractional. Memory values use Docker units such as `128M`, `1G`, or `2G`.
+
+| Variable | Development default | Container |
+|---|---:|---|
+| `PROXY_CPU_LIMIT` / `PROXY_MEMORY_LIMIT` | `0.25` / `128M` | Nginx reverse proxy |
+| `FRONTEND_CPU_LIMIT` / `FRONTEND_MEMORY_LIMIT` | `1.00` / `768M` | Vite development server; development only |
+| `API_CPU_LIMIT` / `API_MEMORY_LIMIT` | `1.00` / `1G` | FastAPI application |
+| `WORKER_CPU_LIMIT` / `WORKER_MEMORY_LIMIT` | `2.00` / `2G` | Celery ingestion and IMGT worker |
+| `SCHEDULER_CPU_LIMIT` / `SCHEDULER_MEMORY_LIMIT` | `0.25` / `256M` | Celery Beat scheduler |
+| `REDIS_CPU_LIMIT` / `REDIS_MEMORY_LIMIT` | `0.50` / `512M` | Redis broker/result backend |
+| `MONGO_CPU_LIMIT` / `MONGO_MEMORY_LIMIT` | `1.00` / `1G` | Optional development MongoDB 3.4 |
+
+These are upper limits, not reservations. A container may use less. When it reaches its CPU ceiling, Docker throttles it. When it exceeds its memory ceiling, the process may be terminated as out-of-memory, so production limits must be sized from observed workload. The worker needs the largest allowance because workbook parsing, IMGT ZIP parsing, report preparation, and concurrent Celery processes can overlap.
+
+All variables are required by the relevant Compose service. This prevents an accidental unlimited deployment when a value is omitted. The production `.env` may use different limits from `.env.dev` without changing Compose YAML.
+
+Inspect live consumption and configured ceilings with:
+
+```bash
+docker stats
+
+docker inspect cll-genie-worker --format \
+  'memory={{.HostConfig.Memory}} bytes nano_cpus={{.HostConfig.NanoCpus}}'
+```
 
 ### Databases, collections, and Celery
 
@@ -87,10 +122,15 @@ sudo install -d -o 10001 -g 10001 /data/cll-genie/logs /data/cll-genie/artifacts
 
 | Variable | Example | Purpose |
 |---|---|---|
-| `LOG_ROOT` | `/data/cll-genie/logs` | Root directory for application and audit logs. The API writes `app.log` here. |
+| `LOG_ROOT` | `/data/cll-genie/logs` | Root directory for rotating API, worker, and scheduler JSON logs. |
+| `LOG_LEVEL` | `INFO` | Minimum runtime file/stdout severity. |
+| `LOG_FILE_ENABLED` | `true` | Enables daily rotating files in addition to stdout. |
+| `LOG_RETENTION_DAYS` | `30` | Number of rotated daily runtime files retained per service. |
+| `AUDIT_EVENTS_COLLECTION` | `audit_events` | Append-only MongoDB collection for security and business events. |
+| `AUDIT_RETENTION_DAYS` | `730` | Days retained before MongoDB's TTL index removes an audit event. |
 | `ARTIFACT_ROOT` | `/data/cll-genie/artifacts` | Root directory for generated reports and downloaded analysis artifacts. |
 | `LYMPHOTRACK_RESULTS_ROOT` | `/data/lymphotrack/results/lymphotrack_dx` | Root directory recursively scanned for LymphoTrack Excel and QC result files. |
-| `RUN_ROOT` | `/data/MiSeq` | Root directory scanned by the scheduler for completed sequencing runs. |
+| `RUN_ROOT` | `/data/MiSeq` | Root directory scanned by the Celery worker for completed sequencing runs. Celery Beat only schedules the task. |
 | `RUN_RTA_MARKER` | `RTAComplete.txt` | Filename that indicates sequencing run completion. A run is ingested only when this and the pipeline marker exist. |
 | `RUN_PIPELINE_MARKER` | `cdm.done` | Filename that indicates upstream pipeline completion. |
 | `RUN_CLL_GENIE_MARKER` | `cll_genie.done` | Filename created after CLL Genie ingests a run, preventing duplicate ingestion. `RUN_ROOT` therefore requires write access. |
@@ -107,25 +147,36 @@ sudo install -d -o 10001 -g 10001 /data/cll-genie/logs /data/cll-genie/artifacts
 | `MUTATION_BORDERLINE_UPPER` | `97.99` | Upper V-region identity percentage used for the borderline mutation classification. |
 | `PDF_ANALYSIS_RUN_AT` | `SMD, Molecular Diagnostics` | Laboratory or unit name printed in the “analysis performed by” field of generated PDF reports. |
 
-## Building and Running
+## Building and Running Development
 
-To start the frontend proxy, FastAPI, Celery scheduler, Celery worker, and Redis against the configured MongoDB:
-
-```bash
-docker-compose up --build
-```
-
-To also start the optional MongoDB container, first set `MONGODB_URI=mongodb://mongo:27017` in `.env`, then run:
+Start the complete development stack, including Docker MongoDB 3.4, with this exact command:
 
 ```bash
-docker-compose --profile mongo up --build
+docker compose --env-file .env.dev \
+  -f compose.yaml -f compose.dev.yaml \
+  --profile mongo up -d --build
 ```
 
-> [!TIP]
-> Run `docker-compose up -d --build` to run the containers in the background (detached mode).
+Use the same prefix for management commands so containers are not accidentally recreated with `.env` values:
+
+```bash
+docker compose --env-file .env.dev \
+  -f compose.yaml -f compose.dev.yaml \
+  --profile mongo ps
+
+docker compose --env-file .env.dev \
+  -f compose.yaml -f compose.dev.yaml \
+  --profile mongo logs -f worker
+```
+
+For production or an external organizational MongoDB, use `.env` and only the base file:
+
+```bash
+docker compose --env-file .env -f compose.yaml up -d --build
+```
 
 Once running, the application will be accessible at:
-**`http://localhost:8080/cll_genie/`**
+**`http://localhost:<CLL_GENIE_PORT><APPLICATION_PREFIX>/`**
 
 ## Initial User
 

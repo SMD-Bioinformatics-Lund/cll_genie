@@ -37,8 +37,37 @@ docker-compose logs worker
 docker-compose logs -f
 ```
 
-## System Audit Logs
+## Runtime and Audit Logs
 
-All sensitive actions (creating samples, updating users, submitting analysis, and hiding reports) are written through the audit logger into `${LOG_ROOT}/app.log`. The file rotates daily and retains 30 backups.
+Runtime diagnostics are JSON Lines files named `cll-genie-api.json.log`, `cll-genie-worker.json.log`, and `cll-genie-scheduler.json.log` under `${LOG_ROOT}`. They rotate at UTC midnight and are retained according to `LOG_RETENTION_DAYS`. The same records are emitted to container stdout, so `docker compose logs` remains useful.
 
-Users with the `admin` or `lymphotrack_admin` role can also inspect the newest audit records from **Administration → Audit logs**. This view is role-protected by the API; it does not use LDAP groups.
+## Celery cannot connect to MongoDB
+
+### Symptom
+
+The worker reports `ServerSelectionTimeoutError`, often mentioning `host.docker.internal:27017` or `Connection refused`.
+
+### Development fix
+
+Docker-based development must use `MONGODB_URI=mongodb://mongo:27017` from `.env.dev`. The host-published `MONGO_DEV_PORT` is for tools running on the host and must not be used by application containers.
+
+Recreate the affected services with the complete development command:
+
+```bash
+docker compose --env-file .env.dev \
+  -f compose.yaml -f compose.dev.yaml \
+  --profile mongo up -d --force-recreate worker scheduler
+```
+
+Verify connectivity from the worker:
+
+```bash
+docker compose --env-file .env.dev \
+  -f compose.yaml -f compose.dev.yaml \
+  --profile mongo exec worker python -c \
+  "from cll_genie_api.infrastructure.mongo import get_collections; print(get_collections().samples.count_documents({}))"
+```
+
+Do not run a plain `docker compose up` for development: it omits `compose.dev.yaml` and may recreate services using `.env` production/base settings.
+
+Security and business audit events are separate, structured documents in MongoDB's `audit_events` collection. Administrators inspect them under **Administration → Audit logs**. See [Audit Events & File Logging](10_audit_and_logging.md) for the schema, retention policy, filters, redaction, and event catalog.

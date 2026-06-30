@@ -46,6 +46,9 @@ def test_workbook_filters_and_preserves_sequence_metadata(tmp_path: Path) -> Non
             "source_row": 6,
             "length": 4,
             "v_gene": None,
+            "j_gene": None,
+            "d_gene": None,
+            "v_mutation": None,
         }
     ]
 

@@ -9,7 +9,8 @@ To access User Management, you must be logged in as an Administrator. Navigate t
 Here you will see a table of all registered users with their:
 - **Username**
 - **Email**
-- **Role** (`user`, `admin`, or `lymphotrack_admin`)
+- **Identity** (`LDAP` or `Local`)
+- **Roles** (`admin`, `lymphotrack_admin`, and/or `lymphotrack`)
 - **Status** (Enabled / Disabled)
 
 ## User Document Schema
@@ -22,12 +23,12 @@ Existing users in a separate Coyote database are not read or migrated automatica
 {
   _id: ObjectId("5f7e1c8b8f8c8b8f8c8b8f8c"),
   username: "example-user",
-  password: "pbkdf2:sha256:...", // Optional for LDAP-only users
+  identity_provider: "ldap", // "ldap" or "local"
   fullname: "Example User",
   firstname: "Example",
   lastname: "User",
   email: "example.user@example.org",
-  roles: ["admin", "lymphotrack_admin", "user"],
+  roles: ["lymphotrack_admin", "lymphotrack"],
   enabled: true,
   created_at: ISODate("2026-01-01T12:00:00Z"),
   updated_at: ISODate("2026-01-01T12:00:00Z"),
@@ -36,31 +37,36 @@ Existing users in a separate Coyote database are not read or migrated automatica
 }
 ```
 
-Authentication and authorization use `username`, `password`, `fullname`, `email`, `roles`, and `enabled`. The name components and audit fields are stored for administration and traceability. `enabled` is the only application field beyond the proposed base structure; if omitted, it is treated as `true`.
+Local records additionally contain a Werkzeug `password` hash; LDAP records must not contain a local password. Authentication uses only the provider declared by `identity_provider`. Authorization and audit attribution always come from this local profile, including for LDAP authentication.
+
+For backward compatibility, records created before `identity_provider` was introduced are interpreted as `local` when they contain a password hash and `ldap` otherwise. Saving the user through the administration page stores the explicit identity. This compatibility rule does not rewrite production documents automatically.
 
 ## Adding a New User
 
 1. Click **"Add User"** in the top right.
-2. Fill in the username, name, and email fields.
-3. Provide a local password if local login is required. LDAP-only users do not need a local password.
-4. Select the appropriate roles and enabled state.
+2. Choose an identity. LDAP is primary and selected by default.
+3. Fill in the username, name, and email fields. An LDAP email must match the directory account.
+4. Select one or more roles using the colored role controls.
+5. For a local identity, enter and confirm a password of at least eight characters. LDAP users cannot be assigned a local password.
+6. Choose the enabled state and create the account.
 
 ### Understanding Roles
 
-The system is simplified into broad access categories:
+Role badges use the same colors everywhere in the application: violet for `admin`, amber for `lymphotrack_admin`, and blue for `lymphotrack`.
 
-- **`user`**: The standard role. Can view samples, upload sequences, run analysis, and generate reports. Cannot manage other users or access the Rule Builder.
-- **`admin` / `lymphotrack_admin`**: Administrator roles. These users have full access to the application, including:
-  - Adding, editing, and disabling users.
-  - Creating and modifying clinical interpretation rules in the Rule Builder.
-  - Viewing and restoring Hidden Comments and Hidden Reports.
+- **`admin`**: Full application and user administration.
+- **`lymphotrack_admin`**: Clinical workflow administration, report/rule controls, and hidden-content management.
+- **`lymphotrack`**: Sample analysis, IMGT/V-QUEST submission, and report workflows.
+
+A user may have multiple roles. The API evaluates the roles required by each operation; badge color is visual guidance and does not provide authorization by itself.
 
 ## Managing Existing Users
 
 Administrators can perform several actions on existing users by clicking the respective buttons in the table row:
 
-- **Edit Role:** Change a standard user to an admin or vice-versa.
-- **Reset Password:** Useful if a user forgets their credentials.
+- **Edit Roles:** Add or remove one or more roles.
+- **Change Identity:** Moving LDAP to Local requires a new password. Moving Local to LDAP removes the stored local password.
+- **Reset Password:** Available only for Local identities. Editing a Local user without entering a new password retains the existing hash.
 - **Enable / Disable:** You cannot permanently delete a user (to preserve audit integrity for actions they have taken in the past). Instead, you can toggle their `Disabled` state. A disabled user will be immediately rejected at the login screen.
 
 > [!IMPORTANT]

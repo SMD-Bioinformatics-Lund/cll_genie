@@ -1,6 +1,8 @@
 services:
   proxy:
     container_name: cll-genie-proxy
+    cpus: "${PROXY_CPU_LIMIT:?PROXY_CPU_LIMIT must be set in the environment file}"
+    mem_limit: "${PROXY_MEMORY_LIMIT:?PROXY_MEMORY_LIMIT must be set in the environment file}"
     build:
       context: .
       dockerfile: docker/proxy.Dockerfile
@@ -15,12 +17,22 @@ services:
 
   api:
     container_name: cll-genie-api
+    cpus: "${API_CPU_LIMIT:?API_CPU_LIMIT must be set in the environment file}"
+    mem_limit: "${API_MEMORY_LIMIT:?API_MEMORY_LIMIT must be set in the environment file}"
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
       network: host
     env_file:
       - .env
+    environment:
+      LOG_SERVICE_NAME: api
+    command:
+      [
+        "sh",
+        "-c",
+        "python -m cll_genie_api.scripts.ensure_indexes && exec uvicorn cll_genie_api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*",
+      ]
     depends_on:
       redis:
         condition: service_healthy
@@ -45,6 +57,8 @@ services:
 
   worker:
     container_name: cll-genie-worker
+    cpus: "${WORKER_CPU_LIMIT:?WORKER_CPU_LIMIT must be set in the environment file}"
+    mem_limit: "${WORKER_MEMORY_LIMIT:?WORKER_MEMORY_LIMIT must be set in the environment file}"
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
@@ -60,18 +74,23 @@ services:
       ]
     env_file:
       - .env
+    environment:
+      LOG_SERVICE_NAME: worker
     depends_on:
       redis:
         condition: service_healthy
     volumes:
       - "${LOG_ROOT:?LOG_ROOT must be set in .env}:${LOG_ROOT:?LOG_ROOT must be set in .env}"
       - "${ARTIFACT_ROOT:?ARTIFACT_ROOT must be set in .env}:${ARTIFACT_ROOT:?ARTIFACT_ROOT must be set in .env}"
+      - "${RUN_ROOT:?RUN_ROOT must be set in .env}:${RUN_ROOT:?RUN_ROOT must be set in .env}"
       - "${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:ro"
     networks: [cll_genie]
     restart: unless-stopped
 
   scheduler:
     container_name: cll-genie-scheduler
+    cpus: "${SCHEDULER_CPU_LIMIT:?SCHEDULER_CPU_LIMIT must be set in the environment file}"
+    mem_limit: "${SCHEDULER_MEMORY_LIMIT:?SCHEDULER_MEMORY_LIMIT must be set in the environment file}"
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
@@ -87,18 +106,20 @@ services:
       ]
     env_file:
       - .env
+    environment:
+      LOG_SERVICE_NAME: scheduler
     depends_on:
       redis:
         condition: service_healthy
     volumes:
       - "${LOG_ROOT:?LOG_ROOT must be set in .env}:${LOG_ROOT:?LOG_ROOT must be set in .env}"
-      - "${RUN_ROOT:?RUN_ROOT must be set in .env}:${RUN_ROOT:?RUN_ROOT must be set in .env}"
-      - "${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:${LYMPHOTRACK_RESULTS_ROOT:?LYMPHOTRACK_RESULTS_ROOT must be set in .env}:ro"
     networks: [cll_genie]
     restart: unless-stopped
 
   redis:
     container_name: cll-genie-redis
+    cpus: "${REDIS_CPU_LIMIT:?REDIS_CPU_LIMIT must be set in the environment file}"
+    mem_limit: "${REDIS_MEMORY_LIMIT:?REDIS_MEMORY_LIMIT must be set in the environment file}"
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
@@ -113,6 +134,8 @@ services:
 
   mongo:
     container_name: cll-genie-mongo
+    cpus: "${MONGO_CPU_LIMIT:?MONGO_CPU_LIMIT must be set in the environment file}"
+    mem_limit: "${MONGO_MEMORY_LIMIT:?MONGO_MEMORY_LIMIT must be set in the environment file}"
     image: mongo:3.4
     platform: linux/amd64
     profiles: ["mongo"]

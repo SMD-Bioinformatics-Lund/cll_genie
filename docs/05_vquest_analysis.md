@@ -1,55 +1,131 @@
 # 5. IMGT/V-QUEST Analysis
 
-Once sequences are vetted, they must be aligned against standard germline databases to identify mutations and clonality. CLL Genie automates the submission of sequences to the external **IMGT/V-QUEST** web service.
+An IMGT/V-QUEST analysis is an asynchronous submission of user-selected LymphoTrack sequences. Each successful run is appended beneath a new `submission_N` key in the sample's existing `vquest_results` document; previous submissions are not overwritten.
 
-## The Analysis Wizard: Step 3 (IMGT Configuration)
+## 1. Creating an analysis job
 
-A **Submission** is an isolated event where a selected batch of draft sequences is sent to IMGT/V-QUEST with a specific set of parameters. 
+The wizard submits:
 
-**Why does this matter?** 
-Because a sample can have *multiple* submissions. If IMGT introduces a new reference directory, or if a clinician decides they need to re-run the alignment with different parameters, they can create a new submission without overwriting the historical results. Each submission is preserved immutably.
+```http
+POST /cll_genie/api/v1/samples/{sample_id}/submit-vquest
+```
 
-When you reach **Step 3** of the Analysis Wizard, you are presented with several V-QUEST parameters. The defaults are hardcoded to the standard clinical recommendations for human CLL.
+with one to 50 selected sequence objects and an options object. The endpoint requires `lymphotrack`, `lymphotrack_admin`, or `admin`, validates CSRF, and then:
 
-### Your Selection
+1. inserts an `analysis_jobs` document with status `QUEUED`;
+2. stores only `sequence_count` and `options` in that job payload;
+3. enqueues `cll_genie.run_vquest` through Redis/Celery;
+4. writes the `vquest.analysis.queued` audit event; and
+5. returns HTTP 202 with the `job_id`.
 
-| Parameter | Default Value | Description |
-|---|---|---|
-| **Molecule Type** | `gDNA` | Genomic DNA (can be switched to cDNA or Unknown depending on the assay). |
-| **Species** | `human` | The origin species of the sequences (supports dozens of species from mouse to alpaca). |
-| **Receptor/Locus** | `IGH` | Targets the Immunoglobulin Heavy chain locus. |
+The worker receives the complete selected sequence objects in the Celery message.
 
-### Select to download results
+## 2. Payload construction
 
-You can choose which specific CSV tables IMGT/V-QUEST will return. The system checks several default tables that are required for Clinical Reports:
-- `Summary`, `nt-sequences`, `AA-sequences`, `JUNCTION`, `parameters`
-- `V-REGION-mutation-table`, `V-REGION-nt-mutation-statistics`, etc.
+The worker changes the job to `RUNNING` at 5% and reloads the sample. Each selected row is converted to FASTA using this identifier:
 
-### Advanced parameters
+```text
+>Seq<rank>_<sample name>
+<nucleotide sequence>
+```
 
-These directly control the IMGT algorithm:
-- **Reference directory set:** Default is `F+ORF+ in-frame P` (Set 1).
-- **Search insertions/deletions:** Default `Yes`
-- **Accepted mutations:** Define the maximum threshold of mutations in the V, D, or J regions. Default is `-1` (IMGT defaults).
+The default IMGT request includes:
 
-### Advanced functionalities
+| Setting | Default |
+|---|---|
+| Species | `human` |
+| Receptor/locus | `IGH` |
+| Molecule type | `gDNA` |
+| Reference directory set | `1` |
+| Reference alleles | enabled |
+| V-region indel search | enabled |
+| CLL subset search | enabled |
+| scFv analysis | disabled |
+| V/D/J mutation limits | `-1` |
+| Result type | Excel-compatible ZIP response |
 
-- **scFv Analysis:** Default `No`.
-- **CLL subset #2/#8 search:** Default `Yes`. (Critical for human CLL diagnostics).
+The requested output tables include Summary, JUNCTION, parameters, nucleotide and amino-acid sequences, IMGT-gapped sequences, V-region mutation tables/statistics, and hotspot data. User options may override only keys already present in the backend default payload; arbitrary new form fields are discarded.
 
-When you are ready, click **"Submit to IMGT"**.
+## 3. IMGT communication
 
-## Queue Behaviors & Architecture
+At 25%, the worker sends a form-encoded HTTP POST directly to the configured `IMGT_VQUEST_URL` with configured connect/read timeouts. Redirects are not followed.
 
-When a submission is created:
-1. The backend saves the submission state as `PENDING`.
-2. A task is enqueued to **Redis**.
-3. A background **Celery Worker** picks up the task and begins an HTTP session with IMGT/V-QUEST.
-4. The worker waits for the alignment to finish, scrapes the HTML results, downloads the Excel artifact, and saves it to the local file system.
-5. The submission state is updated to `COMPLETED` (or `ERROR`).
+The response is accepted only when:
 
-Because IMGT is an external service, processing times can vary. CLL Genie's asynchronous architecture ensures that the user interface never hangs while waiting for an external server. You will receive a notification when the analysis completes.
+- HTTP status is 200;
+- the response is not an HTML error page; and
+- its bytes begin with the ZIP signature `PK`.
+
+For an HTML rejection, visible `<span>` messages are extracted and reported as the job error. Network, HTTP, and unexpected-response failures all enter the same final failure path.
+
+## 4. Parsing and integrity checks
+
+At 65%, the returned ZIP is parsed into V-QUEST parameters and per-sequence results. The worker verifies that the set of result IDs exactly equals the set of submitted FASTA IDs. Missing or unexpected IDs fail the complete job rather than storing a partial clinical result.
+
+For each result, its `summary` is enriched with the corresponding LymphoTrack values:
+
+- `Merge Count`
+- `Total Reads Per` rounded to two decimals
+- `Inframe`
+- `Stop Codon` (the inverse of `no_stop_codon`)
+
+## 5. Artifact and MongoDB writes
+
+The unmodified IMGT response ZIP is saved in local artifact storage under the sample/submission hierarchy. A per-sample atomic counter reserves the next `submission_N` identifier. If a counter does not yet exist, it initializes from the largest existing submission number, preserving compatibility with imported data.
+
+The successful submission written below `vquest_results.results.submission_N` has this outer shape:
+
+```javascript
+{
+  vquest_results: { "Seq1_<sample name>": { /* parsed IMGT tables */ } },
+  vquest_parameters: { /* parsed parameters */ },
+  data_added: ISODate("..."),
+  results_zip_file: "<resolved local artifact path>",
+  submission_comments: []
+}
+```
+
+The collection-level document remains:
+
+```javascript
+{
+  _id: ObjectId("<same ID as the sample>"),
+  name: "<sample name>",
+  results: {
+    submission_1: { /* submission above */ },
+    submission_2: { /* later independent submission */ }
+  }
+}
+```
+
+This is the compatibility-preserving schema. The worker creates it for the first result or atomically adds a new nested submission only if that key does not already exist. It then sets `samples.vquest` to true.
+
+## 6. Job lifecycle and failure behavior
+
+```text
+QUEUED -> RUNNING (5%) -> RUNNING (25%) -> RUNNING (65%) -> SUCCEEDED (100%)
+                                                               `-> FAILED_FINAL (100%)
+```
+
+On success, the job records `sample_id` and `submission_id`, and an informational `vquest.analysis.succeeded` audit event is written. On any exception, the job becomes `FAILED_FINAL`, stores the error string, and writes an error-severity `vquest.analysis.failed` audit event.
+
+The database submission is inserted only after the ZIP has been received, parsed, validated, and saved. Failed jobs therefore do not create partial `vquest_results` submissions.
+
+## 7. Reading and downloading results
+
+The sample details API returns the sample, its submissions from `vquest_results`, and its reports. Dedicated endpoints list/get submissions and download the stored ZIP. ZIP download returns HTTP 404 if the database submission exists but the physical local file is unavailable.
+
+## Source-code map
+
+| Responsibility | Implementation |
+|---|---|
+| Submission endpoints and audit event | `backend/src/cll_genie_api/api/submissions.py` |
+| Job persistence and submission counters | `backend/src/cll_genie_api/infrastructure/repositories.py` |
+| Celery task and enrichment logic | `backend/src/cll_genie_api/tasks.py` |
+| HTTP client and allowed defaults | `backend/src/cll_genie_api/infrastructure/imgt.py` |
+| ZIP parser | `backend/src/cll_genie_api/parsers/vquest.py` |
+| Local artifact persistence | `backend/src/cll_genie_api/infrastructure/artifacts.py` |
 
 ---
 
-**[Next up: Reports & Comments ➔](06_reports_and_comments.md)**
+**[Next: Reports and Comments](06_reports_and_comments.md)**

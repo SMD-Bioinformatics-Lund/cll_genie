@@ -1,60 +1,197 @@
-# 3. Samples & Data Upload
+# 3. Sample and LymphoTrack Ingestion
 
-At the core of the CLL Genie workflow is a **Sample**. A sample represents a single clinical case or sequencing run that needs to be analyzed.
+This page describes the implemented data path, including the exact folder rules, parser behavior, MongoDB writes, and operational limitations. A sample is registered first; LymphoTrack files are attached to that existing sample later.
 
-## Creating a Sample
+## End-to-end flow
 
-There are two ways a Sample can enter the system: Manually and Automatically.
+```text
+RUN_ROOT/<completed Illumina run>
+  |-- SampleSheet.csv --------------------+
+  `-- Data/.../Stats/Stats.json ----------+--> samples collection
+                                                   |
+LYMPHOTRACK_RESULTS_ROOT/<result files> ------------+
+  |-- <sample name>*.xlsx/.xlsm            attach workbook path/flag
+  `-- <sample name>*.fastq_indexQ30.tsv     parse QC and attach metrics
+```
 
-### Manual Creation
+Celery Beat queues `cll_genie.ingest` every 300 seconds. The task performs these operations in order:
 
-Samples can be created from the **Worklist** (Dashboard). 
+1. `register_runs()` discovers completed sequencing runs and inserts new sample documents.
+2. `attach_results()` searches for LymphoTrack workbooks and QC files for incomplete sample documents.
 
-1. Click the **"New sample"** button in the top right.
-2. Provide a unique **Sample Name** (required).
-3. (Optional) Provide metadata like `clarity_id`, `run_id`, `run_number`, `assay`, and `sequencer`.
-4. (Optional) Mark if the sample is a `control` sample.
-5. Click **"Save"**. The sample will now appear in your Worklist.
+Both the Beat scheduler and worker must be running. Beat only queues the task; the worker executes all discovery and parsing. Consequently, `RUN_ROOT` and `LYMPHOTRACK_RESULTS_ROOT` must be mounted in the worker container. `RUN_ROOT` must be writable because ingestion creates a completion marker, while the LymphoTrack result root can remain read-only.
 
-### Automated Ingestion (Background Task)
+## 1. Registering samples from sequencing runs
 
-CLL Genie features a background Celery beat worker that runs every **5 minutes** to automatically ingest runs and attach files.
+### Run discovery
 
-**How it works:**
-1. **Scanning Run Folders:** The system scans the configured `RUN_ROOT` (e.g., MiSeq output directory). It looks for valid run folders containing a `SampleSheet.csv` and `Stats.json`. 
-2. **Creating Samples:** It reads the sample sheet and automatically creates new Sample entries in the database with their respective metadata.
-3. **Auto-Attaching Results:** The system also scans the configured `LYMPHOTRACK_RESULTS_ROOT` directory. If it finds LymphoTrack Excel (`.xlsx` or `.xlsm`) or QC (`.fastq_indexQ30.tsv`) files that contain the exact **Sample Name** in their filename, it automatically attaches them to the database record.
+Only immediate child directories of `RUN_ROOT` are considered. A directory name must exactly match:
 
-> [!NOTE]
-> If a sample was ingested automatically, you do not need to manually upload the Excel or QC files—they will already be linked in the Sample Details page!
+```regex
+^\d{6}_[A-Z]\d{5}_\d{4}_\d{9}-[A-Z0-9]{5}$
+```
 
-## The LymphoTrack Excel File
+Before opening a run, the ingester checks all of the following:
 
-To analyze a sample, CLL Genie requires the output sequences from a sequencing run. Currently, the application expects the **Merged Read Summary** from a LymphoTrack `.xlsx` or `.xlsm` file.
+- the configured CLL Genie marker, normally `cll_genie.done`, does not already exist;
+- `RTAComplete.txt` exists;
+- `cdm.done` exists;
+- `SampleSheet.csv` exists; and
+- `Data/Intensities/BaseCalls/Stats/Stats.json` exists.
 
-Navigate to the **Sample Details** page by clicking on the sample in the Worklist. In the **Uploads** section, click to upload the Excel file.
+An incomplete or non-matching directory is ignored and reconsidered on the next five-minute pass.
 
-When you upload this Excel file, the application parses the workbook:
-- It looks specifically for a worksheet named `"Merged Read Summary"`.
-- It dynamically reads the header starting around row 5.
-- **Required Columns:** `Rank`, `Sequence`, `Merge count`, `% total reads`, `In-frame (Y/N)`, `No Stop codon (Y/N)`.
+### SampleSheet parsing
 
-> [!WARNING]
-> **Missing Artifact ID Error:** If your Excel file is missing any of the required columns mentioned above, or the worksheet name has been altered, the upload will fail and the system will alert you to the missing data.
+The parser reads `SampleSheet.csv` using UTF-8 with BOM support. It scans until it finds a row containing all three required columns:
 
-During parsing, the application extracts the top valid sequences (more on sequence selection in the next section) and associates them to the sample as "Draft Sequences".
+- `Sample_ID`
+- `Description`
+- `I7_Index_ID`
 
-## Quality Control (QC) PDFs
+It also reads `Instrument Type` from the first field of any preceding row. For each data row:
 
-Clinicians also need to verify the quality of a sequence run before trusting the outputs. In the **Uploads** section of the Sample Details page, you can optionally upload a **QC Report** (.txt / .tsv output from LymphoTrack) alongside the Excel file.
+- IDs beginning with the pattern `NNLLNNNNN-SHM` are accepted as clinical samples;
+- the exact controls `POS-SHM`, `NEG-SHM`, and `IGHSHM-SHM` are accepted;
+- controls are renamed to `<control>-R<run number>` so repeated controls from different runs do not share a name;
+- all other IDs are ignored; and
+- `Description` is split on underscores and its second segment is stored as `clarity_id`.
 
-When uploaded, the system parses the QC file to extract:
-- `total_bases` (Total Bases Sequenced)
-- `q30_bases` (Bases with Q30+ Quality Score)
-- `q30_per` (Percentage of Q30 Bases)
+For example, `lymphotrack_GEN1264A2976_26MD06399` produces the Clarity ID `GEN1264A2976`. If the description does not contain a second underscore-delimited segment, `clarity_id` is stored as an empty string.
 
-These values are attached to the Sample's metadata and displayed prominently on the Sample Details page, allowing you to instantly determine if the run was successful or if the data might be degraded.
+The run number used in control names is the third underscore-separated segment of the run directory name.
+
+### Run statistics
+
+`Stats.json` is traversed through every `ConversionResults[].DemuxResults[]` entry. For each `SampleId`, the parser sums:
+
+- `NumberReads` into `total_raw_reads`; and
+- `Yield` into `total_raw_bases`.
+
+This is an aggregate across every matching conversion/lane entry, not just the first one.
+
+### MongoDB insert and duplicate behavior
+
+Each accepted sample is inserted into the `samples` collection only when no document with the same `name` exists. The current code performs an application-level lookup; it does not overwrite an existing sample.
+
+A newly registered document has this effective shape (MongoDB adds `_id`):
+
+```javascript
+{
+  name: "25AB12345-SHM",
+  clarity_id: "GEN1264A2976",
+  total_raw_bases: 123456789,
+  total_raw_reads: 123456,
+  lymphotrack_excel: false,
+  lymphotrack_excel_path: "",
+  lymphotrack_qc: false,
+  lymphotrack_qc_path: "",
+  vquest: false,
+  report: false,
+  total_bases: "",
+  q30_bases: "",
+  q30_per: "",
+  date_added: ISODate("..."),
+  is_control: false,
+  run_id: "<run directory name>",
+  run_path: "<absolute or mounted run path>",
+  run_number: "<Stats.json RunNumber or folder value>",
+  flowcell_id: "<Stats.json Flowcell>",
+  sequencer: "<SampleSheet Instrument Type>",
+  assay: "lymphotrack"
+}
+```
+
+After every eligible row has been considered, the ingester touches the configured `cll_genie.done` file. Future scheduled runs skip that directory. Therefore, a run must not be marked complete upstream until its SampleSheet and Stats data are final.
+
+## 2. Automatically attaching LymphoTrack outputs
+
+`attach_results()` recursively enumerates files below `LYMPHOTRACK_RESULTS_ROOT`. It only queries samples where `lymphotrack_excel` or `lymphotrack_qc` is still false.
+
+### Workbook matching
+
+The first regular file satisfying both conditions is attached:
+
+- its filename contains the sample `name` as a substring; and
+- its suffix is `.xlsx` or `.xlsm`, case-insensitively.
+
+Automatic attachment sets:
+
+```javascript
+{
+  lymphotrack_excel: true,
+  lymphotrack_excel_path: "<matched path>"
+}
+```
+
+The scheduled attachment step does **not** parse workbook sequences and does not write anything to `vquest_results`. Parsing happens on demand in the analysis wizard, as described in [Sequences and Preview Parsing](04_sequences.md).
+
+### QC matching and parsing
+
+The first regular file whose name contains the sample name and ends exactly with `.fastq_indexQ30.tsv` is parsed as a two-column, tab-separated key/value file. Required keys map as follows:
+
+| QC key | Sample field | Conversion |
+|---|---|---|
+| `totalCount` | `total_bases` | integer |
+| `countQ30` | `q30_bases` | integer |
+| `indexQ30` | `q30_per` | float rounded to two decimals |
+
+Decimal commas are normalized to decimal points. A valid file also sets `lymphotrack_qc: true` and `lymphotrack_qc_path`. If automatic QC parsing fails, that sample is left incomplete and will be retried by later scans; the current scheduled path does not create an audit event for this parse failure.
+
+> [!CAUTION]
+> Matching is substring-based and the first match wins. File naming must make sample names unambiguous. Avoid keeping multiple candidate workbooks for one sample under the scan root.
+
+## 3. Manual attachment through the UI/API
+
+The production API does not currently create arbitrary samples from the Worklist; normal sample registration is the run-ingestion path above. The Sample Details page can attach files to an existing sample.
+
+### Workbook upload
+
+`POST /cll_genie/api/v1/samples/{sample_id}/artifacts/lymphotrack-excel` accepts `.xlsx` and `.xlsm`. The API:
+
+1. saves the physical file in local artifact storage;
+2. creates artifact metadata;
+3. stores the artifact ID, resolved path, and `lymphotrack_excel: true` on the sample; and
+4. records an upload audit event.
+
+The upload itself only validates the extension. Workbook contents are validated when the user clicks **Read workbook** in the analysis wizard.
+
+### QC upload
+
+`POST /cll_genie/api/v1/samples/{sample_id}/artifacts/lymphotrack-qc` saves the local artifact and parses it immediately. Invalid content returns HTTP 422. Valid metrics and the artifact/path fields are written to the sample, followed by an audit event.
+
+Manually uploaded files have artifact records; automatically discovered external files currently have only their paths stored on the sample.
+
+## 4. Audit events
+
+Every successful data addition produces an append-only MongoDB audit event visible in **Administration > Audit events**:
+
+| Activity | Event type | Actor |
+|---|---|---|
+| Sample inserted from a completed run | `sample.registered` | `cll-genie-ingestion` / system |
+| Workbook discovered and attached | `sample.lymphotrack_excel.attached` | `cll-genie-ingestion` / system |
+| QC file discovered, parsed, and attached | `sample.lymphotrack_qc.attached` | `cll-genie-ingestion` / system |
+| Workbook uploaded by a person | `sample.lymphotrack_excel.uploaded` | Authenticated local/LDAP user |
+| QC uploaded by a person | `sample.lymphotrack_qc.uploaded` | Authenticated local/LDAP user |
+| Personal upload rejected or cannot be parsed | `sample.lymphotrack_excel.upload_failed` or `sample.lymphotrack_qc.upload_failed` | Authenticated local/LDAP user |
+
+Events identify the sample, actor/provider, source request/IP for browser uploads, run information, filenames, media type, byte size, SHA-256 for locally stored artifacts, and parsed QC values where applicable. File contents and nucleotide sequences are never copied into audit metadata. Failed personal uploads use warning severity and failure outcome. Invalid automatically discovered QC files are retried without producing a new MongoDB event every five minutes, preventing repetitive audit-event growth.
+
+## 5. Development fixture loading
+
+The separate `load_design_samples` script is a development/testing utility, not the production ingest path. It upserts sample fixtures from the design JSONL data and removes associated V-QUEST results, reports, jobs, and counters so the samples can be analyzed from a clean state.
+
+## Source-code map
+
+| Responsibility | Implementation |
+|---|---|
+| Five-minute schedule | `backend/src/cll_genie_api/worker.py` |
+| Celery ingestion task | `backend/src/cll_genie_api/tasks.py` |
+| Run discovery and result attachment | `backend/src/cll_genie_api/scripts/ingest.py` |
+| SampleSheet, Stats, and sample-document parsing | `backend/src/cll_genie_api/parsers/ingestion.py` |
+| Workbook and QC parsers | `backend/src/cll_genie_api/parsers/lymphotrack.py` |
+| Manual uploads and sequence preview API | `backend/src/cll_genie_api/api/samples.py` |
 
 ---
 
-**[Next up: Sequences & Drafts ➔](04_sequences.md)**
+**[Next: Sequences and Preview Parsing](04_sequences.md)**

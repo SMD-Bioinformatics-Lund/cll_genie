@@ -33,7 +33,7 @@ Built with scalability, accuracy, and usability in mind, this platform is tailor
 
 - **Sample Tracking & Ingestion:** Automated ingestion of sequencing runs and auto-attachment of LymphoTrack Dx results and QC metrics.
 - **IMGT/V-QUEST Integration:** Automated secondary analysis that sends data to the IMGT/V-QUEST server and retrieves/parses the results.
-- **Rules Engine:** Dynamic clinical interpretations for V-gene mutation status and subset information based on customizable rules.
+- **Rules Engine & Clinical Fallbacks:** Dynamic clinical interpretations for V-gene mutation status and subset information based on customizable rules. If no database rules are configured, the system automatically falls back to a robust, hardcoded Python logic engine (`suggested_summary`) to generate standard Swedish clinical phrases.
 - **Reporting:** Generate immutable, signed clinical PDF reports containing both the automated interpretation and clinical comments.
 - **Security & RBAC:** Role-Based Access Control and authentication for User and Admin privileges.
 - **Dockerized Architecture:** Highly scalable backend (FastAPI, Celery, MongoDB, Redis) and a modern frontend (React, Vite).
@@ -41,7 +41,7 @@ Built with scalability, accuracy, and usability in mind, this platform is tailor
 ## Workflow
 
 1. **Sequencing, Demultiplexing, and QC**  
-   Prepare raw sequencing data by performing sequencing, demultiplexing, and quality control. The samples are then registered automatically or manually in the `cll_genie` database.
+   Prepare raw sequencing data by performing sequencing, demultiplexing, and quality control. Completed run folders are registered automatically in the `cll_genie` database; development fixtures use a separate loader.
 2. **Run LymphoTrack Dx Software**  
    Process FASTQ files using LymphoTrack Dx to generate first-stage results. This outputs an Excel file with sequence metrics and a text file with QC metrics. These results are attached to the samples.
 3. **cll_genie Analysis**  
@@ -80,15 +80,19 @@ The entire application runs via Docker Compose.
 git clone https://github.com/your-org/cll_genie.git
 cd cll_genie
 
-# Configure all deployment values and filesystem paths
-cp .env.example .env
-nano .env
+# Configure development values and filesystem paths
+cp .env.example .env.dev
+nano .env.dev
 
-# Build and launch
-docker-compose up --build
+# Build and launch development, including the Docker MongoDB service
+docker compose --env-file .env.dev \
+  -f compose.yaml -f compose.dev.yaml \
+  --profile mongo up -d --build
 ```
 
-Access the UI at `http://localhost:8080/cll_genie/`.
+Access the UI at the `APPLICATION_PREFIX` and `CLL_GENIE_PORT` configured in `.env.dev`.
+
+CPU and memory ceilings for every container are configured in the environment file. Review the `*_CPU_LIMIT` and `*_MEMORY_LIMIT` values before production deployment; see [Installation and Developer Setup](docs/02_installation.md#container-resource-limits).
 
 > [!IMPORTANT]
 > **First-time login:** Create or import an enabled administrator in the configured CLL Genie `users` collection. No default account is created.

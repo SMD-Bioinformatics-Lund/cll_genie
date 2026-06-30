@@ -13,6 +13,8 @@ services:
   frontend:
     image: node:22-alpine
     container_name: cll-genie-frontend
+    cpus: "${FRONTEND_CPU_LIMIT:?FRONTEND_CPU_LIMIT must be set in the environment file}"
+    mem_limit: "${FRONTEND_MEMORY_LIMIT:?FRONTEND_MEMORY_LIMIT must be set in the environment file}"
     working_dir: /app
     command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
     env_file:
@@ -36,17 +38,9 @@ services:
       PYTHONPATH: /app/src
     command:
       [
-        "uvicorn",
-        "cll_genie_api.main:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000",
-        "--reload",
-        "--reload-dir",
-        "/app/src",
-        "--proxy-headers",
-        "--forwarded-allow-ips=*",
+        "sh",
+        "-c",
+        "python -m cll_genie_api.scripts.ensure_indexes && exec uvicorn cll_genie_api.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src --proxy-headers --forwarded-allow-ips=*",
       ]
     volumes:
       - ./backend/src:/app/src
@@ -81,7 +75,11 @@ services:
   mongo:
     profiles: ["mongo"]
     ports:
-      - "127.0.0.1:${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env.dev}:27017"
+      - "${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env}:27017"
+networks:
+  cll_genie_dev:
+    external: true
+    name: cll_genie-dev-net
 
 volumes:
   frontend_node_modules: {}
