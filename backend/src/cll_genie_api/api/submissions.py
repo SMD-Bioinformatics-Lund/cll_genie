@@ -6,12 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 
 from cll_genie_api.api.common import serialize
-import logging
 from cll_genie_api.api.dependencies import (
     Services,
     assert_role,
     get_current_session,
     get_services,
+    record_audit,
     require_csrf,
 )
 from cll_genie_api.api.schemas import CommentRequest, CommentStatusRequest, VquestSubmitRequest
@@ -36,7 +36,7 @@ def submit_vquest(
     assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
     if not payload.sequences:
         raise HTTPException(status_code=422, detail="No sequences provided")
-    
+
     job_id = services.jobs.create(
         "VQUEST",
         sample_id,
@@ -44,6 +44,22 @@ def submit_vquest(
         session.user.username,
     )
     run_vquest.delay(job_id, sample_id, payload.sequences, payload.options, session.user.username)
+    record_audit(
+        services,
+        "vquest.analysis.queued",
+        "IMGT/V-QUEST analysis was queued",
+        category="analysis",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="analysis_job",
+        resource_id=job_id,
+        tags=["analysis", "imgt", "vquest", "job"],
+        metadata={
+            "sample_id": sample_id,
+            "sequence_count": len(payload.sequences),
+            "option_names": sorted(payload.options),
+        },
+    )
     return {"job_id": job_id}
 
 
@@ -111,6 +127,18 @@ def add_comment(
     }
     if not services.vquest.add_comment(sample_id, submission_id, comment):
         raise HTTPException(status_code=404, detail="Submission not found")
+    record_audit(
+        services,
+        "vquest.comment.created",
+        "A submission comment was added",
+        category="activity",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="submission",
+        resource_id=submission_id,
+        tags=["vquest", "comment", "sample"],
+        metadata={"sample_id": sample_id, "comment_id": str(comment["id"])},
+    )
     return serialize(comment)
 
 
@@ -128,8 +156,19 @@ def update_comment(
         sample_id, submission_id, comment_id, payload.hidden, session.user.fullname
     ):
         raise HTTPException(status_code=404, detail="Comment not found")
-    logging.getLogger("audit").info(
-        f"AUDIT: {'vquest.comment.hidden' if payload.hidden else 'vquest.comment.restored'} by {session.user.username} on sample:{sample_id} - {{\"submission_id\": \"{submission_id}\", \"comment_id\": \"{comment_id}\"}}"
+    action = "hidden" if payload.hidden else "restored"
+    record_audit(
+        services,
+        f"vquest.comment.{action}",
+        f"A submission comment was {action}",
+        severity="warning" if payload.hidden else "info",
+        category="activity",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="submission",
+        resource_id=submission_id,
+        tags=["vquest", "comment", action],
+        metadata={"sample_id": sample_id, "comment_id": comment_id},
     )
     return {"updated": True}
 
@@ -146,7 +185,17 @@ def delete_submission(
         raise HTTPException(status_code=404, detail="Submission not found")
     remaining = services.vquest.get(sample_id)
     services.samples.update(sample_id, {"vquest": bool((remaining or {}).get("results"))})
-    logging.getLogger("audit").info(
-        f"AUDIT: vquest.submission.deleted by {session.user.username} on sample:{sample_id} - {{\"submission_id\": \"{submission_id}\"}}"
+    record_audit(
+        services,
+        "vquest.submission.deleted",
+        "An IMGT/V-QUEST submission was permanently deleted",
+        severity="warning",
+        category="data",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="submission",
+        resource_id=submission_id,
+        tags=["vquest", "submission", "deletion", "destructive-action"],
+        metadata={"sample_id": sample_id},
     )
     return None

@@ -115,7 +115,7 @@ export function AdminRulesPage() {
     setOpen(true);
   };
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" className="py-8">
       <Box className="page-heading">
         <div>
           <Typography variant="overline" color="primary" fontWeight={800}>
@@ -136,11 +136,11 @@ export function AdminRulesPage() {
           New rule
         </Button>
       </Box>
-      <Alert severity="info" sx={{ my: 3 }}>
+      <Alert severity="info" className="my-6">
         Active rules generate report text in priority order. Simulate and review
         changes before activation.
       </Alert>
-      <Paper className="data-panel" elevation={0}>
+      <Paper className="data-panel" >
         <div className="responsive-table">
           <table>
             <thead>
@@ -231,15 +231,15 @@ export function AdminRulesPage() {
             minRows={5}
             value={form.template}
             onChange={(e) => setForm({ ...form, template: e.target.value })}
-            sx={{ mt: 2 }}
+            className="mt-4"
           />
           {simulation && (
-            <Alert severity="info" sx={{ mt: 2 }}>
+            <Alert severity="info" className="mt-4">
               {simulation}
             </Alert>
           )}
           {(save.error || simulate.error) && (
-            <Alert severity="error" sx={{ mt: 2 }}>
+            <Alert severity="error" className="mt-4">
               {save.error?.message || simulate.error?.message}
             </Alert>
           )}
@@ -251,7 +251,7 @@ export function AdminRulesPage() {
           >
             Simulate
           </Button>
-          <Box sx={{ flex: 1 }} />
+          <Box className="flex-1" />
           <Button startIcon={<X size={15} />} onClick={() => setOpen(false)}>
             Cancel
           </Button>
