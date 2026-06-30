@@ -1,5 +1,4 @@
-import logging
-from collections import deque
+import re
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -13,6 +12,7 @@ from cll_genie_api.api.dependencies import (
     assert_role,
     get_current_session,
     get_services,
+    record_audit,
     require_csrf,
 )
 from cll_genie_api.api.schemas import RuleRequest, UserCreateRequest, UserUpdateRequest
@@ -26,20 +26,87 @@ router = APIRouter(prefix="/admin", tags=["administration"])
 def list_audit_logs(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
-    limit: Annotated[int, Query(ge=1, le=2000)] = 250,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    page: Annotated[int, Query(ge=1)] = 1,
+    severity: Annotated[str | None, Query()] = None,
+    category: Annotated[str | None, Query()] = None,
+    outcome: Annotated[str | None, Query()] = None,
+    actor: Annotated[str | None, Query(max_length=100)] = None,
+    search: Annotated[str | None, Query(max_length=100)] = None,
+    from_time: Annotated[datetime | None, Query(alias="from")] = None,
+    to_time: Annotated[datetime | None, Query(alias="to")] = None,
 ):
-    """Return the newest audit records from the application log."""
+    """Return filterable, newest-first audit events from MongoDB."""
     assert_role(session, ["admin", "lymphotrack_admin"])
-    log_path = services.settings.log_root / "app.log"
-    if not log_path.is_file():
-        return {"items": [], "source": str(log_path)}
+    query: dict = {}
+    if severity:
+        if severity not in {"info", "warning", "error", "critical"}:
+            raise HTTPException(status_code=422, detail="Invalid audit severity")
+        query["severity"] = severity
+    if category:
+        query["category"] = category.strip().lower()
+    if outcome:
+        if outcome not in {"success", "failure", "denied"}:
+            raise HTTPException(status_code=422, detail="Invalid audit outcome")
+        query["outcome"] = outcome
+    if actor:
+        query["actor.username"] = {
+            "$regex": re.escape(actor.strip()),
+            "$options": "i",
+        }
+    if search:
+        term = {"$regex": re.escape(search.strip()), "$options": "i"}
+        query["$or"] = [
+            {"message": term},
+            {"event_type": term},
+            {"resource.id": term},
+            {"resource.name": term},
+            {"tags": term},
+        ]
+    if from_time or to_time:
+        time_filter: dict = {}
+        normalized_from = (
+            from_time
+            if from_time and from_time.tzinfo
+            else from_time.replace(tzinfo=UTC)
+            if from_time
+            else None
+        )
+        normalized_to = (
+            to_time
+            if to_time and to_time.tzinfo
+            else to_time.replace(tzinfo=UTC)
+            if to_time
+            else None
+        )
+        if normalized_from:
+            time_filter["$gte"] = normalized_from
+        if normalized_to:
+            time_filter["$lte"] = normalized_to
+        if normalized_from and normalized_to and normalized_from > normalized_to:
+            raise HTTPException(status_code=422, detail="The audit time range is invalid")
+        query["occurred_at"] = time_filter
 
-    records: deque[str] = deque(maxlen=limit)
-    with log_path.open(encoding="utf-8", errors="replace") as log_file:
-        for line in log_file:
-            if " - audit - " in line:
-                records.append(line.rstrip("\n"))
-    return {"items": list(reversed(records)), "source": str(log_path)}
+    collection = services.collections.audit_events
+    total = collection.count_documents(query)
+    items = list(
+        collection.find(query).sort("occurred_at", -1).skip((page - 1) * limit).limit(limit)
+    )
+    counts = {
+        level: collection.count_documents({**query, "severity": level})
+        for level in ("info", "warning", "error", "critical")
+    }
+    categories = sorted(collection.distinct("category"))
+    return serialize(
+        {
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": limit,
+            "severity_counts": counts,
+            "categories": categories,
+        }
+    )
 
 
 @router.get("/rules")
@@ -67,14 +134,18 @@ def create_rule(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except DuplicateKeyError as exc:
         raise HTTPException(status_code=409, detail="Rule key and version already exist") from exc
-    logging.getLogger("audit").info(
-        "AUDIT: report_rule.created by %s on rule:%s - "
-        '{"rule_key": "%s", "version": %s, "status": "%s"}',
-        session.user.username,
-        rule_id,
-        payload.rule_key,
-        payload.version,
-        payload.status,
+    record_audit(
+        services,
+        "report_rule.created",
+        f"Report rule {payload.rule_key} version {payload.version} was created",
+        category="configuration",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="report_rule",
+        resource_id=rule_id,
+        resource_name=payload.rule_key,
+        tags=["reporting", "rules", "configuration-change"],
+        metadata={"version": payload.version, "status": payload.status},
     )
     return {"rule_id": rule_id}
 
@@ -93,14 +164,18 @@ def update_rule(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not services.rules.update(rule_id, payload.model_dump()):
         raise HTTPException(status_code=404, detail="Rule not found")
-    logging.getLogger("audit").info(
-        "AUDIT: report_rule.updated by %s on rule:%s - "
-        '{"rule_key": "%s", "version": %s, "status": "%s"}',
-        session.user.username,
-        rule_id,
-        payload.rule_key,
-        payload.version,
-        payload.status,
+    record_audit(
+        services,
+        "report_rule.updated",
+        f"Report rule {payload.rule_key} version {payload.version} was updated",
+        category="configuration",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="report_rule",
+        resource_id=rule_id,
+        resource_name=payload.rule_key,
+        tags=["reporting", "rules", "configuration-change"],
+        metadata={"version": payload.version, "status": payload.status},
     )
     return {"updated": True}
 
@@ -126,7 +201,12 @@ def list_users(
     services: Annotated[Services, Depends(get_services)],
 ):
     assert_role(session, ["admin", "lymphotrack_admin"])
-    users = list(services.collections.users.find({}, {"password": 0}).sort("username", 1))
+    users = list(services.collections.users.find({}).sort("username", 1))
+    for user in users:
+        user["identity_provider"] = user.get("identity_provider") or (
+            "local" if user.get("password") else "ldap"
+        )
+        user.pop("password", None)
     return serialize(users)
 
 
@@ -148,20 +228,27 @@ def create_user(
         }
     )
     if payload.password:
-        document["password"] = generate_password_hash(
-            payload.password, method="pbkdf2:sha256"
-        )
+        document["password"] = generate_password_hash(payload.password, method="pbkdf2:sha256")
     try:
         result = services.collections.users.insert_one(document)
     except DuplicateKeyError as exc:
         raise HTTPException(status_code=409, detail="Username or email already exists") from exc
-    logging.getLogger("audit").info(
-        "AUDIT: user.created by %s on user:%s - "
-        '{"roles": %s, "enabled": %s}',
-        session.user.username,
-        document["username"],
-        document.get("roles", []),
-        document.get("enabled", True),
+    record_audit(
+        services,
+        "user.created",
+        f"{payload.identity_provider.upper()} user {document['username']} was created",
+        category="identity",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="user",
+        resource_id=document["username"],
+        resource_name=document.get("fullname"),
+        tags=["user-management", "identity", "configuration-change"],
+        metadata={
+            "roles": document.get("roles", []),
+            "enabled": document.get("enabled", True),
+            "identity_provider": payload.identity_provider,
+        },
     )
     return {"user_id": str(result.inserted_id), "username": document["username"]}
 
@@ -174,29 +261,59 @@ def update_user(
     services: Annotated[Services, Depends(get_services)],
 ):
     assert_role(session, ["admin", "lymphotrack_admin"])
+    existing = services.collections.users.find_one({"username": username})
+    if existing is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    current_identity = existing.get("identity_provider") or (
+        "local" if existing.get("password") else "ldap"
+    )
+    target_identity = payload.identity_provider or current_identity
+    if payload.password and target_identity != "local":
+        raise HTTPException(status_code=422, detail="LDAP users cannot have a local password")
+    if target_identity == "local" and not payload.password and not existing.get("password"):
+        raise HTTPException(
+            status_code=422,
+            detail="Set a password when changing an LDAP user to local authentication",
+        )
+
     values = payload.model_dump(exclude_none=True, exclude={"password"})
     if payload.password:
-        values["password"] = generate_password_hash(
-            payload.password, method="pbkdf2:sha256"
-        )
+        values["password"] = generate_password_hash(payload.password, method="pbkdf2:sha256")
     if not values:
         return {"updated": False}
     values.update({"updated_at": datetime.now(UTC), "updated_by": session.user.username})
+    update_document: dict = {"$set": values}
+    if target_identity == "ldap" and existing.get("password"):
+        update_document["$unset"] = {"password": ""}
     try:
-        result = services.collections.users.update_one(
-            {"username": username}, {"$set": values}
-        )
+        services.collections.users.update_one({"username": username}, update_document)
     except DuplicateKeyError as exc:
         raise HTTPException(status_code=409, detail="Email already exists") from exc
-    if not result.matched_count:
-        raise HTTPException(status_code=404, detail="User not found")
-    logging.getLogger("audit").info(
-        'AUDIT: user.updated by %s on user:%s - {"fields": %s}',
-        session.user.username,
-        username,
-        sorted(values),
+    changed_fields = sorted(
+        key for key in values if key not in {"updated_at", "updated_by", "password"}
+    )
+    if payload.password:
+        changed_fields.append("password")
+    if target_identity == "ldap" and existing.get("password"):
+        changed_fields.append("password_removed")
+    record_audit(
+        services,
+        "user.updated",
+        f"Local user {username} was updated",
+        severity="warning" if "roles" in changed_fields or "enabled" in changed_fields else "info",
+        category="identity",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="user",
+        resource_id=username,
+        tags=["user-management", "identity", "configuration-change"],
+        metadata={
+            "changed_fields": changed_fields,
+            "identity_provider": target_identity,
+        },
     )
     return {"updated": True}
+
 
 def _simulation_facts() -> dict:
     return {

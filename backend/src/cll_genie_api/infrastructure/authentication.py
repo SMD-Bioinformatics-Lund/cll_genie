@@ -46,11 +46,7 @@ class LdapAuthenticator:
 
         port = parsed.port or (636 if self.settings.ldap_use_ssl else 389)
         tls = Tls(validate=ssl.CERT_REQUIRED)
-        auto_bind = (
-            AUTO_BIND_TLS_BEFORE_BIND
-            if self.settings.ldap_use_tls
-            else AUTO_BIND_NO_TLS
-        )
+        auto_bind = AUTO_BIND_TLS_BEFORE_BIND if self.settings.ldap_use_tls else AUTO_BIND_NO_TLS
         server = Server(
             host,
             port=port,
@@ -117,7 +113,12 @@ class AuthenticationService:
         username = username.strip()
         user = self.user_repository.get(username)
         authenticator = self.authenticators.get(provider)
-        if user is None or not user.enabled or authenticator is None:
+        if (
+            user is None
+            or not user.enabled
+            or authenticator is None
+            or (user.identity_provider is not None and user.identity_provider != provider)
+        ):
             raise AuthenticationFailed
         authenticator.authenticate(user, password)
         return user

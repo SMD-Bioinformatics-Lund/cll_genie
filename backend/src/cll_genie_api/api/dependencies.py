@@ -1,13 +1,14 @@
 import secrets
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, Header, HTTPException, Request, status
 
 from cll_genie_api.config import Settings, get_settings
 from cll_genie_api.domain.identity import Session
 from cll_genie_api.infrastructure.artifacts import LocalArtifactStore
+from cll_genie_api.infrastructure.audit import AuditService
 from cll_genie_api.infrastructure.authentication import (
     AuthenticationService,
     LdapAuthenticator,
@@ -39,6 +40,14 @@ class Services:
     reports: ReportRepository | None = None
     rules: RuleRepository | None = None
     artifacts: LocalArtifactStore | None = None
+    audit: AuditService | None = None
+
+
+def record_audit(services: Services, event_type: str, message: str, **details: Any) -> str | None:
+    audit = getattr(services, "audit", None)
+    if audit is None:
+        return None
+    return audit.record(event_type, message, **details)
 
 
 @lru_cache
@@ -65,6 +74,11 @@ def get_services() -> Services:
         reports=ReportRepository(collections.reports),
         rules=RuleRepository(collections.rules),
         artifacts=LocalArtifactStore(settings.artifact_root, collections.artifacts),
+        audit=AuditService(
+            collections.audit_events,
+            retention_days=settings.audit_retention_days,
+            environment=settings.environment,
+        ),
     )
 
 
@@ -72,18 +86,40 @@ def get_current_session(
     request: Request,
     services: Annotated[Services, Depends(get_services)],
 ) -> Session:
+    request.state.services = services
     session_cookie = request.cookies.get(services.settings.session_cookie_name)
     if not session_cookie:
+        if getattr(services, "audit", None):
+            record_audit(
+                services,
+                "auth.session.rejected",
+                "Request rejected because no authenticated session was present",
+                severity="warning",
+                category="security",
+                outcome="denied",
+                tags=["authentication", "session", "access-denied"],
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
         )
     session = services.sessions.get(session_cookie)
     if session is None:
+        if getattr(services, "audit", None):
+            record_audit(
+                services,
+                "auth.session.rejected",
+                "Request rejected because the session was invalid or expired",
+                severity="warning",
+                category="security",
+                outcome="denied",
+                tags=["authentication", "session", "access-denied"],
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
         )
+    request.state.session = session
     return session
 
 

@@ -11,6 +11,7 @@ class LocalUser:
     roles: tuple[str, ...]
     email: str | None
     password_hash: str | None
+    identity_provider: str | None = None
     enabled: bool = True
 
     @classmethod
@@ -28,6 +29,13 @@ class LocalUser:
             roles=roles,
             email=document.get("email"),
             password_hash=document.get("password"),
+            identity_provider=(
+                str(document["identity_provider"]).strip().lower()
+                if document.get("identity_provider") in {"local", "ldap"}
+                else "local"
+                if document.get("password")
+                else "ldap"
+            ),
             enabled=bool(document.get("enabled", True)),
         )
 

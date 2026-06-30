@@ -1,3 +1,19 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Check,
+  KeyRound,
+  Pencil,
+  Save,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { apiRequest } from "../api";
+import { IdentityBadge } from "../components/IdentityBadge";
+import { RoleBadge, RoleBadges } from "../components/RoleBadge";
+import { applicationRoles, type ApplicationRole } from "../components/roles";
+import { SortableTableHead } from "../components/SortableTableHead";
 import {
   Alert,
   Box,
@@ -7,19 +23,15 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   Paper,
   Switch,
   TextField,
   Typography,
 } from "../components/ui";
-import { Pencil, Save, UserPlus, X } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { apiRequest } from "../api";
-import { useSession } from "../session-context";
 import { useSortableTable } from "../hooks/useSortableTable";
-import { SortableTableHead } from "../components/SortableTableHead";
+import { useSession } from "../session-context";
+
+type IdentityProvider = "ldap" | "local";
 
 type AdminUser = {
   _id: string;
@@ -29,25 +41,42 @@ type AdminUser = {
   lastname?: string;
   email?: string;
   roles: string[];
+  identity_provider: IdentityProvider;
   enabled?: boolean;
 };
-const initial = {
+
+type UserForm = {
+  username: string;
+  fullname: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  roles: ApplicationRole[];
+  identity_provider: IdentityProvider;
+  password: string;
+  confirmPassword: string;
+  enabled: boolean;
+};
+
+const initial: UserForm = {
   username: "",
   fullname: "",
   firstname: "",
   lastname: "",
   email: "",
-  roles: "admin",
+  roles: ["lymphotrack"],
+  identity_provider: "ldap",
   password: "",
+  confirmPassword: "",
   enabled: true,
 };
 
 export function AdminUsersPage() {
   const { session } = useSession();
-  const client = useQueryClient();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<string>();
-  const [form, setForm] = useState(initial);
+  const [editingUser, setEditingUser] = useState<AdminUser>();
+  const [form, setForm] = useState<UserForm>(initial);
   const users = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => apiRequest<AdminUser[]>("/api/v1/admin/users"),
@@ -55,56 +84,94 @@ export function AdminUsersPage() {
   const { sortedData, sortKey, sortOrder, requestSort } = useSortableTable(
     users.data,
     "username",
-    "asc"
+    "asc",
   );
+
+  const validationError = validateUserForm(form, editingUser);
   const save = useMutation({
     mutationFn: () => {
+      if (validationError) throw new Error(validationError);
       const payload = {
-        fullname: form.fullname,
-        firstname: form.firstname,
-        lastname: form.lastname,
-        email: form.email,
-        roles: form.roles
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        password: form.password || null,
+        fullname: form.fullname.trim(),
+        firstname: form.firstname.trim(),
+        lastname: form.lastname.trim(),
+        email: form.email.trim(),
+        roles: form.roles,
+        identity_provider: form.identity_provider,
+        password:
+          form.identity_provider === "local" && form.password
+            ? form.password
+            : null,
         enabled: form.enabled,
       };
       return apiRequest(
-        editing ? `/api/v1/admin/users/${editing}` : "/api/v1/admin/users",
+        editingUser
+          ? `/api/v1/admin/users/${editingUser.username}`
+          : "/api/v1/admin/users",
         {
-          method: editing ? "PATCH" : "POST",
+          method: editingUser ? "PATCH" : "POST",
           body: JSON.stringify(
-            editing ? payload : { ...payload, username: form.username },
+            editingUser
+              ? payload
+              : { ...payload, username: form.username.trim() },
           ),
         },
         session.csrf_token,
       );
     },
     onSuccess: () => {
-      setOpen(false);
-      setEditing(undefined);
-      setForm(initial);
-      client.invalidateQueries({ queryKey: ["admin-users"] });
+      closeDialog();
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
   });
-  const edit = (user: AdminUser) => {
-    setEditing(user.username);
+
+  function closeDialog() {
+    setOpen(false);
+    setEditingUser(undefined);
+    setForm(initial);
+    save.reset();
+  }
+
+  function edit(user: AdminUser) {
+    setEditingUser(user);
     setForm({
       username: user.username,
       fullname: user.fullname,
       firstname: user.firstname ?? "",
       lastname: user.lastname ?? "",
       email: user.email ?? "",
-      roles: user.roles?.join(", ") ?? "",
+      roles: user.roles.filter((role): role is ApplicationRole =>
+        applicationRoles.some((definition) => definition.id === role),
+      ),
+      identity_provider: user.identity_provider,
       password: "",
+      confirmPassword: "",
       enabled: user.enabled !== false,
     });
     setOpen(true);
-  };
+  }
+
+  function toggleRole(role: ApplicationRole) {
+    setForm((current) => ({
+      ...current,
+      roles: current.roles.includes(role)
+        ? current.roles.filter((item) => item !== role)
+        : [...current.roles, role],
+    }));
+  }
+
+  function selectIdentity(identity_provider: IdentityProvider) {
+    setForm((current) => ({
+      ...current,
+      identity_provider,
+      password: identity_provider === "ldap" ? "" : current.password,
+      confirmPassword:
+        identity_provider === "ldap" ? "" : current.confirmPassword,
+    }));
+  }
+
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" className="py-8">
       <Box className="page-heading">
         <div>
           <Typography variant="overline" color="primary" fontWeight={800}>
@@ -114,9 +181,9 @@ export function AdminUsersPage() {
         </div>
         <Button
           variant="contained"
-          startIcon={<UserPlus size={18} />}
+          startIcon={<UserPlus size={17} />}
           onClick={() => {
-            setEditing(undefined);
+            setEditingUser(undefined);
             setForm(initial);
             setOpen(true);
           }}
@@ -124,34 +191,76 @@ export function AdminUsersPage() {
           Add user
         </Button>
       </Box>
-      <Alert severity="info" sx={{ my: 3 }}>
-        LDAP authenticates passwords only. Identity, roles, and enabled state
-        come from the local CLL Genie user record.
+
+      <Alert severity="info" className="my-6">
+        LDAP is the primary identity source. Every account still has a local CLL
+        Genie profile for roles, access state, and audit attribution.
       </Alert>
-      <Paper className="data-panel" elevation={0}>
+
+      <Paper className="data-panel">
         <div className="responsive-table">
           <table>
             <thead>
               <tr>
-                <SortableTableHead label="Username" sortKey="username" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
-                <SortableTableHead label="Full name" sortKey="fullname" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
-                <SortableTableHead label="Email" sortKey="email" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
+                <SortableTableHead
+                  label="Username"
+                  sortKey="username"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
+                <SortableTableHead
+                  label="Full name"
+                  sortKey="fullname"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
+                <SortableTableHead
+                  label="Email"
+                  sortKey="email"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
+                <th>Identity</th>
                 <th>Roles</th>
-                <SortableTableHead label="Status" sortKey="enabled" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
-                <th />
+                <SortableTableHead
+                  label="Status"
+                  sortKey="enabled"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
               {sortedData.map((user: AdminUser) => (
                 <tr key={user._id}>
-                  <td>{user.username}</td>
+                  <td className="font-medium">{user.username}</td>
                   <td>{user.fullname}</td>
                   <td>{user.email || "–"}</td>
-                  <td>{user.roles?.join(", ")}</td>
-                  <td>{user.enabled !== false ? "Enabled" : "Disabled"}</td>
+                  <td>
+                    <IdentityBadge provider={user.identity_provider} />
+                  </td>
+                  <td>
+                    <RoleBadges roles={user.roles ?? []} />
+                  </td>
+                  <td>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${user.enabled !== false ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-gray-100 text-gray-600 dark:bg-neutral-700 dark:text-gray-300"}`}
+                    >
+                      <span
+                        className={`size-1.5 rounded-full ${user.enabled !== false ? "bg-emerald-500" : "bg-gray-400"}`}
+                      />
+                      {user.enabled !== false ? "Enabled" : "Disabled"}
+                    </span>
+                  </td>
                   <td>
                     <Button
-                      startIcon={<Pencil size={15} />}
+                      variant="outlined"
+                      startIcon={<Pencil size={14} />}
                       onClick={() => edit(user)}
                     >
                       Edit
@@ -163,96 +272,313 @@ export function AdminUsersPage() {
           </table>
         </div>
       </Paper>
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          {editing ? "Edit user" : "Add local application user"}
+
+      <Dialog open={open} onClose={closeDialog} fullWidth maxWidth="md">
+        <DialogTitle className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-lg bg-brand-primary/10 text-brand-primary dark:bg-brand-detail/15 dark:text-brand-detail">
+            {editingUser ? <Pencil size={17} /> : <UserPlus size={18} />}
+          </span>
+          <span>
+            <span className="block text-base font-semibold">
+              {editingUser ? `Edit ${editingUser.username}` : "Add user"}
+            </span>
+            <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">
+              Configure identity, profile information, and application access.
+            </span>
+          </span>
         </DialogTitle>
-        <DialogContent>
-          <TextField
-            disabled={Boolean(editing)}
-            label="Username"
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            sx={{ mt: 1, mb: 2 }}
-          />
-          <TextField
-            label="Full name"
-            value={form.fullname}
-            onChange={(e) => setForm({ ...form, fullname: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="First name"
-            value={form.firstname}
-            onChange={(e) => setForm({ ...form, firstname: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Last name"
-            value={form.lastname}
-            onChange={(e) => setForm({ ...form, lastname: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Roles (comma separated)"
-            value={form.roles}
-            onChange={(e) => setForm({ ...form, roles: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label={
-              editing
-                ? "New local password (leave empty to retain)"
-                : "Local password (optional for LDAP-only users)"
-            }
-            type="password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={form.enabled}
-                onChange={(_, checked) =>
-                  setForm({ ...form, enabled: checked })
+
+        <DialogContent className="max-h-[70vh] overflow-y-auto !space-y-6">
+          <FormSection
+            title="Identity source"
+            icon={<Users size={16} />}
+            description="LDAP is recommended and selected by default."
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <IdentityOption
+                provider="ldap"
+                selected={form.identity_provider === "ldap"}
+                onSelect={selectIdentity}
+              />
+              <IdentityOption
+                provider="local"
+                selected={form.identity_provider === "local"}
+                onSelect={selectIdentity}
+              />
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="User profile"
+            description="This local profile controls display information and audit attribution."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                disabled={Boolean(editingUser)}
+                label="Username"
+                value={form.username}
+                onChange={(event) =>
+                  setForm({ ...form, username: event.target.value })
+                }
+                required
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(event) =>
+                  setForm({ ...form, email: event.target.value })
+                }
+                required
+                helperText={
+                  form.identity_provider === "ldap"
+                    ? "Must match the LDAP directory email."
+                    : undefined
                 }
               />
-            }
-            label="Enabled"
-          />
+              <TextField
+                label="First name"
+                value={form.firstname}
+                onChange={(event) =>
+                  setForm({ ...form, firstname: event.target.value })
+                }
+                required
+              />
+              <TextField
+                label="Last name"
+                value={form.lastname}
+                onChange={(event) =>
+                  setForm({ ...form, lastname: event.target.value })
+                }
+                required
+              />
+              <TextField
+                label="Full display name"
+                value={form.fullname}
+                onChange={(event) =>
+                  setForm({ ...form, fullname: event.target.value })
+                }
+                required
+                className="sm:col-span-2"
+              />
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="Application roles"
+            description="Select one or more roles. Each role is independently enforced by the API."
+          >
+            <div className="grid gap-2 sm:grid-cols-3">
+              {applicationRoles.map((role) => {
+                const selected = form.roles.includes(role.id);
+                return (
+                  <button
+                    type="button"
+                    key={role.id}
+                    onClick={() => toggleRole(role.id)}
+                    aria-pressed={selected}
+                    className={`relative rounded-xl border p-3 text-left transition ${selected ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10" : "border-gray-200 hover:border-gray-300 dark:border-neutral-700 dark:hover:border-neutral-600"}`}
+                  >
+                    <span
+                      className={`absolute right-3 top-3 grid size-5 place-items-center rounded border ${selected ? "border-brand-primary bg-brand-primary text-white dark:border-brand-detail dark:bg-brand-detail dark:text-neutral-950" : "border-gray-300 dark:border-neutral-600"}`}
+                    >
+                      {selected && <Check size={13} strokeWidth={3} />}
+                    </span>
+                    <RoleBadge role={role.id} />
+                    <span className="mt-2 block pr-5 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                      {role.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </FormSection>
+
+          {form.identity_provider === "local" && (
+            <FormSection
+              title="Local password"
+              icon={<KeyRound size={16} />}
+              description={
+                editingUser?.identity_provider === "local"
+                  ? "Leave both fields empty to retain the existing password."
+                  : "A password is required when creating or converting to a local account."
+              }
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label={
+                    editingUser?.identity_provider === "local"
+                      ? "New password"
+                      : "Password"
+                  }
+                  type="password"
+                  inputProps={{ "aria-label": "Password" }}
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={(event) =>
+                    setForm({ ...form, password: event.target.value })
+                  }
+                  helperText="At least 8 characters."
+                />
+                <TextField
+                  label="Confirm password"
+                  type="password"
+                  inputProps={{ "aria-label": "Confirm password" }}
+                  autoComplete="new-password"
+                  value={form.confirmPassword}
+                  onChange={(event) =>
+                    setForm({ ...form, confirmPassword: event.target.value })
+                  }
+                  error={Boolean(
+                    form.confirmPassword &&
+                    form.password !== form.confirmPassword,
+                  )}
+                  helperText={
+                    form.confirmPassword &&
+                    form.password !== form.confirmPassword
+                      ? "Passwords do not match."
+                      : "Enter the same password again."
+                  }
+                />
+              </div>
+            </FormSection>
+          )}
+
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-neutral-700 dark:bg-neutral-900/50">
+            <div>
+              <div className="text-sm font-semibold">Account enabled</div>
+              <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Disabled users cannot authenticate with either identity source.
+              </div>
+            </div>
+            <Switch
+              checked={form.enabled}
+              onChange={(_, checked) => setForm({ ...form, enabled: checked })}
+            />
+          </div>
+
           {save.error && <Alert severity="error">{save.error.message}</Alert>}
+          {!save.error && validationError && (
+            <Alert severity="warning">{validationError}</Alert>
+          )}
         </DialogContent>
+
         <DialogActions>
-          <Button startIcon={<X size={15} />} onClick={() => setOpen(false)}>
+          <Button startIcon={<X size={14} />} onClick={closeDialog}>
             Cancel
           </Button>
           <Button
             variant="contained"
-            startIcon={<Save size={15} />}
+            startIcon={<Save size={14} />}
             onClick={() => save.mutate()}
-            disabled={
-              !form.username ||
-              !form.fullname ||
-              !form.firstname ||
-              !form.lastname ||
-              !form.email
-            }
+            disabled={Boolean(validationError) || save.isPending}
           >
-            Save
+            {save.isPending
+              ? "Saving…"
+              : editingUser
+                ? "Save changes"
+                : "Create user"}
           </Button>
         </DialogActions>
       </Dialog>
     </Container>
+  );
+}
+
+function validateUserForm(
+  form: UserForm,
+  editingUser?: AdminUser,
+): string | null {
+  if (
+    ![
+      form.username,
+      form.fullname,
+      form.firstname,
+      form.lastname,
+      form.email,
+    ].every((value) => value.trim())
+  )
+    return "Complete all required profile fields.";
+  if (!form.roles.length) return "Select at least one application role.";
+  if (form.identity_provider === "ldap") return null;
+  const passwordRequired =
+    !editingUser || editingUser.identity_provider !== "local";
+  if (passwordRequired && !form.password)
+    return "Set a password for the local account.";
+  if (form.password && form.password.length < 8)
+    return "The local password must contain at least 8 characters.";
+  if (form.password !== form.confirmPassword)
+    return "The password confirmation does not match.";
+  return null;
+}
+
+function IdentityOption({
+  provider,
+  selected,
+  onSelect,
+}: {
+  provider: IdentityProvider;
+  selected: boolean;
+  onSelect: (provider: IdentityProvider) => void;
+}) {
+  const ldap = provider === "ldap";
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(provider)}
+      aria-pressed={selected}
+      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${selected ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10" : "border-gray-200 hover:border-gray-300 dark:border-neutral-700"}`}
+    >
+      <span
+        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${selected ? "border-brand-primary dark:border-brand-detail" : "border-gray-300 dark:border-neutral-600"}`}
+      >
+        {selected && (
+          <span className="size-2.5 rounded-full bg-brand-primary dark:bg-brand-detail" />
+        )}
+      </span>
+      <span>
+        <IdentityBadge provider={provider} />
+        <span className="mt-2 block text-xs leading-5 text-gray-500 dark:text-gray-400">
+          {ldap
+            ? "Authenticate using organization credentials and directory email."
+            : "Authenticate using a password stored in the CLL Genie user profile."}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  icon,
+  children,
+}: {
+  title: string;
+  description?: string;
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-start gap-2">
+        {icon && (
+          <span className="mt-0.5 text-brand-primary dark:text-brand-detail">
+            {icon}
+          </span>
+        )}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {title}
+          </h3>
+          {description && (
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {children}
+    </section>
   );
 }

@@ -1,4 +1,3 @@
-import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -9,6 +8,7 @@ from cll_genie_api.api.dependencies import (
     Services,
     get_current_session,
     get_services,
+    record_audit,
     require_csrf,
 )
 from cll_genie_api.api.schemas import (
@@ -30,9 +30,9 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 def providers(services: Annotated[Services, Depends(get_services)]) -> ProvidersResponse:
     configured = []
     if services.settings.ldap_is_configured():
-        configured.append(ProviderResponse(id="ldap", label="Organization account"))
+        configured.append(ProviderResponse(id="ldap", label="LDAP · Primary"))
     if "local" in services.settings.auth_providers:
-        configured.append(ProviderResponse(id="local", label="Local account"))
+        configured.append(ProviderResponse(id="local", label="Local"))
     return ProvidersResponse(
         providers=configured,
         version=services.settings.app_version,
@@ -53,12 +53,36 @@ def login(
             payload.password,
         )
     except AuthenticationFailed as exc:
+        record_audit(
+            services,
+            "auth.login.failed",
+            "Authentication attempt was rejected",
+            severity="warning",
+            category="security",
+            outcome="failure",
+            actor=payload.username.strip() or "anonymous",
+            provider=payload.provider,
+            resource_type="session",
+            tags=["authentication", "login", "failed-login"],
+            metadata={"provider": payload.provider},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="The username, password, or authentication provider was not accepted",
         ) from exc
 
     session = services.sessions.create(user, payload.provider)
+    record_audit(
+        services,
+        "auth.login.succeeded",
+        "User signed in",
+        category="security",
+        actor=user,
+        provider=payload.provider,
+        resource_type="session",
+        tags=["authentication", "login"],
+        metadata={"provider": payload.provider},
+    )
     response.set_cookie(
         key=services.settings.session_cookie_name,
         value=session.token_id,
@@ -82,6 +106,16 @@ def logout(
     services: Annotated[Services, Depends(get_services)],
 ) -> MessageResponse:
     services.sessions.delete(session.token_id)
+    record_audit(
+        services,
+        "auth.logout.succeeded",
+        "User signed out",
+        category="security",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="session",
+        tags=["authentication", "logout"],
+    )
     response.delete_cookie(
         services.settings.session_cookie_name,
         path=services.settings.application_prefix,
@@ -115,23 +149,34 @@ def update_me(
 
     values = payload.model_dump(exclude_none=True, exclude={"password"})
     if payload.password:
-        values["password"] = generate_password_hash(
-            payload.password, method="pbkdf2:sha256"
-        )
+        values["password"] = generate_password_hash(payload.password, method="pbkdf2:sha256")
 
     if not values:
         return {"updated": False}
 
-    values.update(
-        {"updated_at": datetime.now(UTC), "updated_by": session.user.username}
-    )
+    values.update({"updated_at": datetime.now(UTC), "updated_by": session.user.username})
     result = services.collections.users.update_one(
         {"username": session.user.username}, {"$set": values}
     )
     if not result.matched_count:
         raise HTTPException(status_code=404, detail="User not found")
 
-    logging.getLogger("audit").info(
-        f"AUDIT: user.updated by {session.user.username} on user:{session.user.username} - {{\"fields\": {sorted(values)}}}"
+    changed_fields = sorted(
+        key for key in values if key not in {"updated_at", "updated_by", "password"}
+    )
+    if payload.password:
+        changed_fields.append("password")
+    record_audit(
+        services,
+        "user.profile.updated",
+        "User updated their profile",
+        severity="warning" if payload.password else "info",
+        category="identity",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="user",
+        resource_id=session.user.username,
+        tags=["profile", "identity"],
+        metadata={"changed_fields": changed_fields},
     )
     return {"updated": True}
