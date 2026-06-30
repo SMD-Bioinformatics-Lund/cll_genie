@@ -120,7 +120,7 @@ export function AnalysisPage() {
   // Create FASTA format for readonly text area
   const fastaPreview = sequences
     .filter(s => selected.includes(s.sequence_id))
-    .map(s => `>${s.sequence_id}_${sample.data?.sample?.name ?? "Sample"}\n${s.sequence}`)
+    .map(s => `>${s.sequence_id}\n${s.sequence}`)
     .join("\n");
 
   return (
