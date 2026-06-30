@@ -116,18 +116,18 @@ export function WorklistPage() {
             <Box className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg">
               <Typography fontWeight={600}>Database (MongoDB)</Typography>
               <Box className="flex items-center gap-2">
-                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.data?.database === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
-                <Typography color={systemStatusQuery.data?.database === "error" ? "error" : "text.secondary"}>
-                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.data?.database === "error" ? "Offline" : "Online"}
+                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.isError || systemStatusQuery.data?.database === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
+                <Typography color={systemStatusQuery.isError || systemStatusQuery.data?.database === "error" ? "error" : "text.secondary"}>
+                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.isError || systemStatusQuery.data?.database === "error" ? "Offline" : "Online"}
                 </Typography>
               </Box>
             </Box>
             <Box className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg">
               <Typography fontWeight={600}>IMGT/V-QUEST</Typography>
               <Box className="flex items-center gap-2">
-                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.data?.imgt === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
-                <Typography color={systemStatusQuery.data?.imgt === "error" ? "error" : "text.secondary"}>
-                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.data?.imgt === "error" ? "Offline" : "Online"}
+                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.isError || systemStatusQuery.data?.imgt === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
+                <Typography color={systemStatusQuery.isError || systemStatusQuery.data?.imgt === "error" ? "error" : "text.secondary"}>
+                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.isError || systemStatusQuery.data?.imgt === "error" ? "Offline" : "Online"}
                 </Typography>
               </Box>
             </Box>
