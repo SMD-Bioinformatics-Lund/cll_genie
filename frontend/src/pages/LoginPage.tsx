@@ -116,6 +116,7 @@ export function LoginPage({ onAuthenticated }: Props) {
               required
               autoFocus
               disabled={loading}
+              fullWidth
               className="mb-4"
             />
             <TextField
@@ -142,7 +143,8 @@ export function LoginPage({ onAuthenticated }: Props) {
                   </InputAdornment>
                 ),
               }}
-              className="mb-5.0"
+              fullWidth
+              className="mb-6"
             />
             <Button
               type="submit"

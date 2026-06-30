@@ -58,7 +58,13 @@ export default function App() {
     );
   }
 
-  if (!session) return <LoginPage onAuthenticated={setSession} />;
+  if (!session) {
+    return (
+      <BrowserRouter basename={APP_BASE_PATH}>
+        <LoginPage onAuthenticated={setSession} />
+      </BrowserRouter>
+    );
+  }
 
   const signOut = async () => {
     await logout(session.csrf_token);

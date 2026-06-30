@@ -50,7 +50,7 @@ export function AppLayout() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 relative">
-          <ThemeControl />
+          <ThemeControl inverse={true} />
           <div className="flex items-center gap-3">
             <span className="hidden md:inline-block text-sm font-medium text-white">
               {session.user.fullname || session.user.username}

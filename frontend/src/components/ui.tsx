@@ -306,12 +306,12 @@ export function TextField({
   ...props
 }: ChangeProps & { error?: boolean; fullWidth?: boolean }) {
   const inputBase =
-    "w-full rounded-full border border-gray-300 bg-white px-4 py-2 text-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:bg-gray-100 disabled:text-gray-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 dark:focus:border-brand-primary dark:focus:ring-brand-primary dark:disabled:bg-neutral-700";
+    "w-full rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:bg-gray-100 disabled:text-gray-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 dark:focus:border-brand-primary dark:focus:ring-brand-primary dark:disabled:bg-neutral-700";
 
   const textareaBase =
     "w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 font-mono text-xs transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 resize-y";
 
-  const finalInputClass = `${inputBase} ${error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""} ${className}`;
+  const finalInputClass = `${inputBase} ${error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`;
 
   const shared = {
     ...props,
@@ -350,7 +350,7 @@ export function TextField({
         <input
           type="text"
           {...shared}
-          className={`${finalInputClass} ${InputProps?.startAdornment ? "pl-10" : ""}`}
+          className={`${finalInputClass} ${InputProps?.startAdornment ? "pl-10" : ""} ${InputProps?.endAdornment ? "pr-10" : ""}`}
         />
         {InputProps?.endAdornment && (
           <span className="absolute inset-y-0 right-3.5 flex items-center">
@@ -363,7 +363,7 @@ export function TextField({
 
   return (
     <label
-      className={`inline-flex flex-col text-sm font-medium text-gray-700 dark:text-gray-200 ${fullWidth ? "w-full" : ""}`}
+      className={`inline-flex flex-col text-sm font-medium text-gray-700 dark:text-gray-200 ${fullWidth ? "w-full" : ""} ${className}`}
       style={mergeStyle({ ...props, sx })}
     >
       {label && <span className="mb-1 block">{label}</span>}

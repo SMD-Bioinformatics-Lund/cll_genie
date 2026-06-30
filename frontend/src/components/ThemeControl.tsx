@@ -8,7 +8,7 @@ const options: Array<{ value: ThemePreference; label: string }> = [
   { value: "dark", label: "Use dark theme" },
 ];
 
-export function ThemeControl() {
+export function ThemeControl({ inverse = false }: { inverse?: boolean }) {
   const { preference, resolved, setPreference } = useAppTheme();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,7 +30,11 @@ export function ThemeControl() {
       <button
         aria-label="Choose color theme"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex size-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+        className={`flex size-9 items-center justify-center rounded-full transition-colors ${
+          inverse
+            ? "text-white/80 hover:bg-white/10 hover:text-white"
+            : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-neutral-700"
+        }`}
         title="Theme"
       >
         <Icon size={20} />
