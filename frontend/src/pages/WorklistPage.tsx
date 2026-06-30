@@ -10,6 +10,11 @@ import {
   Tabs,
   TextField,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "../components/ui";
 import { ChevronRight, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +30,7 @@ export function WorklistPage() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"open" | "finished">("open");
   const [page, setPage] = useState(1);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const query = useQuery({
     queryKey: ["samples", search, tab, page],
     queryFn: () => listSamples(search, tab === "finished", page),
@@ -77,7 +83,10 @@ export function WorklistPage() {
             {finishedCountQuery.data?.total ?? "..."}
           </Typography>
         </Paper>
-        <Paper  className="p-6 flex-1 bg-white dark:bg-neutral-800">
+        <Paper 
+          className="p-6 flex-1 bg-white dark:bg-neutral-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
+          onClick={() => setStatusDialogOpen(true)}
+        >
           <Typography variant="overline" color="text.secondary">System Status</Typography>
           {systemStatusQuery.isLoading ? (
             <Box className="flex items-center gap-2 mt-2">
@@ -99,6 +108,35 @@ export function WorklistPage() {
           )}
         </Paper>
       </Box>
+
+      <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)}>
+        <DialogTitle>System Status Details</DialogTitle>
+        <DialogContent>
+          <Box className="flex flex-col gap-4 mt-2">
+            <Box className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg">
+              <Typography fontWeight={600}>Database (MongoDB)</Typography>
+              <Box className="flex items-center gap-2">
+                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.data?.database === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
+                <Typography color={systemStatusQuery.data?.database === "error" ? "error" : "text.secondary"}>
+                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.data?.database === "error" ? "Offline" : "Online"}
+                </Typography>
+              </Box>
+            </Box>
+            <Box className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg">
+              <Typography fontWeight={600}>IMGT/V-QUEST</Typography>
+              <Box className="flex items-center gap-2">
+                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.data?.imgt === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
+                <Typography color={systemStatusQuery.data?.imgt === "error" ? "error" : "text.secondary"}>
+                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.data?.imgt === "error" ? "Offline" : "Online"}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStatusDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
       <Paper  className="data-panel">
         <Box className="toolbar-row">
           <Tabs
