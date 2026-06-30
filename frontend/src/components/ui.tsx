@@ -202,7 +202,7 @@ export function Typography({
 }
 
 export function Button({
-  component: Component = "button",
+  component,
   variant = "contained",
   color = "primary",
   startIcon,
@@ -213,6 +213,7 @@ export function Button({
   className = "",
   ...props
 }: Props) {
+  const Component = component || (props.href ? "a" : "button");
   const base =
     "inline-flex items-center justify-center gap-2 font-medium uppercase tracking-wide rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
   const sizes = {
@@ -232,7 +233,7 @@ export function Button({
       : variant === "outlined"
         ? "border-brand-primary text-brand-primary hover:bg-brand-primary/40 dark:border-brand-detail dark:text-brand-detail"
         : "border-transparent text-brand-primary hover:bg-brand-primary/40 dark:text-brand-detail";
-  const type = Component === "button" && !props.type ? "button" : props.type;
+  const type = Component === "button" && !props.type && !props.href ? "button" : props.type;
   return (
     <Component
       type={type}

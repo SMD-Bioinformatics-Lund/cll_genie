@@ -64,12 +64,13 @@ def run_vquest(
             )
         submission_id = services.counters.reserve(sample_id)
         artifact = services.artifacts.save_bytes(
-            f"samples/{sample_id}/submissions/{submission_id}/imgt",
+            f"saved_cll_analysis/{sample['name']}/{submission_id}/vquest",
             f"{sample['name']}.zip",
             zip_data,
             media_type="application/zip",
             actor=actor,
             kind="imgt-results-zip",
+            flat=True,
         )
         submission = {
             "vquest_results": results,

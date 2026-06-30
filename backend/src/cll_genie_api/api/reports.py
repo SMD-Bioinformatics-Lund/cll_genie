@@ -94,7 +94,7 @@ def generate_report(
         analysis_run_at=services.settings.pdf_analysis_run_at,
     )
     artifact = services.artifacts.save_bytes(
-        "reports",
+        "saved_cll_reports",
         f"{display_report_id}.html",
         html.encode("utf-8"),
         media_type="text/html; charset=utf-8",
@@ -254,7 +254,7 @@ def generate_negative_report(
         analysis_run_at=services.settings.pdf_analysis_run_at,
     )
     artifact = services.artifacts.save_bytes(
-        "reports",
+        "saved_cll_reports",
         f"{sample['name']}_NR.html",
         html.encode("utf-8"),
         media_type="text/html; charset=utf-8",
