@@ -298,3 +298,65 @@ def preview_sequences(
     except LymphotrackParseError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"sequences": sequences}
+
+@router.delete("/{sample_id}", status_code=204)
+def delete_sample(
+    sample_id: str,
+    session: Annotated[Session, Depends(require_csrf)],
+    services: Annotated[Services, Depends(get_services)],
+):
+    assert_role(session, ["admin"])
+    
+    sample = services.samples.get(sample_id)
+    if not sample:
+        raise HTTPException(status_code=404, detail="Sample not found")
+
+    # Delete sample-level artifacts
+    if sample.get("lymphotrack_excel_artifact_id"):
+        services.artifacts.delete(sample["lymphotrack_excel_artifact_id"])
+    if sample.get("lymphotrack_qc_artifact_id"):
+        services.artifacts.delete(sample["lymphotrack_qc_artifact_id"])
+
+    # Delete all reports and their artifacts
+    reports = services.reports.list_for_sample(sample_id)
+    for report in reports:
+        services.artifacts.delete(report["artifact_id"])
+    services.reports.delete_by_sample(sample_id)
+
+    # Delete all submissions' ZIP files
+    vquest_doc = services.vquest.get(sample_id)
+    if vquest_doc and vquest_doc.get("results"):
+        from pathlib import Path
+        for sub_id, sub_data in vquest_doc["results"].items():
+            zip_path = sub_data.get("results_zip_file")
+            if zip_path:
+                try:
+                    Path(zip_path).unlink(missing_ok=True)
+                    relative = Path(zip_path).relative_to(services.artifacts.root)
+                    art_doc = services.artifacts.collection.find_one({"relative_path": str(relative)})
+                    if art_doc:
+                        services.artifacts.delete(art_doc["_id"])
+                except Exception:
+                    pass
+        # Delete submissions from DB
+        from cll_genie_api.infrastructure.repositories import object_id
+        services.vquest.collection.delete_one({"_id": object_id(sample_id)})
+
+    # Delete the sample itself
+    services.samples.delete(sample_id)
+    
+    record_audit(
+        services,
+        "sample.deleted",
+        "A sample and all its associated data (submissions, reports, artifacts) were permanently deleted",
+        severity="warning",
+        category="data",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="sample",
+        resource_id=sample_id,
+        resource_name=sample.get("name"),
+        tags=["sample", "deletion", "destructive-action"],
+        metadata={"sample_id": sample_id},
+    )
+    return None

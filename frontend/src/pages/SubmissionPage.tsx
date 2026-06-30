@@ -65,6 +65,7 @@ export function SubmissionPage() {
   const { session } = useSession();
   const canReport = session.user.is_admin || session.user.is_lymphotrack;
   const canComment = session.user.is_admin || session.user.is_lymphotrack;
+  const canModerate = session.user.is_admin || session.user.roles?.includes("lymphotrack_admin");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const submission = useQuery({
@@ -478,7 +479,7 @@ export function SubmissionPage() {
                         <span className="text-gray-400 dark:text-gray-500">•</span>
                         <span className="text-gray-500 dark:text-gray-400">{timeAgo(item.time_created)}</span>
                       </div>
-                      {session.user.is_admin && (
+                      {canModerate && (
                         <button
                           onClick={() => toggleComment.mutate(item)}
                           className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-bold transition ${item.hidden ? "bg-white text-blue-700 hover:bg-blue-50 dark:bg-neutral-700 dark:text-blue-400" : "bg-white text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:bg-neutral-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
@@ -488,13 +489,12 @@ export function SubmissionPage() {
                       )}
                     </div>
                     <div className="pl-9 text-gray-700 dark:text-gray-300">
-                      {item.hidden && !session.user.is_admin ? (
-                        <div className="italic text-gray-500">This comment has been hidden.</div>
-                      ) : (
-                        <Markdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1">
-                          {item.text}
-                        </Markdown>
+                      {item.hidden && (
+                        <div className="italic text-gray-500 font-bold mb-1">This comment has been hidden</div>
                       )}
+                      <Markdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1">
+                        {item.text}
+                      </Markdown>
                     </div>
                   </div>
                 ))}

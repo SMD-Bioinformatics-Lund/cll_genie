@@ -51,6 +51,10 @@ class SampleRepository:
         result = self.collection.update_one({"_id": object_id(sample_id)}, {"$set": values})
         return result.matched_count == 1
 
+    def delete(self, sample_id: str) -> bool:
+        result = self.collection.delete_one({"_id": object_id(sample_id)})
+        return result.deleted_count == 1
+
 
 
 
@@ -231,6 +235,14 @@ class ReportRepository:
 
     def delete_by_sample(self, sample_id: str) -> int:
         result = self.collection.delete_many({"sample_id": object_id(sample_id)})
+        return result.deleted_count
+
+    def delete(self, report_id: str) -> bool:
+        result = self.collection.delete_one({"_id": object_id(report_id)})
+        return result.deleted_count == 1
+        
+    def delete_by_submission(self, sample_id: str, submission_id: str) -> int:
+        result = self.collection.delete_many({"sample_id": object_id(sample_id), "submission_id": submission_id})
         return result.deleted_count
 
     def get(self, report_id: str) -> dict[str, Any] | None:

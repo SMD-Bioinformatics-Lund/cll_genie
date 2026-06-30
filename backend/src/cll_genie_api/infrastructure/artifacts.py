@@ -83,3 +83,21 @@ class LocalArtifactStore:
         if document is None:
             return None
         return document, self.resolve(document["relative_path"])
+
+    def delete(self, artifact_id) -> bool:
+        document = self.collection.find_one({"_id": ObjectId(str(artifact_id))})
+        if not document:
+            return False
+        
+        path = self.resolve(document["relative_path"])
+        path.unlink(missing_ok=True)
+        
+        # If the parent directory is empty (and is inside root), we can optionally clean it up
+        try:
+            if path.parent != self.root and not any(path.parent.iterdir()):
+                path.parent.rmdir()
+        except Exception:
+            pass
+
+        result = self.collection.delete_one({"_id": ObjectId(str(artifact_id))})
+        return result.deleted_count > 0

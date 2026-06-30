@@ -181,14 +181,43 @@ def delete_submission(
     services: Annotated[Services, Depends(get_services)],
 ):
     assert_role(session, ["admin", "lymphotrack_admin"])
+    
+    submission = services.vquest.get_submission(sample_id, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+        
+    # Cascade delete reports and their artifacts
+    reports = services.reports.list_for_sample(sample_id)
+    for report in reports:
+        if report.get("submission_id") == submission_id:
+            services.artifacts.delete(report["artifact_id"])
+    services.reports.delete_by_submission(sample_id, submission_id)
+    
+    # Delete the ZIP file artifact if present
+    zip_path = submission.get("results_zip_file")
+    if zip_path:
+        from pathlib import Path
+        try:
+            Path(zip_path).unlink(missing_ok=True)
+            # Find and delete the DB artifact record using the absolute path to derive the relative path
+            # (Best effort cleanup for legacy paths)
+            relative = Path(zip_path).relative_to(services.artifacts.root)
+            art_doc = services.artifacts.collection.find_one({"relative_path": str(relative)})
+            if art_doc:
+                services.artifacts.delete(art_doc["_id"])
+        except Exception:
+            pass
+
     if not services.vquest.delete_submission(sample_id, submission_id):
         raise HTTPException(status_code=404, detail="Submission not found")
+        
     remaining = services.vquest.get(sample_id)
     services.samples.update(sample_id, {"vquest": bool((remaining or {}).get("results"))})
+    
     record_audit(
         services,
         "vquest.submission.deleted",
-        "An IMGT/V-QUEST submission was permanently deleted",
+        "An IMGT/V-QUEST submission and all its associated reports were permanently deleted",
         severity="warning",
         category="data",
         actor=session.user,

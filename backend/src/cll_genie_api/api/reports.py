@@ -344,7 +344,7 @@ def report_artifact(
     return FileResponse(
         stored[1],
         media_type="text/html; charset=utf-8",
-        filename=stored[0]["filename"],
+        headers={"Content-Disposition": f"inline; filename=\"{stored[0]['filename']}\""},
     )
 
 
