@@ -180,7 +180,7 @@ export function previewSequences(
   filters: Record<string, unknown>,
   csrfToken: string,
 ) {
-  return apiRequest<{ job_id: string }>(
+  return apiRequest<{ sequences: unknown[] }>(
     `/api/v1/samples/${sampleId}/preview-sequences`,
     { method: "POST", body: JSON.stringify(filters) },
     csrfToken,

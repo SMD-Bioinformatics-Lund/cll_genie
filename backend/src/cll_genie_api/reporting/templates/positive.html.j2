@@ -11,6 +11,8 @@
     th{background:#FFF8F5}.meta th{width:28%}.summary{white-space:pre-wrap;background:#fff8d8;border:1px solid #d7ca83;border-left:5px solid #c84f7a;padding:14px;font-size:12px}
     .placeholder{color:#7b3f58}.preview{background:#ffdada;border:1px solid #db7474;padding:10px;text-align:center;font-weight:bold;font-size:12px}
     .sequence{break-inside:avoid;page-break-inside:avoid}.method{break-before:page;page-break-before:always}.muted{color:#52636d}
+    .sequence table {font-size: 9.5px;}
+    .highlight{background-color:#fff8d8;font-weight:bold}
     a{color:#DF7849}@media print{body{margin:0}.preview{display:none}}
   </style>
 </head>
@@ -31,7 +33,10 @@
       btn.innerText = 'Saving...';
       
       try {
-        const url = '{{ base_url }}/cll_genie/api/v1/samples/{{ sample._id }}/submissions/{{ submission_id }}/reports';
+        let url = '{{ base_url }}/api/v1/samples/{{ sample._id }}/submissions/{{ submission_id }}/reports';
+        if (url.startsWith('/')) {
+            url = window.location.origin + url;
+        }
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -42,6 +47,7 @@
         });
         
         if (response.ok) {
+          const data = await response.json();
           msg.innerText = 'Report saved successfully! You can close this window.';
           msg.style.display = 'block';
           msg.style.color = '#166534';
@@ -49,8 +55,20 @@
           document.getElementById('preview-banner').style.background = '#dcfce7';
           document.getElementById('preview-banner').style.borderColor = '#22c55e';
           
+          // Update the Rapport-ID in the DOM from PREVIEW to the real ID
+          if (data && data.report_id) {
+            const reportIdStr = typeof data.report_id === 'object' && data.report_id.$oid ? data.report_id.$oid : data.report_id;
+            const ths = document.querySelectorAll('th');
+            for (let th of ths) {
+              if (th.innerText.includes('Rapport-ID')) {
+                const td = th.nextElementSibling;
+                if (td) td.innerText = reportIdStr;
+              }
+            }
+          }
+          
           if (window.opener) {
-            window.opener.postMessage({ type: 'report-saved' }, '*');
+            window.opener.postMessage({ type: 'REPORT_SAVED' }, '*');
           }
         } else {
           throw new Error('Failed to save report');
@@ -102,10 +120,10 @@
     <section class="sequence">
       <h2>{{ sequence_id.split('_')[0] }} – {{ s.get('Analysed sequence length') or '-' }} nt ({{ mutation_statuses.get(sequence_id, '-') }})</h2>
       <table>
-        <tr><th>Sekvensanalyskategori</th><td>{{ s.get('Sequence analysis category') or '-' }}</td><th>CLL subset</th><td>{{ s.get('CLL subset') or '-' }}</td></tr>
+        <tr><th>Sekvensanalyskategori</th><td>{{ s.get('Sequence analysis category') or '-' }}</td><th>CLL subset</th><td class="highlight">{{ s.get('CLL subset') or '-' }}</td></tr>
         {% if s.get('V-REGION insertions') or s.get('V-REGION deletions') %}<tr><th>Indel summary</th><td colspan="3">{{ s.get('V-REGION insertions') or s.get('V-REGION deletions') }}</td></tr>{% endif %}
-        <tr><th>V-DOMAIN functionality</th><td colspan="3">{{ s.get('V-DOMAIN Functionality') or '-' }}{% if s.get('V-DOMAIN Functionality comment') %}<br>{{ s.get('V-DOMAIN Functionality comment') }}{% endif %}</td></tr>
-        <tr><th>V-GENE and allele</th><td>{{ s.get('V-GENE and allele') or '-' }}</td><td><b>Score:</b> {{ s.get('V-REGION score') or '-' }}</td><td><b>Identity:</b> {{ s.get('V-REGION identity %') }}% ({{ s.get('V-REGION identity nt') or '-' }})</td></tr>
+        <tr><th>V-DOMAIN functionality</th><td colspan="3" class="highlight">{{ s.get('V-DOMAIN Functionality') or '-' }}{% if s.get('V-DOMAIN Functionality comment') %}<br><span style="font-weight:normal;font-size:0.9em;color:#555">{{ s.get('V-DOMAIN Functionality comment') }}</span>{% endif %}</td></tr>
+        <tr><th>V-GENE and allele</th><td class="highlight">{{ s.get('V-GENE and allele') or '-' }}</td><td><b>Score:</b> {{ s.get('V-REGION score') or '-' }}</td><td class="highlight"><b>Identity:</b> {{ s.get('V-REGION identity %') }}% ({{ s.get('V-REGION identity nt') or '-' }})</td></tr>
         <tr><th>J-GENE and allele</th><td>{{ s.get('J-GENE and allele') or '-' }}</td><td><b>Score:</b> {{ s.get('J-REGION score') or '-' }}</td><td><b>Identity:</b> {{ s.get('J-REGION identity %') or '-' }}% ({{ s.get('J-REGION identity nt') or '-' }})</td></tr>
         <tr><th>D-GENE and allele</th><td>{{ s.get('D-GENE and allele') or '-' }}</td><th>D-REGION reading frame</th><td>{{ s.get('D-REGION reading frame') or '-' }}</td></tr>
         <tr><th>FR/CDR lengths</th><td>{{ s.get('FR-IMGT lengths') or '-' }} / {{ s.get('CDR-IMGT lengths') or '-' }}</td><th>AA JUNCTION</th><td>{{ s.get('AA JUNCTION') or '-' }}</td></tr>

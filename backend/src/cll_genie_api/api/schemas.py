@@ -1,6 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+USER_ROLES = {"admin", "lymphotrack_admin", "lymphotrack"}
 
 
 class LoginRequest(BaseModel):
@@ -90,14 +92,29 @@ class UserCreateRequest(BaseModel):
     firstname: str = Field(min_length=1, max_length=150)
     lastname: str = Field(min_length=1, max_length=150)
     email: str = Field(min_length=1, max_length=320)
-    roles: list[str] = Field(default_factory=list)
+    roles: list[str] = Field(min_length=1)
+    identity_provider: Literal["ldap", "local"] = "ldap"
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool = True
 
     @field_validator("roles")
     @classmethod
     def normalize_roles(cls, roles: list[str]) -> list[str]:
-        return sorted({role.strip().lower() for role in roles if role.strip()})
+        normalized = {role.strip().lower() for role in roles if role.strip()}
+        unsupported = normalized - USER_ROLES
+        if unsupported:
+            raise ValueError(f"Unsupported roles: {', '.join(sorted(unsupported))}")
+        if not normalized:
+            raise ValueError("At least one role is required")
+        return sorted(normalized)
+
+    @model_validator(mode="after")
+    def validate_identity_password(self):
+        if self.identity_provider == "local" and not self.password:
+            raise ValueError("A password is required for a local user")
+        if self.identity_provider == "ldap" and self.password:
+            raise ValueError("LDAP users cannot have a local password")
+        return self
 
 
 class UserUpdateRequest(BaseModel):
@@ -106,6 +123,7 @@ class UserUpdateRequest(BaseModel):
     lastname: str | None = Field(default=None, min_length=1, max_length=150)
     email: str | None = None
     roles: list[str] | None = None
+    identity_provider: Literal["ldap", "local"] | None = None
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool | None = None
 
@@ -114,7 +132,19 @@ class UserUpdateRequest(BaseModel):
     def normalize_roles(cls, roles: list[str] | None) -> list[str] | None:
         if roles is None:
             return None
-        return sorted({role.strip().lower() for role in roles if role.strip()})
+        normalized = {role.strip().lower() for role in roles if role.strip()}
+        unsupported = normalized - USER_ROLES
+        if unsupported:
+            raise ValueError(f"Unsupported roles: {', '.join(sorted(unsupported))}")
+        if not normalized:
+            raise ValueError("At least one role is required")
+        return sorted(normalized)
+
+    @model_validator(mode="after")
+    def validate_identity_password(self):
+        if self.identity_provider == "ldap" and self.password:
+            raise ValueError("LDAP users cannot have a local password")
+        return self
 
 
 class UserSettingsRequest(BaseModel):

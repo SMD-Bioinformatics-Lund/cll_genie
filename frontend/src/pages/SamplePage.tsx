@@ -23,6 +23,7 @@ import {
   Plus,
   RefreshCw,
   X,
+  Trash2,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -161,7 +162,7 @@ export function SamplePage() {
   if (query.isLoading) return <LinearProgress />;
   if (query.error || !query.data)
     return (
-      <Container sx={{ py: 5 }}>
+      <Container className="py-10">
         <Alert severity="error">Sample could not be loaded.</Alert>
       </Container>
     );
@@ -170,7 +171,7 @@ export function SamplePage() {
   const reports = query.data.reports;
   const canDelete = session.user.is_admin || session.user.roles?.includes("lymphotrack_admin");
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" className="py-8">
       <Box className="page-heading">
         <div>
           <Typography variant="overline" color="primary" fontWeight={800}>
@@ -190,9 +191,9 @@ export function SamplePage() {
               variant="contained"
               startIcon={
                 sample.vquest ? (
-                  <RefreshCw size={18} />
+                  <RefreshCw size={14} />
                 ) : (
-                  <FlaskConical size={18} />
+                  <FlaskConical size={14} />
                 )
               }
             >
@@ -227,20 +228,19 @@ export function SamplePage() {
           )}
         </div>
       </Box>
-      <Paper elevation={0} className="data-panel" sx={{ mt: 3 }}>
+      <Paper  className="data-panel mt-6">
         <Tabs value={tab} onChange={(_, value) => setTab(value)}>
           <Tab label="Overview" />
           <Tab label={`Submissions (${Object.keys(submissions).length})`} />
           <Tab label={`Reports (${reports.length})`} />
         </Tabs>
         {tab === 0 && (
-          <Box sx={{ p: 3 }}>
+          <Box className="p-4">
             <div className="detail-grid text-xs">
               {[
                 ["Sample ID", sample.name],
                 ["Control", sample.is_control ? "Yes" : "No"],
                 ["Clarity ID", sample.clarity_id],
-                ["Run Number", sample.run_number],
                 ["Run ID", sample.run_id],
                 ["Sequencer", sample.sequencer],
                 ["Assay", sample.assay],
@@ -256,19 +256,21 @@ export function SamplePage() {
               ].map(([label, value]) => (
                 <div key={String(label)} className="p-2">
                   <span className="text-[0.7rem] uppercase tracking-wider">{label}</span>
-                  <strong className="block text-sm font-medium">{value || "–"}</strong>
+                  <strong className="block text-xs font-medium">{value || "–"}</strong>
                 </div>
               ))}
             </div>
-            <Box className="action-row" sx={{ mt: 3 }}>
+            <div className="mt-6 flex flex-wrap gap-2.5">
               {canAnalyze && (
                 <>
-                  <Button
-                    component="label"
-                    variant="outlined"
-                    startIcon={<FileUp size={18} />}
-                  >
-                    Upload Excel
+                  <label className="group relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-4 py-2.5 transition-all duration-200 hover:border-brand-primary/60 hover:bg-brand-primary/10 hover:shadow-md dark:border-brand-detail/30 dark:bg-brand-detail/5 dark:hover:border-brand-detail/50 dark:hover:bg-brand-detail/10">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-primary/15 text-brand-primary transition-transform duration-200 group-hover:scale-110 dark:bg-brand-detail/15 dark:text-brand-detail">
+                      <FileUp size={14} />
+                    </span>
+                    <span>
+                      <span className="block text-xs font-semibold text-brand-primary dark:text-brand-detail">Upload Excel</span>
+                      <span className="block text-[10px] font-normal text-gray-400 dark:text-gray-500">.xlsx / .xlsm/ .xsm</span>
+                    </span>
                     <input
                       hidden
                       type="file"
@@ -281,13 +283,15 @@ export function SamplePage() {
                         })
                       }
                     />
-                  </Button>
-                  <Button
-                    component="label"
-                    variant="outlined"
-                    startIcon={<FileUp size={18} />}
-                  >
-                    Upload QC
+                  </label>
+                  <label className="group relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-4 py-2.5 transition-all duration-200 hover:border-brand-primary/60 hover:bg-brand-primary/10 hover:shadow-md dark:border-brand-detail/30 dark:bg-brand-detail/5 dark:hover:border-brand-detail/50 dark:hover:bg-brand-detail/10">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-primary/15 text-brand-primary transition-transform duration-200 group-hover:scale-110 dark:bg-brand-detail/15 dark:text-brand-detail">
+                      <FileUp size={14} />
+                    </span>
+                    <span>
+                      <span className="block text-xs font-semibold text-brand-primary dark:text-brand-detail">Upload QC</span>
+                      <span className="block text-[10px] font-normal text-gray-400 dark:text-gray-500">Quality control file</span>
+                    </span>
                     <input
                       hidden
                       type="file"
@@ -299,22 +303,28 @@ export function SamplePage() {
                         })
                       }
                     />
-                  </Button>
+                  </label>
                 </>
               )}
               {canReport && (
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  startIcon={<FileX2 size={16} />}
+                <button
+                  type="button"
                   onClick={() => setNegativeOpen(true)}
+                  className="group flex cursor-pointer items-center gap-2.5 rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-2.5 transition-all duration-200 hover:border-amber-400 hover:bg-amber-100 hover:shadow-md dark:border-amber-500/30 dark:bg-amber-900/10 dark:hover:border-amber-500/50 dark:hover:bg-amber-900/20"
                 >
-                  Create no-result report
-                </Button>
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 transition-transform duration-200 group-hover:scale-110 dark:bg-amber-900/30 dark:text-amber-400">
+                    <FileX2 size={14} />
+                  </span>
+                  <span>
+                    <span className="block text-xs font-semibold text-amber-700 dark:text-amber-400">Create no-result report</span>
+                    <span className="block text-[10px] font-normal text-amber-600/60 dark:text-amber-500/60">No clonal sequence detected</span>
+                  </span>
+                </button>
               )}
-            </Box>
+            </div>
+
             {upload.error && (
-              <Alert severity="error" sx={{ mt: 2 }}>
+              <Alert severity="error" className="mt-4">
                 {upload.error.message}
               </Alert>
             )}
@@ -346,12 +356,13 @@ export function SamplePage() {
                       <td>{Object.keys(item.vquest_results ?? {}).length}</td>
                       <td>{submissionReports.length}</td>
                       <td>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-center gap-6">
                           {canDelete && (
                             <Button
                               color="error"
                               size="small"
                               variant="outlined"
+                              endIcon={<Trash2 size={15} />}
                               onClick={() => {
                                 confirmAction(
                                   "Delete Submission",
@@ -368,6 +379,7 @@ export function SamplePage() {
                             component={Link}
                             to={`/samples/${sampleId}/submissions/${id}`}
                             endIcon={<ArrowRight size={15} />}
+                            size="small"
                           >
                             View results
                           </Button>
@@ -411,13 +423,14 @@ export function SamplePage() {
                     <td>{formatBytes(report.file_size)}</td>
                     <td>{report.created_by}</td>
                     <td>
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-center gap-6">
                         {canDelete && (
                           report.hidden ? (
                             <Button
                               color="primary"
                               size="small"
                               variant="outlined"
+                              endIcon={<RefreshCw size={15} />}
                               disabled={toggleReport.isPending}
                               onClick={() => {
                                 confirmAction(
@@ -435,6 +448,7 @@ export function SamplePage() {
                               color="error"
                               size="small"
                               variant="outlined"
+                              endIcon={<Trash2 size={15} />}
                               disabled={toggleReport.isPending}
                               onClick={() => {
                                 confirmAction(
@@ -450,6 +464,7 @@ export function SamplePage() {
                           )
                         )}
                         <Button
+                          size="small"
                           href={applicationUrl(
                             `/api/v1/reports/${report._id}/artifact`,
                           )}
@@ -482,10 +497,10 @@ export function SamplePage() {
             label="Conclusion"
             value={negativeText}
             onChange={(e) => setNegativeText(e.target.value)}
-            sx={{ mt: 1 }}
+            className="mt-2"
           />
           {negative.error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
+            <Alert severity="error" className="mt-4">
               {negative.error.message}
             </Alert>
           )}
@@ -516,10 +531,10 @@ export function SamplePage() {
       >
         <DialogTitle>Edit Sample JSON</DialogTitle>
         <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>
+          <Alert severity="warning" className="mb-4">
             Editing raw JSON can break the application. Ensure syntax is correct.
           </Alert>
-          <Box sx={{ height: 450, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+          <Box className="h-[450px] overflow-hidden">
             <Editor
               height="100%"
               defaultLanguage="json"

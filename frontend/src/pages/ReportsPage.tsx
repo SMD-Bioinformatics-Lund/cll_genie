@@ -34,19 +34,19 @@ export function ReportsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
   });
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" className="py-8">
       <Typography variant="overline" color="primary" fontWeight={800}>
         Report archive
       </Typography>
-      <Typography variant="h3" sx={{ mb: 3 }}>
+      <Typography variant="h3" className="mb-6">
         Reports
       </Typography>
       {archive.error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" className="mb-4">
           {archive.error.message}
         </Alert>
       )}
-      <Paper className="data-panel" elevation={0}>
+      <Paper className="data-panel" >
         <div className="responsive-table">
           <table>
             <thead>
@@ -77,7 +77,9 @@ export function ReportsPage() {
                     />
                   </td>
                   <td>
+                    <div className="flex justify-center gap-6">
                     <Button
+                      size="small"
                       href={applicationUrl(
                         `/api/v1/reports/${report._id}/artifact`,
                       )}
@@ -89,6 +91,7 @@ export function ReportsPage() {
                     </Button>
                     {canArchive && (
                       <Button
+                        size="small"
                         color={report.hidden ? "primary" : "warning"}
                         startIcon={
                           report.hidden ? (
@@ -103,6 +106,7 @@ export function ReportsPage() {
                         {report.hidden ? "Restore" : "Hide"}
                       </Button>
                     )}
+                    </div>
                   </td>
                 </tr>
               ))}

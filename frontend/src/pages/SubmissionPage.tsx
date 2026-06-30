@@ -13,9 +13,19 @@ import {
   Pencil,
   Eye,
   Wand2,
+  Bold,
+  Italic,
+  Strikethrough,
+  Code,
+  Quote,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Heading2,
+  Minus,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import Markdown from "react-markdown";
@@ -76,6 +86,38 @@ export function SubmissionPage() {
   const [comment, setComment] = useState("");
   const [commentTab, setCommentTab] = useState<"edit" | "preview">("edit");
   const [commentPage, setCommentPage] = useState(1);
+  const commentsPerPage = 5;
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertMarkdown = (prefix: string, suffix: string = "") => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    
+    const insertion = suffix === "" && selectedText === "" 
+      ? prefix
+      : `${prefix}${selectedText || (suffix ? 'text' : '')}${suffix}`;
+
+    const newValue = before + insertion + after;
+    setComment(newValue);
+
+    setTimeout(() => {
+      textarea.focus();
+      if (selectedText === "" && suffix) {
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + 4);
+      } else {
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + selectedText.length);
+      }
+    }, 0);
+  };
   
   const COMMENTS_PER_PAGE = 2;
   const allComments = [...(submission.data?.submission_comments || [])].sort((a, b) => new Date(b.time_created).getTime() - new Date(a.time_created).getTime());
@@ -129,6 +171,7 @@ export function SubmissionPage() {
           queryKey: ["sample", sampleId],
         });
         toast.success("Report saved successfully");
+        navigate("/");
       }
     };
     window.addEventListener('message', handleMessage);
@@ -208,7 +251,7 @@ export function SubmissionPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-800 pb-12">
       <div className="bg-white dark:bg-neutral-900 px-8 py-8 border-b border-gray-200 dark:border-neutral-700/50">
-        <div className="mx-auto flex max-w-[1536px] flex-wrap items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-[1728px] flex-wrap items-center justify-between gap-4">
           <div>
             <div className="mb-1 text-xs font-bold tracking-wider text-gray-500 dark:text-gray-400 uppercase flex items-center gap-2">
               <Link to={`/samples/${sampleId}`} className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
@@ -248,7 +291,7 @@ export function SubmissionPage() {
         </div>
       </div>
 
-      <div className="mx-auto mt-6 flex max-w-[1536px] flex-col gap-6 px-6">
+      <div className="mx-auto mt-6 flex max-w-[1728px] flex-col gap-6 px-6">
         {removeSubmission.error && (
           <Alert severity="error">{removeSubmission.error.message}</Alert>
         )}
@@ -259,7 +302,7 @@ export function SubmissionPage() {
           </div>
           <div className="grid grid-cols-1 gap-y-6 gap-x-8 p-8 text-xs sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 bg-gray-50/50 dark:bg-neutral-900/50">
             {Object.entries(submission.data.vquest_parameters).map(([key, value]) => (
-              <div key={key} className="flex flex-col border-l-2 border-[#DF7849] dark:border-[#EBA98C] pl-3">
+              <div key={key} className="flex flex-col border-l-2 border-brand-detail dark:border-brand-detail pl-3">
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">{key}</span>
                 <span className="text-gray-900 dark:text-gray-200 font-medium">{String(value ?? "–")}</span>
               </div>
@@ -270,8 +313,14 @@ export function SubmissionPage() {
         {Object.entries(submission.data.vquest_results).map(([id, result]) => (
           <div key={id} className="overflow-hidden rounded-xl border border-gray-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800 shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800 px-6 py-5">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Sequence Id: <span className="text-[#7B4925] dark:text-[#EBA98C]">{id.split("_")[0]}</span></h3>
-              <span className="rounded-full bg-[#7B4925]/10 dark:bg-[#EBA98C]/10 px-2.5 py-1.5 text-sm font-bold text-[#7B4925] dark:text-[#EBA98C] border border-[#7B4925]/20 dark:border-[#EBA98C]/20">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Sequence Id: <span className="text-brand-primary">{id.split("_")[0]}</span></h3>
+              <span className={`rounded-full px-2.5 py-1.5 text-sm font-bold border ${
+                String(result.summary["CLL subset"] ?? "–") === "2" || String(result.summary["CLL subset"] ?? "–") === "8"
+                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40"
+                  : String(result.summary["CLL subset"] ?? "–") !== "–" && String(result.summary["CLL subset"] ?? "–") !== "None"
+                  ? "bg-brand-primary/10 text-brand-primary border-brand-primary/20 dark:bg-brand-detail/10 dark:border-brand-detail/20"
+                  : "bg-gray-100 text-gray-500 border-gray-200 dark:bg-neutral-800 dark:text-gray-400 dark:border-neutral-700"
+              }`}>
                 CLL Subset: {String(result.summary["CLL subset"] ?? "–")}
               </span>
             </div>
@@ -300,13 +349,13 @@ export function SubmissionPage() {
                       <td colSpan={3} className="py-2.5 px-3">
                         {Boolean(result.summary['V-REGION insertions']) && (
                           <div className="mb-1.5">
-                            <span className="block text-xs font-semibold text-[#DF7849] dark:text-[#EBA98C] mb-0.5">Nucleotide insertions have been detected and removed.</span>
+                            <span className="block text-xs font-semibold text-brand-detail dark:text-brand-detail mb-0.5">Nucleotide insertions have been detected and removed.</span>
                             <i className="text-gray-800 dark:text-gray-300 font-medium">{String(result.summary['V-REGION insertions'])}</i>
                           </div>
                         )}
                         {Boolean(result.summary['V-REGION deletions']) && (
                           <div>
-                            <span className="block text-xs font-semibold text-[#DF7849] dark:text-[#EBA98C] mb-0.5">Nucleotide deletions have been detected and removed.</span>
+                            <span className="block text-xs font-semibold text-brand-detail dark:text-brand-detail mb-0.5">Nucleotide deletions have been detected and removed.</span>
                             <i className="text-gray-800 dark:text-gray-300 font-medium">{String(result.summary['V-REGION deletions'])}</i>
                           </div>
                         )}
@@ -316,9 +365,17 @@ export function SubmissionPage() {
 
                   <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                     <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-gray-400 bg-gray-50/80 dark:bg-neutral-900/40">V-DOMAIN functionality</th>
-                    <td colSpan={3} className="py-2.5 px-3 font-medium">
-                      {String(result.summary['V-DOMAIN Functionality'] ?? "–")}
-                      {result.summary['V-DOMAIN Functionality comment'] ? <><br/><span className="text-gray-500 dark:text-gray-400 text-xs">{String(result.summary['V-DOMAIN Functionality comment'])}</span></> : null}
+                    <td colSpan={3} className="py-2.5 px-3">
+                      <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-semibold border ${
+                        String(result.summary['V-DOMAIN Functionality']).toLowerCase().includes("productive") && !String(result.summary['V-DOMAIN Functionality']).toLowerCase().includes("unproductive")
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40"
+                          : String(result.summary['V-DOMAIN Functionality']).toLowerCase().includes("unproductive")
+                          ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40"
+                          : "bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-400 dark:border-neutral-700"
+                      }`}>
+                        {String(result.summary['V-DOMAIN Functionality'] ?? "–")}
+                      </span>
+                      {result.summary['V-DOMAIN Functionality comment'] ? <><br/><span className="text-gray-500 dark:text-gray-400 text-xs mt-1 inline-block">{String(result.summary['V-DOMAIN Functionality comment'])}</span></> : null}
                     </td>
                   </tr>
 
@@ -326,9 +383,22 @@ export function SubmissionPage() {
                     <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-gray-400 bg-gray-50/80 dark:bg-neutral-900/40">V-GENE and allele</th>
                     <td className="py-2.5 px-3 font-medium">{String(result.summary['V-GENE and allele'] ?? "–")}</td>
                     <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-gray-400 bg-gray-50/80 dark:bg-neutral-900/40 border-l border-gray-200/60 dark:border-neutral-700/50">Score: {String(result.summary['V-REGION score'] ?? "–")}</th>
-                    <td className="py-2.5 px-3 font-medium border-l border-gray-200/60 dark:border-neutral-700/50">
-                      Identity: {String(result.summary['V-REGION identity %'] ?? "–")}% 
-                      <span className="text-gray-500 dark:text-gray-400 ml-1">({String(result.summary['V-REGION identity nt'] ?? "–")})</span>
+                    <td className="py-2.5 px-3 border-l border-gray-200/60 dark:border-neutral-700/50">
+                      <span className="text-gray-600 dark:text-gray-400 mr-1">Identity:</span>
+                      <span 
+                        title={parseFloat(String(result.summary['V-REGION identity %'])) >= 98 ? "U-CLL (Unmutated)" : parseFloat(String(result.summary['V-REGION identity %'])) >= 97 ? "Borderline" : "M-CLL (Mutated)"}
+                        className={`inline-block rounded-md px-1.5 py-0.5 text-xs font-bold border cursor-help ${
+                        parseFloat(String(result.summary['V-REGION identity %'])) >= 98
+                          ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40"
+                          : parseFloat(String(result.summary['V-REGION identity %'])) >= 97
+                          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40"
+                          : parseFloat(String(result.summary['V-REGION identity %'])) < 97
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40"
+                          : "font-medium text-gray-900 dark:text-gray-100 border-transparent"
+                      }`}>
+                        {String(result.summary['V-REGION identity %'] ?? "–")}% 
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400 ml-1 text-xs">({String(result.summary['V-REGION identity nt'] ?? "–")})</span>
                     </td>
                   </tr>
 
@@ -355,7 +425,7 @@ export function SubmissionPage() {
                       <span className="text-gray-900 dark:text-gray-200 font-medium">{String(result.summary['FR-IMGT lengths'] ?? "–")}</span> / <span className="text-gray-900 dark:text-gray-200 font-medium">[{String(result.summary['CDR-IMGT lengths'] ?? "–")}]</span>
                     </td>
                     <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-gray-400 bg-gray-50/80 dark:bg-neutral-900/40 border-l border-gray-200/60 dark:border-neutral-700/50">AA JUNCTION</th>
-                    <td className="py-2.5 px-3 font-mono text-xs text-[#7B4925] dark:text-[#EBA98C] font-bold tracking-wider break-all border-l border-gray-200/60 dark:border-neutral-700/50">{String(result.summary['AA JUNCTION'] ?? "–")}</td>
+                    <td className="py-2.5 px-3 font-mono text-xs text-brand-primary font-bold tracking-wider break-all border-l border-gray-200/60 dark:border-neutral-700/50">{String(result.summary['AA JUNCTION'] ?? "–")}</td>
                   </tr>
 
                   <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
@@ -369,7 +439,7 @@ export function SubmissionPage() {
                         "–"
                       )}
                       <br />
-                      <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank" rel="noreferrer" className="text-[#DF7849] dark:text-[#EBA98C] hover:underline text-xs mt-1 inline-block font-mono break-all opacity-80">
+                      <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank" rel="noreferrer" className="text-brand-detail dark:text-brand-detail hover:underline text-xs mt-1 inline-block font-mono break-all opacity-80">
                         (3'V)3'{'{N1}'}5'(D)3'{'{N2}'}5'(5'J)
                       </a>
                     </td>
@@ -388,11 +458,11 @@ export function SubmissionPage() {
         ))}
         
         {/* Comments and Report Actions */}
-        <div className="mt-2 max-w-[1536px] mx-auto">
+        <div className="w-full">
           <div className="flex flex-col rounded-xl border border-gray-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-gray-100">
-                <MessageSquarePlus size={18} className="text-[#7B4925] dark:text-[#EBA98C]" />
+                <MessageSquarePlus size={18} className="text-brand-primary" />
                 Analysis Comments
               </h2>
             </div>
@@ -401,7 +471,7 @@ export function SubmissionPage() {
                   <div key={item.id} className={`rounded-xl border p-4 text-xs shadow-sm ${item.hidden ? "border-red-200 bg-red-50 text-red-900 dark:bg-red-900/10 dark:border-red-900/30 dark:text-red-300 opacity-50" : "border-gray-200 bg-gray-50 dark:bg-neutral-900/50 dark:border-neutral-700/50"}`}>
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-7 items-center justify-center rounded-full bg-[#7B4925] dark:bg-[#EBA98C] text-xs font-bold text-white dark:text-gray-900">
+                        <div className="flex size-7 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white dark:text-gray-900">
                           {item.author.charAt(0).toUpperCase()}
                         </div>
                         <span className="font-bold text-gray-900 dark:text-gray-200">{item.author}</span>
@@ -439,7 +509,7 @@ export function SubmissionPage() {
                     <button
                       onClick={() => setCommentPage(p => Math.max(1, p - 1))}
                       disabled={commentPage === 1}
-                      className="text-xs font-semibold text-[#7B4925] dark:text-[#EBA98C] transition hover:opacity-70 disabled:opacity-30"
+                      className="text-xs font-semibold text-brand-primary transition hover:opacity-70 disabled:opacity-30"
                     >
                       Previous
                     </button>
@@ -447,7 +517,7 @@ export function SubmissionPage() {
                     <button
                       onClick={() => setCommentPage(p => Math.min(totalCommentPages, p + 1))}
                       disabled={commentPage === totalCommentPages}
-                      className="text-xs font-semibold text-[#7B4925] dark:text-[#EBA98C] transition hover:opacity-70 disabled:opacity-30"
+                      className="text-xs font-semibold text-brand-primary transition hover:opacity-70 disabled:opacity-30"
                     >
                       Next
                     </button>
@@ -456,65 +526,158 @@ export function SubmissionPage() {
             </div>
 
             {canComment && (
-              <div className="mt-auto border-t border-gray-100 dark:border-neutral-700/50 pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Add a Comment</span>
+              <div className="mt-auto border-t border-gray-100 dark:border-neutral-700/50 pt-5">
+                {/* Header row */}
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-brand-primary dark:text-brand-detail">
+                    Add a comment
+                  </p>
+                  <div className="flex items-center gap-2">
                     {suggestion.data?.text && (
                       <button
                         onClick={() => {
                           setComment(suggestion.data.text);
                           setCommentTab("edit");
                         }}
-                        className="flex items-center gap-1.5 rounded-md border border-[#7B4925]/30 bg-[#7B4925]/5 dark:bg-[#EBA98C]/10 px-2.5 py-1.5 text-sm font-bold text-[#7B4925] dark:text-[#EBA98C] transition hover:bg-[#7B4925]/10 dark:hover:bg-[#EBA98C]/20"
+                        className="flex items-center gap-1.5 rounded-full border border-brand-primary/30 bg-brand-primary/5 px-3 py-1 text-[11px] font-bold text-brand-primary transition hover:bg-brand-primary/10 dark:border-brand-detail/30 dark:bg-brand-detail/5 dark:text-brand-detail dark:hover:bg-brand-detail/10"
                         title="Auto-generate conclusion based on results and comments"
                       >
-                        <Wand2 size={12} /> Auto-generate
+                        <Wand2 size={11} /> Auto-generate
                       </button>
                     )}
-                  </div>
-                  <div className="flex bg-gray-100 dark:bg-neutral-700 rounded-lg p-1">
-                    <button
-                      onClick={() => setCommentTab("edit")}
-                      className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold transition ${commentTab === "edit" ? "bg-white dark:bg-gray-700 text-[#7B4925] dark:text-[#EBA98C] shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setCommentTab("preview")}
-                      className={`flex items-center gap-1 rounded-md px-4 py-2 text-sm font-semibold transition ${commentTab === "preview" ? "bg-white dark:bg-gray-700 text-[#7B4925] dark:text-[#EBA98C] shadow-sm" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
-                    >
-                      Preview
-                    </button>
+                    {/* Segmented Edit / Preview */}
+                    <div className="flex rounded-full border border-gray-200 bg-gray-100 p-0.5 dark:border-neutral-700 dark:bg-neutral-700/60">
+                      <button
+                        onClick={() => setCommentTab("edit")}
+                        className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-150 ${
+                          commentTab === "edit"
+                            ? "bg-white text-brand-primary shadow-sm dark:bg-neutral-800 dark:text-brand-detail"
+                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        }`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setCommentTab("preview")}
+                        className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-150 ${
+                          commentTab === "preview"
+                            ? "bg-white text-brand-primary shadow-sm dark:bg-neutral-800 dark:text-brand-detail"
+                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        }`}
+                      >
+                        Preview
+                      </button>
+                    </div>
                   </div>
                 </div>
-                
+
+                {/* Textarea / Preview */}
                 <div className="mb-3">
                   {commentTab === "edit" ? (
-                    <textarea
-                      className="w-full resize-y rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-900 p-4 text-base shadow-inner min-h-[220px] focus:border-[#7B4925] dark:focus:border-[#EBA98C] focus:outline-none focus:ring-1 focus:ring-[#7B4925] dark:focus:ring-[#EBA98C] dark:text-gray-100 font-mono"
-                      rows={10}
-                      placeholder="Supports Markdown styling..."
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                    />
+                    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden focus-within:border-brand-primary focus-within:ring-1 focus-within:ring-brand-primary dark:border-neutral-600 dark:bg-neutral-900 dark:focus-within:border-brand-detail dark:focus-within:ring-brand-detail transition">
+                      <div className="flex flex-wrap items-center gap-1 border-b border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-800/30 px-3 py-2">
+                        <button
+                          onClick={() => insertMarkdown("**", "**")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Bold"
+                        >
+                          <Bold size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertMarkdown("*", "*")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Italic"
+                        >
+                          <Italic size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertMarkdown("~~", "~~")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Strikethrough"
+                        >
+                          <Strikethrough size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertMarkdown("`", "`")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Inline Code"
+                        >
+                          <Code size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertMarkdown("[", "](url)")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Link"
+                        >
+                          <LinkIcon size={14} />
+                        </button>
+                        <div className="w-px h-4 bg-gray-300 dark:bg-neutral-700 mx-1"></div>
+                        <button
+                          onClick={() => insertMarkdown("## ", "")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Heading 2"
+                        >
+                          <Heading2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertMarkdown("> ", "")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Blockquote"
+                        >
+                          <Quote size={14} />
+                        </button>
+                        <div className="w-px h-4 bg-gray-300 dark:bg-neutral-700 mx-1"></div>
+                        <button
+                          onClick={() => insertMarkdown("- ", "")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Bullet List"
+                        >
+                          <List size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertMarkdown("1. ", "")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Numbered List"
+                        >
+                          <ListOrdered size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertMarkdown("\n---\n", "")}
+                          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-neutral-700 dark:hover:text-gray-100 transition"
+                          title="Horizontal Rule"
+                        >
+                          <Minus size={14} />
+                        </button>
+                      </div>
+                      <textarea
+                        ref={textareaRef}
+                        className="w-full resize-y border-none bg-transparent px-4 py-3 font-mono text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0 dark:text-gray-100"
+                        rows={8}
+                        style={{ minHeight: "180px" }}
+                        placeholder="Write your clinical comment… (supports Markdown)"
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                      />
+                    </div>
                   ) : (
-                    <div className="w-full rounded-lg border border-gray-200 dark:border-neutral-700/50 bg-gray-50 dark:bg-neutral-900/50 p-4 min-h-[220px] overflow-y-auto">
+                    <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 min-h-[180px] overflow-y-auto dark:border-neutral-600 dark:bg-neutral-900/50">
                       {comment.trim() ? (
-                        <Markdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1">
+                        <Markdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1 whitespace-pre-wrap">
                           {comment}
                         </Markdown>
                       ) : (
-                        <p className="text-gray-400 italic text-xs text-center mt-6">Nothing to preview.</p>
+                        <p className="mt-8 text-center text-xs italic text-gray-400">Nothing to preview.</p>
                       )}
                     </div>
                   )}
                 </div>
+
+                {/* Post button */}
                 <div className="flex justify-end">
                   <button
                     onClick={() => addComment.mutate()}
                     disabled={!comment.trim()}
-                    className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-700 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-neutral-600 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-full bg-brand-primary px-5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-brand-primary/90 disabled:opacity-40 dark:bg-brand-detail dark:text-neutral-950 dark:hover:bg-brand-detail/90"
                   >
                     Post Comment
                   </button>
@@ -523,44 +686,58 @@ export function SubmissionPage() {
             )}
 
             {canReport && (
-              <div className="mt-6 border-t border-gray-100 dark:border-neutral-700/50 pt-5">
-                <div className="mb-3 text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between">
-                  <span>Report Actions</span>
-                  <span className="text-xs text-gray-500 font-normal">Using latest comment as conclusion</span>
+              <div className="mt-5 border-t border-gray-100 dark:border-neutral-700/50 pt-5">
+                {/* Header */}
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-brand-primary dark:text-brand-detail">
+                    Report actions
+                  </p>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                    Uses latest comment as conclusion
+                  </span>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row items-center">
+
+                {/* Warning chip when no comment */}
+                {!latestCommentText.trim() && (
+                  <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 dark:border-amber-800/40 dark:bg-amber-900/20">
+                    <span className="text-amber-500 dark:text-amber-400 shrink-0">⚠</span>
+                    <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                      Post a comment first to generate a report.
+                    </span>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex gap-2.5">
                   <button
                     onClick={() => preview.mutate()}
                     disabled={!latestCommentText.trim() || preview.isPending}
-                    className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-700 px-2.5 py-1.5 text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                    className="group flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-semibold text-gray-700 transition hover:border-brand-primary/40 hover:bg-brand-primary/5 hover:text-brand-primary disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-300 dark:hover:border-brand-detail/40 dark:hover:bg-brand-detail/5 dark:hover:text-brand-detail"
                   >
                     Preview HTML
                   </button>
-
                   <button
                     onClick={() => downloadPdf.mutate()}
                     disabled={!latestCommentText.trim() || downloadPdf.isPending}
-                    className="flex-1 rounded-lg bg-[#7B4925] dark:bg-[#DF7849] px-2.5 py-1.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#6a3f20] dark:hover:bg-[#C26336] disabled:opacity-50"
+                    className="group flex-1 flex items-center justify-center gap-2 rounded-xl bg-brand-primary px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-primary/90 disabled:opacity-40 dark:bg-brand-detail dark:text-neutral-950 dark:hover:bg-brand-detail/90"
                   >
-                    {downloadPdf.isPending ? "Generating..." : "Download PDF"}
+                    {downloadPdf.isPending ? "Generating…" : "Download PDF"}
                   </button>
-                  {!latestCommentText.trim() && (
-                    <span className="text-xs font-semibold text-[#DF7849] ml-2">
-                      ⚠️ Please post a comment first to generate a report.
-                    </span>
-                  )}
                 </div>
 
                 {downloadPdf.error && (
-                  <div className="mt-3 text-xs font-semibold text-red-600">{downloadPdf.error.message}</div>
+                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400">
+                    {downloadPdf.error.message}
+                  </div>
                 )}
               </div>
             )}
+
           </div>
         </div>
       </div>
 
-      <div className="mx-auto mt-8 max-w-[1536px] px-6">
+      <div className="mx-auto mt-8 max-w-[1728px] px-6">
         <Link to={`/samples/${sampleId}`} className="inline-flex items-center gap-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-neutral-700 px-5 py-1 text-xs font-bold text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm">
           <ChevronLeft size={16} />
           Return to Sample

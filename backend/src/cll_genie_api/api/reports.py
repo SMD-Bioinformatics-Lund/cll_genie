@@ -1,8 +1,7 @@
-import logging
 from typing import Annotated
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse, HTMLResponse
 
 from cll_genie_api.api.common import serialize
@@ -11,6 +10,7 @@ from cll_genie_api.api.dependencies import (
     assert_role,
     get_current_session,
     get_services,
+    record_audit,
     require_csrf,
 )
 from cll_genie_api.api.schemas import ReportGenerateRequest
@@ -74,12 +74,14 @@ def generate_report(
         raise HTTPException(status_code=404, detail="Sample or submission not found")
     _suggested, facts, trace = suggestion(services, submission)
     report_oid = ObjectId()
-    
+
     # Calculate report number
     report_count = services.reports.collection.count_documents(
         {"sample_id": ObjectId(sample_id), "submission_id": submission_id}
     )
     report_num = report_count + 1
+    sub_num = submission_id.replace("submission_", "")
+    display_report_id = f"{sample['name']}_{sub_num}_{report_num}"
 
     html = ReportRenderer().render_positive(
         sample=sample,
@@ -87,13 +89,13 @@ def generate_report(
         submission=submission,
         summary=payload.summary,
         author=session.user.fullname,
-        report_id=str(report_oid),
+        report_id=display_report_id,
         app_version=services.settings.app_version,
         analysis_run_at=services.settings.pdf_analysis_run_at,
     )
     artifact = services.artifacts.save_bytes(
         "reports",
-        f"{sample['name']}_{submission_id}_{report_num}.html",
+        f"{display_report_id}.html",
         html.encode("utf-8"),
         media_type="text/html; charset=utf-8",
         actor=session.user.username,
@@ -103,6 +105,7 @@ def generate_report(
     report_id = services.reports.create(
         {
             "_id": report_oid,
+            "display_id": display_report_id,
             "sample_id": ObjectId(sample_id),
             "sample_name": sample["name"],
             "submission_id": submission_id,
@@ -126,10 +129,25 @@ def generate_report(
     }
     services.vquest.add_comment(sample_id, submission_id, comment)
     services.samples.update(sample_id, {"report": True})
-    logging.getLogger("audit").info(
-        f"AUDIT: report.created by {session.user.username} on report:{report_id} - {{\"sample_id\": \"{sample_id}\", \"submission_id\": \"{submission_id}\"}}"
+    record_audit(
+        services,
+        "report.created",
+        "A positive clinical report was generated",
+        category="reporting",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="report",
+        resource_id=report_id,
+        resource_name=sample.get("name"),
+        tags=["report", "positive", "clinical-output"],
+        metadata={
+            "sample_id": sample_id,
+            "submission_id": submission_id,
+            "artifact_id": str(artifact["_id"]),
+            "rule_matches": len(trace),
+        },
     )
-    return {"report_id": report_id, "artifact": serialize(artifact)}
+    return {"report_id": report_id, "display_report_id": display_report_id, "artifact": serialize(artifact)}
 
 
 @router.post(
@@ -148,6 +166,14 @@ def preview_report(
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
         raise HTTPException(status_code=404, detail="Sample or submission not found")
+
+    report_count = services.reports.collection.count_documents(
+        {"sample_id": ObjectId(sample_id), "submission_id": submission_id}
+    )
+    report_num = report_count + 1
+    sub_num = submission_id.replace("submission_", "")
+    display_report_id = f"{sample['name']}_{sub_num}_{report_num}"
+
     return ReportRenderer().render_positive(
         sample=sample,
         submission_id=submission_id,
@@ -156,7 +182,10 @@ def preview_report(
         author=session.user.fullname,
         app_version=services.settings.app_version,
         analysis_run_at=services.settings.pdf_analysis_run_at,
+        report_id=display_report_id,
         preview=True,
+        csrf_token=session.csrf_token,
+        base_url=services.settings.application_prefix,
     )
 
 
@@ -176,7 +205,7 @@ def download_report_pdf(
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
         raise HTTPException(status_code=404, detail="Sample or submission not found")
-    
+
     html_content = ReportRenderer().render_positive(
         sample=sample,
         submission_id=submission_id,
@@ -187,14 +216,19 @@ def download_report_pdf(
         analysis_run_at=services.settings.pdf_analysis_run_at,
         preview=False,
     )
-    
+
     from weasyprint import HTML
+
     pdf_bytes = HTML(string=html_content).write_pdf()
-    
+
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="CLL_Genie_Report_{sample_id}_{submission_id}.pdf"'}
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="CLL_Genie_Report_{sample_id}_{submission_id}.pdf"'
+            )
+        },
     )
 
 
@@ -210,11 +244,12 @@ def generate_negative_report(
     if sample is None:
         raise HTTPException(status_code=404, detail="Sample not found")
     report_oid = ObjectId()
+    display_report_id = f"{sample['name']}_NR"
     html = ReportRenderer().render_negative(
         sample=sample,
         summary=payload.summary,
         author=session.user.fullname,
-        report_id=str(report_oid),
+        report_id=display_report_id,
         app_version=services.settings.app_version,
         analysis_run_at=services.settings.pdf_analysis_run_at,
     )
@@ -230,6 +265,7 @@ def generate_negative_report(
     report_id = services.reports.create(
         {
             "_id": report_oid,
+            "display_id": display_report_id,
             "sample_id": ObjectId(sample_id),
             "sample_name": sample["name"],
             "submission_id": None,
@@ -241,10 +277,20 @@ def generate_negative_report(
         }
     )
     services.samples.update(sample_id, {"report": True, "is_eligible_for_vquest": False})
-    logging.getLogger("audit").info(
-        f"AUDIT: report.created by {session.user.username} on report:{report_id} - {{\"sample_id\": \"{sample_id}\", \"report_type\": \"NEGATIVE\"}}"
+    record_audit(
+        services,
+        "report.created",
+        "A negative clinical report was generated",
+        category="reporting",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="report",
+        resource_id=display_report_id,
+        resource_name=sample.get("name"),
+        tags=["report", "negative", "clinical-output"],
+        metadata={"sample_id": sample_id, "artifact_id": str(artifact["_id"])},
     )
-    return {"report_id": report_id, "artifact": serialize(artifact)}
+    return {"report_id": report_id, "display_report_id": display_report_id, "artifact": serialize(artifact)}
 
 
 @router.get("/samples/{sample_id}/reports")
@@ -272,7 +318,6 @@ def report_artifact(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    del session
     report = services.reports.get(report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -283,6 +328,19 @@ def report_artifact(
     stored = services.artifacts.get(report["artifact_id"])
     if stored is None or not stored[1].is_file():
         raise HTTPException(status_code=404, detail="Report artifact is unavailable")
+    record_audit(
+        services,
+        "report.accessed",
+        "A generated report artifact was downloaded",
+        category="activity",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="report",
+        resource_id=report_id,
+        resource_name=report.get("sample_name"),
+        tags=["report", "download", "clinical-output"],
+        metadata={"sample_id": str(report.get("sample_id"))},
+    )
     return FileResponse(
         stored[1],
         media_type="text/html; charset=utf-8",
@@ -309,7 +367,19 @@ def update_report_status(
         if not item.get("hidden")
     ]
     services.samples.update(str(report["sample_id"]), {"report": bool(visible)})
-    logging.getLogger("audit").info(
-        f"AUDIT: {'report.hidden' if hidden else 'report.restored'} by {session.user.username} on report:{report_id} - {{\"sample_id\": \"{str(report['sample_id'])}\"}}"
+    action = "hidden" if hidden else "restored"
+    record_audit(
+        services,
+        f"report.{action}",
+        f"A clinical report was {action}",
+        severity="warning" if hidden else "info",
+        category="reporting",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="report",
+        resource_id=report_id,
+        resource_name=report.get("sample_name"),
+        tags=["report", action, "clinical-output"],
+        metadata={"sample_id": str(report["sample_id"])},
     )
     return {"updated": True}
