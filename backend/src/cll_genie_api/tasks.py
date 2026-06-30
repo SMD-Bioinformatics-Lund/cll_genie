@@ -33,9 +33,9 @@ def run_vquest(
         fasta_lines = []
         stats = {}
         for item in selected:
-            full_id = f"{item['sequence_id']}_{sample['name']}"
-            fasta_lines.extend([f">{full_id}", item["sequence"]])
-            stats[full_id] = item
+            seq_id = item["sequence_id"]
+            fasta_lines.extend([f">{seq_id}", item["sequence"]])
+            stats[seq_id] = item
         payload = default_payload("\n".join(fasta_lines) + "\n", options)
         services.jobs.transition(
             job_id, "RUNNING", progress=25, message="Submitting to IMGT/V-QUEST"
