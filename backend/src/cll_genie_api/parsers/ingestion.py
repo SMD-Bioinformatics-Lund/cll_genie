@@ -39,8 +39,8 @@ def parse_samplesheet(path: Path, run_number: str) -> tuple[list[dict[str, str]]
         elif not SAMPLE_PATTERN.match(raw_id):
             continue
         description = (row.get("Description") or "").strip()
-        clarity_match = re.search(r"(?:.*[-_]|^)(CMD[A-Za-z0-9]+)([-_]?.*)", description)
-        clarity_id = clarity_match.group(1).rstrip("-_") if clarity_match else ""
+        description_parts = description.split("_", 2)
+        clarity_id = description_parts[1].strip() if len(description_parts) > 1 else ""
         samples.append({"name": sample_id, "stats_name": raw_id, "clarity_id": clarity_id})
     return samples, instrument
 

@@ -288,4 +288,3 @@ class RuleRepository:
         )
         return result.matched_count == 1
 
-

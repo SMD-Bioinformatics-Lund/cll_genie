@@ -1,7 +1,7 @@
 import logging
-import logging.handlers
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from cll_genie_api.api.admin import router as admin_router
@@ -12,44 +12,15 @@ from cll_genie_api.api.reports import router as reports_router
 from cll_genie_api.api.samples import router as samples_router
 from cll_genie_api.api.submissions import router as submissions_router
 from cll_genie_api.config import get_settings
+from cll_genie_api.infrastructure.logging import (
+    bind_request_context,
+    configure_logging,
+    elapsed_ms,
+    make_request_context,
+    reset_request_context,
+)
 
-
-def setup_logger() -> None:
-    settings = get_settings()
-    log_dir = settings.log_root
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    log_file = log_dir / "app.log"
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    # Remove existing handlers to avoid duplicates
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
-
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-
-    # Console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    # TimedRotatingFileHandler for daily rotation
-    file_handler = logging.handlers.TimedRotatingFileHandler(
-        filename=log_file,
-        when="midnight",
-        interval=1,
-        backupCount=30,
-        encoding="utf-8",
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-
-setup_logger()
+configure_logging(get_settings())
 
 
 def create_app() -> FastAPI:
@@ -68,6 +39,45 @@ def create_app() -> FastAPI:
             f"{settings.api_prefix}/openapi.json" if settings.environment != "production" else None
         ),
     )
+
+    @app.middleware("http")
+    async def request_observability(request: Request, call_next):
+        context = make_request_context(request)
+        token = bind_request_context(context)
+        started = time.perf_counter()
+        logger = logging.getLogger("cll_genie.request")
+        try:
+            response = await call_next(request)
+            duration = elapsed_ms(started)
+            response.headers["X-Request-ID"] = context.request_id
+            logger.info(
+                "HTTP request completed",
+                extra={"status_code": response.status_code, "duration_ms": duration},
+            )
+            if response.status_code == 403:
+                services = getattr(request.state, "services", None)
+                session = getattr(request.state, "session", None)
+                if services and getattr(services, "audit", None):
+                    services.audit.record(
+                        "security.access.denied",
+                        "Authenticated request was denied",
+                        severity="warning",
+                        category="security",
+                        outcome="denied",
+                        actor=session.user if session else None,
+                        provider=session.provider if session else None,
+                        tags=["authorization", "access-denied"],
+                        metadata={"status_code": 403},
+                    )
+            return response
+        except Exception:
+            logger.exception(
+                "Unhandled HTTP request failure",
+                extra={"duration_ms": elapsed_ms(started)},
+            )
+            raise
+        finally:
+            reset_request_context(token)
 
     @app.exception_handler(404)
     async def not_found(_request, _exception):

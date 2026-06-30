@@ -1,7 +1,9 @@
+import logging
 from functools import lru_cache
 
 from pymongo import MongoClient
 from pymongo.collection import Collection
+from pymongo.errors import OperationFailure
 
 from cll_genie_api.config import Settings, get_settings
 
@@ -10,6 +12,7 @@ class MongoCollections:
     def __init__(self, settings: Settings) -> None:
         self.client = MongoClient(
             settings.mongodb_uri,
+            tz_aware=True,
             serverSelectionTimeoutMS=5000,
             connectTimeoutMS=5000,
             socketTimeoutMS=10000,
@@ -24,23 +27,83 @@ class MongoCollections:
         self.artifacts: Collection = application_db[settings.artifacts_collection]
         self.reports: Collection = application_db[settings.reports_collection]
         self.rules: Collection = application_db[settings.rules_collection]
+        self.audit_events: Collection = application_db[settings.audit_events_collection]
 
     def ensure_indexes(self) -> None:
-        self.users.create_index("username", unique=True, name="uq_user_username")
-        self.users.create_index("email", unique=True, sparse=True, name="uq_user_email")
-        self.sessions.create_index("expires_at", expireAfterSeconds=0, name="ttl_session_expiry")
-        self.sessions.create_index("user_id", name="ix_session_user")
-        self.samples.create_index(
+        self._create_index(self.users, "username", unique=True, name="uq_user_username")
+        self._create_index(self.users, "email", unique=True, sparse=True, name="uq_user_email")
+        self._create_index(
+            self.sessions,
+            "expires_at",
+            expireAfterSeconds=0,
+            name="ttl_session_expiry",
+        )
+        self._create_index(self.sessions, "user_id", name="ix_session_user")
+        self._create_index(
+            self.samples,
             [("report", 1), ("date_added", -1), ("name", 1)],
             name="ix_samples_worklist",
         )
-        self.samples.create_index("name", name="ix_samples_name")
-        self.results.create_index("name", name="ix_vquest_results_name")
-        self.jobs.create_index([("created_at", -1)], name="ix_jobs_created")
-        self.jobs.create_index([("sample_id", 1), ("created_at", -1)], name="ix_jobs_sample")
-        self.artifacts.create_index("relative_path", unique=True, name="uq_artifact_path")
-        self.reports.create_index([("sample_id", 1), ("created_at", -1)], name="ix_reports_sample")
-        self.rules.create_index([("rule_key", 1), ("version", 1)], unique=True)
+        self._create_index(self.samples, "name", name="ix_samples_name")
+        self._create_index(self.results, "name", name="ix_vquest_results_name")
+        self._create_index(self.jobs, [("created_at", -1)], name="ix_jobs_created")
+        self._create_index(
+            self.jobs,
+            [("sample_id", 1), ("created_at", -1)],
+            name="ix_jobs_sample",
+        )
+        self._create_index(self.artifacts, "relative_path", unique=True, name="uq_artifact_path")
+        self._create_index(
+            self.reports,
+            [("sample_id", 1), ("created_at", -1)],
+            name="ix_reports_sample",
+        )
+        self._create_index(
+            self.rules,
+            [("rule_key", 1), ("version", 1)],
+            unique=True,
+            name="uq_report_rule_key_version",
+        )
+        self._create_index(
+            self.audit_events,
+            [("occurred_at", -1)],
+            name="ix_audit_occurred_at",
+        )
+        self._create_index(
+            self.audit_events, [("severity", 1), ("occurred_at", -1)], name="ix_audit_severity_time"
+        )
+        self._create_index(
+            self.audit_events, [("category", 1), ("occurred_at", -1)], name="ix_audit_category_time"
+        )
+        self._create_index(
+            self.audit_events, [("event_type", 1), ("occurred_at", -1)], name="ix_audit_event_time"
+        )
+        self._create_index(
+            self.audit_events,
+            [("actor.username", 1), ("occurred_at", -1)],
+            name="ix_audit_actor_time",
+        )
+        self._create_index(self.audit_events, "tags", name="ix_audit_tags")
+        self._create_index(
+            self.audit_events,
+            "expires_at",
+            expireAfterSeconds=0,
+            name="ttl_audit_expiry",
+        )
+
+    @staticmethod
+    def _create_index(collection: Collection, keys, **options) -> None:
+        try:
+            collection.create_index(keys, **options)
+        except OperationFailure as exc:
+            logging.getLogger("cll_genie.database").warning(
+                "Index could not be created; other indexes will continue",
+                extra={
+                    "collection": collection.name,
+                    "index_name": options.get("name"),
+                    "mongo_error_code": exc.code,
+                },
+            )
 
     def ping(self) -> None:
         self.client.admin.command("ping")

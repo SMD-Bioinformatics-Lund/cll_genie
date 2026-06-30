@@ -1,8 +1,10 @@
 from celery import Celery
 
 from cll_genie_api.config import get_settings
+from cll_genie_api.infrastructure.logging import configure_logging
 
 settings = get_settings()
+configure_logging(settings)
 celery_app = Celery("cll_genie", broker=settings.redis_url, backend=settings.redis_url)
 celery_app.conf.update(
     task_serializer="json",
@@ -12,6 +14,7 @@ celery_app.conf.update(
     task_always_eager=settings.celery_eager,
     task_eager_propagates=True,
     timezone="Europe/Stockholm",
+    worker_hijack_root_logger=False,
     beat_schedule={
         "ingest-runs-and-results": {
             "task": "cll_genie.ingest",

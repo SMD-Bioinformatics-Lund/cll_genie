@@ -17,6 +17,7 @@ dependencies = [
   "python-multipart==0.0.20",
   "celery[redis]==5.5.2",
   "weasyprint==63.1",
+  "concurrent-log-handler==0.9.28",
 ]
 
 [project.optional-dependencies]

@@ -1,26 +1,26 @@
-import logging
 from datetime import UTC, datetime
-from pathlib import Path
 
-from cll_genie_api.api.dependencies import get_services
+from cll_genie_api.api.dependencies import get_services, record_audit
 from cll_genie_api.infrastructure.imgt import ImgtClient, default_payload
-from cll_genie_api.parsers.lymphotrack import parse_workbook
 from cll_genie_api.parsers.vquest import parse_vquest_zip
 from cll_genie_api.worker import celery_app
-
-
-
 
 
 @celery_app.task(name="cll_genie.ingest")
 def ingest() -> dict:
     from cll_genie_api.scripts.ingest import attach_results, register_runs
 
-    return {"registered": register_runs(), "updated": attach_results()}
+    services = get_services()
+    return {
+        "registered": register_runs(audit=services.audit),
+        "updated": attach_results(audit=services.audit),
+    }
 
 
 @celery_app.task(name="cll_genie.run_vquest")
-def run_vquest(job_id: str, sample_id: str, sequences: list[dict], options: dict, actor: str) -> dict:
+def run_vquest(
+    job_id: str, sample_id: str, sequences: list[dict], options: dict, actor: str
+) -> dict:
     services = get_services()
     try:
         services.jobs.transition(job_id, "RUNNING", progress=5, message="Preparing sequences")
@@ -87,12 +87,42 @@ def run_vquest(job_id: str, sample_id: str, sequences: list[dict], options: dict
         services.jobs.transition(
             job_id, "SUCCEEDED", progress=100, message="Analysis complete", result=result
         )
-        logging.getLogger("audit").info(
-            f"AUDIT: vquest.submission.created by {actor} on sample:{sample_id} - {result}"
+        record_audit(
+            services,
+            "vquest.analysis.succeeded",
+            "IMGT/V-QUEST analysis completed successfully",
+            category="analysis",
+            actor=actor,
+            resource_type="analysis_job",
+            resource_id=job_id,
+            tags=["analysis", "imgt", "vquest", "job"],
+            metadata={
+                "sample_id": sample_id,
+                "submission_id": submission_id,
+                "sequence_count": len(sequences),
+                "artifact_id": str(artifact["_id"]),
+            },
         )
         return result
     except Exception as exc:
         services.jobs.transition(
             job_id, "FAILED_FINAL", progress=100, message="Analysis failed", error=str(exc)
+        )
+        record_audit(
+            services,
+            "vquest.analysis.failed",
+            "IMGT/V-QUEST analysis failed",
+            severity="error",
+            category="analysis",
+            outcome="failure",
+            actor=actor,
+            resource_type="analysis_job",
+            resource_id=job_id,
+            tags=["analysis", "imgt", "vquest", "job", "failure"],
+            metadata={
+                "sample_id": sample_id,
+                "sequence_count": len(sequences),
+                "error_type": type(exc).__name__,
+            },
         )
         raise

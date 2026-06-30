@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     artifacts_collection: str = "artifacts"
     reports_collection: str = "reports"
     rules_collection: str = "report_rules"
+    audit_events_collection: str = "audit_events"
 
     auth_providers: Annotated[list[Literal["local", "ldap"]], NoDecode] = Field(
         default_factory=lambda: ["local"]
@@ -50,6 +51,11 @@ class Settings(BaseSettings):
     ldap_user_dn: str | None = None
     ldap_connect_timeout_seconds: float = 5.0
     log_root: Path = Path("/var/log/cll-genie")
+    log_service_name: str = "api"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    log_file_enabled: bool = True
+    log_retention_days: int = Field(default=30, ge=1, le=365)
+    audit_retention_days: int = Field(default=730, ge=30, le=3650)
     artifact_root: Path = Path("/var/lib/cll-genie/artifacts")
     redis_url: str = "redis://redis:6379/0"
     celery_eager: bool = False
