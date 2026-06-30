@@ -19,7 +19,7 @@ import { useSession } from "../session-context";
 import { timeAgo } from "../dateUtils";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { listSamples, applicationUrl } from "../api";
+import { listSamples, applicationUrl, getSystemStatus } from "../api";
 
 export function WorklistPage() {
   const [search, setSearch] = useState("");
@@ -38,6 +38,12 @@ export function WorklistPage() {
   const finishedCountQuery = useQuery({
     queryKey: ["samples_count", "finished"],
     queryFn: () => listSamples("", true, 1),
+  });
+
+  const systemStatusQuery = useQuery({
+    queryKey: ["system_status"],
+    queryFn: () => getSystemStatus(),
+    refetchInterval: 60000,
   });
 
   const { sortedData, sortKey, sortOrder, requestSort } = useSortableTable(
@@ -73,10 +79,24 @@ export function WorklistPage() {
         </Paper>
         <Paper  className="p-6 flex-1 bg-white dark:bg-neutral-800">
           <Typography variant="overline" color="text.secondary">System Status</Typography>
-          <Box className="flex items-center gap-2 mt-2">
-            <Box className="w-[12px] h-[12px] bg-emerald-500 rounded-full" />
-            <Typography variant="h6">All Systems Operational</Typography>
-          </Box>
+          {systemStatusQuery.isLoading ? (
+            <Box className="flex items-center gap-2 mt-2">
+              <Box className="w-[12px] h-[12px] bg-gray-400 rounded-full animate-pulse" />
+              <Typography variant="h6">Checking systems...</Typography>
+            </Box>
+          ) : systemStatusQuery.isError ? (
+            <Box className="flex items-center gap-2 mt-2">
+              <Box className="w-[12px] h-[12px] bg-red-500 rounded-full" />
+              <Typography variant="h6" color="error">System Offline</Typography>
+            </Box>
+          ) : (
+            <Box className="flex items-center gap-2 mt-2">
+              <Box className={`w-[12px] h-[12px] ${systemStatusQuery.data?.imgt === "error" || systemStatusQuery.data?.database === "error" ? "bg-red-500" : "bg-emerald-500"} rounded-full`} />
+              <Typography variant="h6" color={systemStatusQuery.data?.imgt === "error" || systemStatusQuery.data?.database === "error" ? "error" : "text.primary"}>
+                {systemStatusQuery.data?.database === "error" ? "Database Unavailable" : systemStatusQuery.data?.imgt === "error" ? "IMGT/V-QUEST Unavailable" : "All Systems Operational"}
+              </Typography>
+            </Box>
+          )}
         </Paper>
       </Box>
       <Paper  className="data-panel">

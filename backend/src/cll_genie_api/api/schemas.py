@@ -46,6 +46,12 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class SystemStatusResponse(BaseModel):
+    database: str
+    imgt: str
+    version: str
+
+
 class PreviewSequencesRequest(BaseModel):
     sheet_name: str = "Merged Read Summary"
     header_row: int = Field(default=4, ge=0, le=99)

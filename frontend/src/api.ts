@@ -328,3 +328,10 @@ export function generateNegativeReport(
     csrfToken,
   );
 }
+
+export function getSystemStatus() {
+  return apiRequest<{ database: string; imgt: string; version: string }>(
+    `/api/v1/health/system`
+  );
+}
+
