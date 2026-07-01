@@ -19,20 +19,20 @@ class UserRepository:
         return self.user
 
 
-def user(provider: str) -> LocalUser:
+def user(methods: tuple[str, ...]) -> LocalUser:
     return LocalUser(
         username="analyst",
         fullname="Example Analyst",
         roles=("lymphotrack",),
         email="analyst@example.test",
         password_hash=generate_password_hash("local-password", method="pbkdf2:sha256"),
-        identity_provider=provider,
+        allowed_login_methods=methods,
     )
 
 
 def test_authentication_rejects_provider_different_from_user_identity() -> None:
     service = AuthenticationService(
-        UserRepository(user("ldap")),
+        UserRepository(user(("ldap",))),
         {"local": LocalAuthenticator()},
     )
 
@@ -40,12 +40,19 @@ def test_authentication_rejects_provider_different_from_user_identity() -> None:
         service.authenticate("local", "analyst", "local-password")
 
 
-def test_legacy_user_identity_is_inferred_without_rewriting_document() -> None:
-    local = LocalUser.from_document({"username": "local", "password": "hash", "roles": []})
-    ldap = LocalUser.from_document({"username": "ldap", "roles": []})
+def test_user_login_methods_are_read_only_from_the_explicit_document_field() -> None:
+    user = LocalUser.from_document(
+        {
+            "username": "dual-user",
+            "password": "hash",
+            "roles": [],
+            "allowed_login_methods": ["local", "ldap"],
+        }
+    )
+    unconfigured = LocalUser.from_document({"username": "unconfigured", "roles": []})
 
-    assert local.identity_provider == "local"
-    assert ldap.identity_provider == "ldap"
+    assert user.allowed_login_methods == ("ldap", "local")
+    assert unconfigured.allowed_login_methods == ()
 
 
 def test_local_user_requires_password_and_ldap_user_rejects_password() -> None:
@@ -59,20 +66,20 @@ def test_local_user_requires_password_and_ldap_user_rejects_password() -> None:
     }
 
     with pytest.raises(ValidationError):
-        UserCreateRequest(**common, identity_provider="local")
+        UserCreateRequest(**common, allowed_login_methods=["local"])
     with pytest.raises(ValidationError):
         UserCreateRequest(
             **common,
-            identity_provider="ldap",
+            allowed_login_methods=["ldap"],
             password="not-allowed",
         )
 
     local = UserCreateRequest(
         **common,
-        identity_provider="local",
+        allowed_login_methods=["ldap", "local"],
         password="valid-password",
     )
-    assert local.identity_provider == "local"
+    assert local.allowed_login_methods == ["ldap", "local"]
 
 
 def test_only_defined_application_roles_are_accepted() -> None:

@@ -47,8 +47,13 @@ class HealthResponse(BaseModel):
 
 
 class SystemStatusResponse(BaseModel):
+    api: str
     database: str
     imgt: str
+    redis: str
+    celery: str
+    worker: str
+    scheduler: str
     version: str
 
 
@@ -99,7 +104,7 @@ class UserCreateRequest(BaseModel):
     lastname: str = Field(min_length=1, max_length=150)
     email: str = Field(min_length=1, max_length=320)
     roles: list[str] = Field(min_length=1)
-    identity_provider: Literal["ldap", "local"] = "ldap"
+    allowed_login_methods: list[Literal["ldap", "local"]] = Field(min_length=1)
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool = True
 
@@ -114,12 +119,20 @@ class UserCreateRequest(BaseModel):
             raise ValueError("At least one role is required")
         return sorted(normalized)
 
+    @field_validator("allowed_login_methods")
+    @classmethod
+    def normalize_login_methods(cls, methods: list[str]) -> list[str]:
+        normalized = {method.strip().lower() for method in methods if method.strip()}
+        if not normalized:
+            raise ValueError("At least one login method is required")
+        return [method for method in ("ldap", "local") if method in normalized]
+
     @model_validator(mode="after")
-    def validate_identity_password(self):
-        if self.identity_provider == "local" and not self.password:
-            raise ValueError("A password is required for a local user")
-        if self.identity_provider == "ldap" and self.password:
-            raise ValueError("LDAP users cannot have a local password")
+    def validate_login_methods_and_password(self):
+        if "local" in self.allowed_login_methods and not self.password:
+            raise ValueError("A password is required when local login is allowed")
+        if "local" not in self.allowed_login_methods and self.password:
+            raise ValueError("A local password requires local login to be allowed")
         return self
 
 
@@ -129,7 +142,7 @@ class UserUpdateRequest(BaseModel):
     lastname: str | None = Field(default=None, min_length=1, max_length=150)
     email: str | None = None
     roles: list[str] | None = None
-    identity_provider: Literal["ldap", "local"] | None = None
+    allowed_login_methods: list[Literal["ldap", "local"]] | None = None
     password: str | None = Field(default=None, min_length=8, max_length=1024)
     enabled: bool | None = None
 
@@ -146,10 +159,24 @@ class UserUpdateRequest(BaseModel):
             raise ValueError("At least one role is required")
         return sorted(normalized)
 
+    @field_validator("allowed_login_methods")
+    @classmethod
+    def normalize_login_methods(cls, methods: list[str] | None) -> list[str] | None:
+        if methods is None:
+            return None
+        normalized = {method.strip().lower() for method in methods if method.strip()}
+        if not normalized:
+            raise ValueError("At least one login method is required")
+        return [method for method in ("ldap", "local") if method in normalized]
+
     @model_validator(mode="after")
-    def validate_identity_password(self):
-        if self.identity_provider == "ldap" and self.password:
-            raise ValueError("LDAP users cannot have a local password")
+    def validate_login_methods_and_password(self):
+        if (
+            self.allowed_login_methods is not None
+            and "local" not in self.allowed_login_methods
+            and self.password
+        ):
+            raise ValueError("A local password requires local login to be allowed")
         return self
 
 

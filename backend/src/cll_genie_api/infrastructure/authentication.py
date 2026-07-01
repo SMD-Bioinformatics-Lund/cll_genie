@@ -1,4 +1,6 @@
+import logging
 import ssl
+import struct
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
@@ -9,6 +11,8 @@ from werkzeug.security import check_password_hash
 
 from cll_genie_api.config import Settings
 from cll_genie_api.domain.identity import LocalUser
+
+LOG = logging.getLogger(__name__)
 
 
 class AuthenticationFailed(Exception):
@@ -45,7 +49,9 @@ class LdapAuthenticator:
             raise AuthenticationFailed
 
         port = parsed.port or (636 if self.settings.ldap_use_ssl else 389)
-        tls = Tls(validate=ssl.CERT_REQUIRED)
+        tls = Tls(
+            validate=(ssl.CERT_REQUIRED if self.settings.ldap_tls_validate else ssl.CERT_NONE)
+        )
         auto_bind = AUTO_BIND_TLS_BEFORE_BIND if self.settings.ldap_use_tls else AUTO_BIND_NO_TLS
         server = Server(
             host,
@@ -100,7 +106,11 @@ class LdapAuthenticator:
                 receive_timeout=self.settings.ldap_connect_timeout_seconds,
             ):
                 return
-        except (LDAPException, OSError, ValueError) as exc:
+        except (LDAPException, OSError, ValueError, struct.error) as exc:
+            LOG.warning(
+                "LDAP authentication failed during directory connection, search, or bind",
+                extra={"ldap_error_type": type(exc).__name__},
+            )
             raise AuthenticationFailed from exc
 
 
@@ -117,7 +127,7 @@ class AuthenticationService:
             user is None
             or not user.enabled
             or authenticator is None
-            or (user.identity_provider is not None and user.identity_provider != provider)
+            or provider not in user.allowed_login_methods
         ):
             raise AuthenticationFailed
         authenticator.authenticate(user, password)

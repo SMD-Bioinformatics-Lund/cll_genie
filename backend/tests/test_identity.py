@@ -28,6 +28,7 @@ def test_existing_werkzeug_password_and_local_profile_are_preserved() -> None:
         roles=("lymphotrack",),
         email="analyst@example.test",
         password_hash=generate_password_hash("correct horse", method="pbkdf2:sha256"),
+        allowed_login_methods=("local",),
     )
     service = AuthenticationService(UserRepository(user), {"local": LocalAuthenticator()})
 
@@ -45,6 +46,7 @@ def test_local_login_rejects_wrong_password() -> None:
         roles=("lymphotrack",),
         email=None,
         password_hash=generate_password_hash("correct horse", method="pbkdf2:sha256"),
+        allowed_login_methods=("local",),
     )
     service = AuthenticationService(UserRepository(user), {"local": LocalAuthenticator()})
 

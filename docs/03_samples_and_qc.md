@@ -130,11 +130,11 @@ The scheduled attachment step does **not** parse workbook sequences and does not
 
 The first regular file whose name contains the sample name and ends exactly with `.fastq_indexQ30.tsv` is parsed as a two-column, tab-separated key/value file. Required keys map as follows:
 
-| QC key | Sample field | Conversion |
-|---|---|---|
-| `totalCount` | `total_bases` | integer |
-| `countQ30` | `q30_bases` | integer |
-| `indexQ30` | `q30_per` | float rounded to two decimals |
+| QC key       | Sample field  | Conversion                    |
+| ------------ | ------------- | ----------------------------- |
+| `totalCount` | `total_bases` | integer                       |
+| `countQ30`   | `q30_bases`   | integer                       |
+| `indexQ30`   | `q30_per`     | float rounded to two decimals |
 
 Decimal commas are normalized to decimal points. A valid file also sets `lymphotrack_qc: true` and `lymphotrack_qc_path`. If automatic QC parsing fails, that sample is left incomplete and will be retried by later scans; the current scheduled path does not create an audit event for this parse failure.
 
@@ -143,7 +143,7 @@ Decimal commas are normalized to decimal points. A valid file also sets `lymphot
 
 ## 3. Manual attachment through the UI/API
 
-The production API does not currently create arbitrary samples from the Worklist; normal sample registration is the run-ingestion path above. The Sample Details page can attach files to an existing sample.
+Sample registration is performed by the run-ingestion path described above. The Worklist does not expose arbitrary sample creation. The Sample Details page can attach files to an existing sample.
 
 ### Workbook upload
 
@@ -160,20 +160,20 @@ The upload itself only validates the extension. Workbook contents are validated 
 
 `POST /cll_genie/api/v1/samples/{sample_id}/artifacts/lymphotrack-qc` saves the local artifact and parses it immediately. Invalid content returns HTTP 422. Valid metrics and the artifact/path fields are written to the sample, followed by an audit event.
 
-Manually uploaded files have artifact records; automatically discovered external files currently have only their paths stored on the sample.
+Manually uploaded files receive artifact records. Automatically discovered external files are represented by paths stored on the sample.
 
 ## 4. Audit events
 
 Every successful data addition produces an append-only MongoDB audit event visible in **Administration > Audit events**:
 
-| Activity | Event type | Actor |
-|---|---|---|
-| Sample inserted from a completed run | `sample.registered` | `cll-genie-ingestion` / system |
-| Workbook discovered and attached | `sample.lymphotrack_excel.attached` | `cll-genie-ingestion` / system |
-| QC file discovered, parsed, and attached | `sample.lymphotrack_qc.attached` | `cll-genie-ingestion` / system |
-| Workbook uploaded by a person | `sample.lymphotrack_excel.uploaded` | Authenticated local/LDAP user |
-| QC uploaded by a person | `sample.lymphotrack_qc.uploaded` | Authenticated local/LDAP user |
-| Personal upload rejected or cannot be parsed | `sample.lymphotrack_excel.upload_failed` or `sample.lymphotrack_qc.upload_failed` | Authenticated local/LDAP user |
+| Activity                                     | Event type                                                                        | Actor                          |
+| -------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------ |
+| Sample inserted from a completed run         | `sample.registered`                                                               | `cll-genie-ingestion` / system |
+| Workbook discovered and attached             | `sample.lymphotrack_excel.attached`                                               | `cll-genie-ingestion` / system |
+| QC file discovered, parsed, and attached     | `sample.lymphotrack_qc.attached`                                                  | `cll-genie-ingestion` / system |
+| Workbook uploaded by a person                | `sample.lymphotrack_excel.uploaded`                                               | Authenticated local/LDAP user  |
+| QC uploaded by a person                      | `sample.lymphotrack_qc.uploaded`                                                  | Authenticated local/LDAP user  |
+| Personal upload rejected or cannot be parsed | `sample.lymphotrack_excel.upload_failed` or `sample.lymphotrack_qc.upload_failed` | Authenticated local/LDAP user  |
 
 Events identify the sample, actor/provider, source request/IP for browser uploads, run information, filenames, media type, byte size, SHA-256 for locally stored artifacts, and parsed QC values where applicable. File contents and nucleotide sequences are never copied into audit metadata. Failed personal uploads use warning severity and failure outcome. Invalid automatically discovered QC files are retried without producing a new MongoDB event every five minutes, preventing repetitive audit-event growth.
 
@@ -183,14 +183,14 @@ The separate `load_design_samples` script is a development/testing utility, not 
 
 ## Source-code map
 
-| Responsibility | Implementation |
-|---|---|
-| Five-minute schedule | `backend/src/cll_genie_api/worker.py` |
-| Celery ingestion task | `backend/src/cll_genie_api/tasks.py` |
-| Run discovery and result attachment | `backend/src/cll_genie_api/scripts/ingest.py` |
-| SampleSheet, Stats, and sample-document parsing | `backend/src/cll_genie_api/parsers/ingestion.py` |
-| Workbook and QC parsers | `backend/src/cll_genie_api/parsers/lymphotrack.py` |
-| Manual uploads and sequence preview API | `backend/src/cll_genie_api/api/samples.py` |
+| Responsibility                                  | Implementation                                     |
+| ----------------------------------------------- | -------------------------------------------------- |
+| Five-minute schedule                            | `backend/src/cll_genie_api/worker.py`              |
+| Celery ingestion task                           | `backend/src/cll_genie_api/tasks.py`               |
+| Run discovery and result attachment             | `backend/src/cll_genie_api/scripts/ingest.py`      |
+| SampleSheet, Stats, and sample-document parsing | `backend/src/cll_genie_api/parsers/ingestion.py`   |
+| Workbook and QC parsers                         | `backend/src/cll_genie_api/parsers/lymphotrack.py` |
+| Manual uploads and sequence preview API         | `backend/src/cll_genie_api/api/samples.py`         |
 
 ---
 

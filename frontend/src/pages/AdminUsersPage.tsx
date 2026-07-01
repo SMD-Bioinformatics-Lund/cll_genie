@@ -30,8 +30,9 @@ import {
 } from "../components/ui";
 import { useSortableTable } from "../hooks/useSortableTable";
 import { useSession } from "../session-context";
+import { timeAgo } from "../dateUtils";
 
-type IdentityProvider = "ldap" | "local";
+type LoginMethod = "ldap" | "local";
 
 type AdminUser = {
   _id: string;
@@ -41,7 +42,8 @@ type AdminUser = {
   lastname?: string;
   email?: string;
   roles: string[];
-  identity_provider: IdentityProvider;
+  allowed_login_methods: LoginMethod[];
+  last_login?: string | null;
   enabled?: boolean;
 };
 
@@ -52,7 +54,7 @@ type UserForm = {
   lastname: string;
   email: string;
   roles: ApplicationRole[];
-  identity_provider: IdentityProvider;
+  allowed_login_methods: LoginMethod[];
   password: string;
   confirmPassword: string;
   enabled: boolean;
@@ -65,7 +67,7 @@ const initial: UserForm = {
   lastname: "",
   email: "",
   roles: ["lymphotrack"],
-  identity_provider: "ldap",
+  allowed_login_methods: ["ldap"],
   password: "",
   confirmPassword: "",
   enabled: true,
@@ -97,9 +99,9 @@ export function AdminUsersPage() {
         lastname: form.lastname.trim(),
         email: form.email.trim(),
         roles: form.roles,
-        identity_provider: form.identity_provider,
+        allowed_login_methods: form.allowed_login_methods,
         password:
-          form.identity_provider === "local" && form.password
+          form.allowed_login_methods.includes("local") && form.password
             ? form.password
             : null,
         enabled: form.enabled,
@@ -143,7 +145,7 @@ export function AdminUsersPage() {
       roles: user.roles.filter((role): role is ApplicationRole =>
         applicationRoles.some((definition) => definition.id === role),
       ),
-      identity_provider: user.identity_provider,
+      allowed_login_methods: user.allowed_login_methods,
       password: "",
       confirmPassword: "",
       enabled: user.enabled !== false,
@@ -160,13 +162,23 @@ export function AdminUsersPage() {
     }));
   }
 
-  function selectIdentity(identity_provider: IdentityProvider) {
+  function toggleLoginMethod(method: LoginMethod) {
     setForm((current) => ({
       ...current,
-      identity_provider,
-      password: identity_provider === "ldap" ? "" : current.password,
+      allowed_login_methods: current.allowed_login_methods.includes(method)
+        ? current.allowed_login_methods.filter((item) => item !== method)
+        : [
+            ...current.allowed_login_methods.filter((item) => item !== method),
+            method,
+          ].sort((left) => (left === "ldap" ? -1 : 1)),
+      password:
+        method === "local" && current.allowed_login_methods.includes("local")
+          ? ""
+          : current.password,
       confirmPassword:
-        identity_provider === "ldap" ? "" : current.confirmPassword,
+        method === "local" && current.allowed_login_methods.includes("local")
+          ? ""
+          : current.confirmPassword,
     }));
   }
 
@@ -223,7 +235,14 @@ export function AdminUsersPage() {
                   currentSortOrder={sortOrder}
                   onRequestSort={requestSort}
                 />
-                <th>Identity</th>
+                <th>Login methods</th>
+                <SortableTableHead
+                  label="Last login"
+                  sortKey="last_login"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
                 <th>Roles</th>
                 <SortableTableHead
                   label="Status"
@@ -242,7 +261,20 @@ export function AdminUsersPage() {
                   <td>{user.fullname}</td>
                   <td>{user.email || "–"}</td>
                   <td>
-                    <IdentityBadge provider={user.identity_provider} />
+                    <span className="flex flex-wrap gap-1">
+                      {user.allowed_login_methods.map((method) => (
+                        <IdentityBadge key={method} provider={method} />
+                      ))}
+                    </span>
+                  </td>
+                  <td
+                    title={
+                      user.last_login
+                        ? new Date(user.last_login).toLocaleString()
+                        : "No successful login recorded"
+                    }
+                  >
+                    {user.last_login ? timeAgo(user.last_login) : "Never"}
                   </td>
                   <td>
                     <RoleBadges roles={user.roles ?? []} />
@@ -290,20 +322,20 @@ export function AdminUsersPage() {
 
         <DialogContent className="max-h-[70vh] overflow-y-auto !space-y-6">
           <FormSection
-            title="Identity source"
+            title="Allowed login methods"
             icon={<Users size={16} />}
-            description="LDAP is recommended and selected by default."
+            description="LDAP is primary. Select local as well to allow either login method."
           >
             <div className="grid gap-3 sm:grid-cols-2">
               <IdentityOption
                 provider="ldap"
-                selected={form.identity_provider === "ldap"}
-                onSelect={selectIdentity}
+                selected={form.allowed_login_methods.includes("ldap")}
+                onSelect={toggleLoginMethod}
               />
               <IdentityOption
                 provider="local"
-                selected={form.identity_provider === "local"}
-                onSelect={selectIdentity}
+                selected={form.allowed_login_methods.includes("local")}
+                onSelect={toggleLoginMethod}
               />
             </div>
           </FormSection>
@@ -331,7 +363,7 @@ export function AdminUsersPage() {
                 }
                 required
                 helperText={
-                  form.identity_provider === "ldap"
+                  form.allowed_login_methods.includes("ldap")
                     ? "Must match the LDAP directory email."
                     : undefined
                 }
@@ -394,12 +426,12 @@ export function AdminUsersPage() {
             </div>
           </FormSection>
 
-          {form.identity_provider === "local" && (
+          {form.allowed_login_methods.includes("local") && (
             <FormSection
               title="Local password"
               icon={<KeyRound size={16} />}
               description={
-                editingUser?.identity_provider === "local"
+                editingUser?.allowed_login_methods.includes("local")
                   ? "Leave both fields empty to retain the existing password."
                   : "A password is required when creating or converting to a local account."
               }
@@ -407,7 +439,7 @@ export function AdminUsersPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField
                   label={
-                    editingUser?.identity_provider === "local"
+                    editingUser?.allowed_login_methods.includes("local")
                       ? "New password"
                       : "Password"
                   }
@@ -500,9 +532,11 @@ function validateUserForm(
   )
     return "Complete all required profile fields.";
   if (!form.roles.length) return "Select at least one application role.";
-  if (form.identity_provider === "ldap") return null;
+  if (!form.allowed_login_methods.length)
+    return "Select at least one login method.";
+  if (!form.allowed_login_methods.includes("local")) return null;
   const passwordRequired =
-    !editingUser || editingUser.identity_provider !== "local";
+    !editingUser || !editingUser.allowed_login_methods.includes("local");
   if (passwordRequired && !form.password)
     return "Set a password for the local account.";
   if (form.password && form.password.length < 8)
@@ -517,9 +551,9 @@ function IdentityOption({
   selected,
   onSelect,
 }: {
-  provider: IdentityProvider;
+  provider: LoginMethod;
   selected: boolean;
-  onSelect: (provider: IdentityProvider) => void;
+  onSelect: (provider: LoginMethod) => void;
 }) {
   const ldap = provider === "ldap";
   return (
@@ -530,11 +564,9 @@ function IdentityOption({
       className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${selected ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10" : "border-gray-200 hover:border-gray-300 dark:border-neutral-700"}`}
     >
       <span
-        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${selected ? "border-brand-primary dark:border-brand-detail" : "border-gray-300 dark:border-neutral-600"}`}
+        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selected ? "border-brand-primary bg-brand-primary text-white dark:border-brand-detail dark:bg-brand-detail dark:text-neutral-950" : "border-gray-300 dark:border-neutral-600"}`}
       >
-        {selected && (
-          <span className="size-2.5 rounded-full bg-brand-primary dark:bg-brand-detail" />
-        )}
+        {selected && <Check size={13} strokeWidth={3} />}
       </span>
       <span>
         <IdentityBadge provider={provider} />

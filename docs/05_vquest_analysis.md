@@ -31,18 +31,18 @@ The worker changes the job to `RUNNING` at 5% and reloads the sample. Each selec
 
 The default IMGT request includes:
 
-| Setting | Default |
-|---|---|
-| Species | `human` |
-| Receptor/locus | `IGH` |
-| Molecule type | `gDNA` |
-| Reference directory set | `1` |
-| Reference alleles | enabled |
-| V-region indel search | enabled |
-| CLL subset search | enabled |
-| scFv analysis | disabled |
-| V/D/J mutation limits | `-1` |
-| Result type | Excel-compatible ZIP response |
+| Setting                 | Default                       |
+| ----------------------- | ----------------------------- |
+| Species                 | `human`                       |
+| Receptor/locus          | `IGH`                         |
+| Molecule type           | `gDNA`                        |
+| Reference directory set | `1`                           |
+| Reference alleles       | enabled                       |
+| V-region indel search   | enabled                       |
+| CLL subset search       | enabled                       |
+| scFv analysis           | disabled                      |
+| V/D/J mutation limits   | `-1`                          |
+| Result type             | Excel-compatible ZIP response |
 
 The requested output tables include Summary, JUNCTION, parameters, nucleotide and amino-acid sequences, IMGT-gapped sequences, V-region mutation tables/statistics, and hotspot data. User options may override only keys already present in the backend default payload; arbitrary new form fields are discarded.
 
@@ -71,7 +71,7 @@ For each result, its `summary` is enriched with the corresponding LymphoTrack va
 
 ## 5. Artifact and MongoDB writes
 
-The unmodified IMGT response ZIP is saved in local artifact storage under the sample/submission hierarchy. A per-sample atomic counter reserves the next `submission_N` identifier. If a counter does not yet exist, it initializes from the largest existing submission number, preserving compatibility with imported data.
+The unmodified IMGT response ZIP is saved in local artifact storage under the sample/submission hierarchy. A per-sample atomic counter reserves the next `submission_N` identifier. If a counter does not exist, it initializes from the largest existing submission number so imported data retains its numbering sequence.
 
 The successful submission written below `vquest_results.results.submission_N` has this outer shape:
 
@@ -98,7 +98,7 @@ The collection-level document remains:
 }
 ```
 
-This is the compatibility-preserving schema. The worker creates it for the first result or atomically adds a new nested submission only if that key does not already exist. It then sets `samples.vquest` to true.
+The worker creates this schema for the first result or atomically adds a nested submission when the key does not already exist. It then sets `samples.vquest` to true.
 
 ## 6. Job lifecycle and failure behavior
 
@@ -117,14 +117,14 @@ The sample details API returns the sample, its submissions from `vquest_results`
 
 ## Source-code map
 
-| Responsibility | Implementation |
-|---|---|
-| Submission endpoints and audit event | `backend/src/cll_genie_api/api/submissions.py` |
+| Responsibility                          | Implementation                                             |
+| --------------------------------------- | ---------------------------------------------------------- |
+| Submission endpoints and audit event    | `backend/src/cll_genie_api/api/submissions.py`             |
 | Job persistence and submission counters | `backend/src/cll_genie_api/infrastructure/repositories.py` |
-| Celery task and enrichment logic | `backend/src/cll_genie_api/tasks.py` |
-| HTTP client and allowed defaults | `backend/src/cll_genie_api/infrastructure/imgt.py` |
-| ZIP parser | `backend/src/cll_genie_api/parsers/vquest.py` |
-| Local artifact persistence | `backend/src/cll_genie_api/infrastructure/artifacts.py` |
+| Celery task and enrichment logic        | `backend/src/cll_genie_api/tasks.py`                       |
+| HTTP client and allowed defaults        | `backend/src/cll_genie_api/infrastructure/imgt.py`         |
+| ZIP parser                              | `backend/src/cll_genie_api/parsers/vquest.py`              |
+| Local artifact persistence              | `backend/src/cll_genie_api/infrastructure/artifacts.py`    |
 
 ---
 

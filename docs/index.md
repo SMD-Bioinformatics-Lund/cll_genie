@@ -23,9 +23,10 @@ Welcome to the comprehensive guide for CLL Genie. This documentation serves as a
 9. [User Management](09_user_management.md)
    - Adding users, resetting passwords, understanding roles (admin vs user), and disabling accounts.
 10. [Audit Events & File Logging](10_audit_and_logging.md)
-   - Structured runtime logs, MongoDB security events, retention, event fields, filters, and monitoring guidance.
+
+- Structured runtime logs, MongoDB security events, retention, event fields, filters, and monitoring guidance.
 
 ---
 
 > [!TIP]
-> **Reading Flow:** If you are a new user or developer, we strongly recommend reading these guides in order. It will give you a complete mental model of how data moves from a raw Excel file all the way to a signed clinical PDF report.
+> **Reading flow:** Read the guides in order for an end-to-end description of how data moves from a source Excel file to a clinical PDF report.

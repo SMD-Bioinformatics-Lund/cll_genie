@@ -3,7 +3,13 @@ from datetime import UTC, datetime
 from cll_genie_api.api.dependencies import get_services, record_audit
 from cll_genie_api.infrastructure.imgt import ImgtClient, default_payload
 from cll_genie_api.parsers.vquest import parse_vquest_zip
-from cll_genie_api.worker import celery_app
+from cll_genie_api.worker import celery_app, write_scheduler_heartbeat
+
+
+@celery_app.task(name="cll_genie.scheduler_heartbeat")
+def scheduler_heartbeat() -> dict:
+    write_scheduler_heartbeat()
+    return {"status": "ok"}
 
 
 @celery_app.task(name="cll_genie.ingest")

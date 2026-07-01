@@ -76,10 +76,5 @@ services:
     profiles: ["mongo"]
     ports:
       - "${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env}:27017"
-networks:
-  cll_genie_dev:
-    external: true
-    name: cll_genie-dev-net
-
 volumes:
   frontend_node_modules: {}

@@ -85,7 +85,7 @@ Run index creation after deployment or configuration changes:
 docker compose exec api python -m cll_genie_api.scripts.ensure_indexes
 ```
 
-Index initialization is independent per index. If legacy data violates an older unique-index requirement, CLL Genie emits a structured warning containing the collection, index name, and MongoDB error code, then continues creating the remaining indexes. It never deletes or rewrites data to force an index into place. Resolve the reported duplicate data separately; the audit indexes and application startup are not blocked by an unrelated legacy index.
+Index initialization is independent per index. If existing data violates a unique-index requirement, CLL Genie emits a structured warning containing the collection, index name, and MongoDB error code, then continues creating the remaining indexes. Index initialization does not delete or rewrite application data. Resolve reported duplicate data separately; an unrelated index conflict does not prevent audit-index initialization or application startup.
 
 ## Administration UI and API
 

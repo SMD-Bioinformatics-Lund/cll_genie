@@ -35,12 +35,12 @@ export function WorklistPage() {
     queryKey: ["samples", search, tab, page],
     queryFn: () => listSamples(search, tab === "finished", page),
   });
-  
+
   const openCountQuery = useQuery({
     queryKey: ["samples_count", "open"],
     queryFn: () => listSamples("", false, 1),
   });
-  
+
   const finishedCountQuery = useQuery({
     queryKey: ["samples_count", "finished"],
     queryFn: () => listSamples("", true, 1),
@@ -55,7 +55,19 @@ export function WorklistPage() {
   const { sortedData, sortKey, sortOrder, requestSort } = useSortableTable(
     query.data?.items,
     "date_added",
-    "desc"
+    "desc",
+  );
+  const systemServices = [
+    { key: "api", label: "API (logical health)" },
+    { key: "database", label: "Database (MongoDB)" },
+    { key: "imgt", label: "IMGT/V-QUEST" },
+    { key: "redis", label: "Redis" },
+    { key: "celery", label: "Celery queueing" },
+    { key: "worker", label: "Celery workers" },
+    { key: "scheduler", label: "Celery scheduler" },
+  ] as const;
+  const degradedService = systemServices.find(
+    ({ key }) => systemStatusQuery.data?.[key] === "error",
   );
   const pages = Math.max(1, Math.ceil((query.data?.total ?? 0) / 25));
   return (
@@ -71,23 +83,29 @@ export function WorklistPage() {
       </Typography>
 
       <Box className="flex gap-6 mb-8">
-        <Paper  className="p-6 flex-1 bg-white dark:bg-neutral-800">
-          <Typography variant="overline" color="text.secondary">Open Samples</Typography>
+        <Paper className="p-6 flex-1 bg-white dark:bg-neutral-800">
+          <Typography variant="overline" color="text.secondary">
+            Open Samples
+          </Typography>
           <Typography variant="h3" color="primary.main">
             {openCountQuery.data?.total ?? "..."}
           </Typography>
         </Paper>
-        <Paper  className="p-6 flex-1 bg-white dark:bg-neutral-800">
-          <Typography variant="overline" color="text.secondary">Finished Samples</Typography>
+        <Paper className="p-6 flex-1 bg-white dark:bg-neutral-800">
+          <Typography variant="overline" color="text.secondary">
+            Finished Samples
+          </Typography>
           <Typography variant="h3" color="success.main">
             {finishedCountQuery.data?.total ?? "..."}
           </Typography>
         </Paper>
-        <Paper 
+        <Paper
           className="p-6 flex-1 bg-white dark:bg-neutral-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
           onClick={() => setStatusDialogOpen(true)}
         >
-          <Typography variant="overline" color="text.secondary">System Status</Typography>
+          <Typography variant="overline" color="text.secondary">
+            System Status
+          </Typography>
           {systemStatusQuery.isLoading ? (
             <Box className="flex items-center gap-2 mt-2">
               <Box className="w-[12px] h-[12px] bg-gray-400 rounded-full animate-pulse" />
@@ -96,48 +114,67 @@ export function WorklistPage() {
           ) : systemStatusQuery.isError ? (
             <Box className="flex items-center gap-2 mt-2">
               <Box className="w-[12px] h-[12px] bg-red-500 rounded-full" />
-              <Typography variant="h6" color="error">System Offline</Typography>
+              <Typography variant="h6" color="error">
+                System Offline
+              </Typography>
             </Box>
           ) : (
             <Box className="flex items-center gap-2 mt-2">
-              <Box className={`w-[12px] h-[12px] ${systemStatusQuery.data?.imgt === "error" || systemStatusQuery.data?.database === "error" ? "bg-red-500" : "bg-emerald-500"} rounded-full`} />
-              <Typography variant="h6" color={systemStatusQuery.data?.imgt === "error" || systemStatusQuery.data?.database === "error" ? "error" : "text.primary"}>
-                {systemStatusQuery.data?.database === "error" ? "Database Unavailable" : systemStatusQuery.data?.imgt === "error" ? "IMGT/V-QUEST Unavailable" : "All Systems Operational"}
+              <Box
+                className={`w-[12px] h-[12px] ${degradedService ? "bg-red-500" : "bg-emerald-500"} rounded-full`}
+              />
+              <Typography
+                variant="h6"
+                color={degradedService ? "error" : "text.primary"}
+              >
+                {degradedService
+                  ? `${degradedService.label} unavailable`
+                  : "All Systems Operational"}
               </Typography>
             </Box>
           )}
         </Paper>
       </Box>
 
-      <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)}>
+      <Dialog
+        open={statusDialogOpen}
+        onClose={() => setStatusDialogOpen(false)}
+      >
         <DialogTitle>System Status Details</DialogTitle>
         <DialogContent>
           <Box className="flex flex-col gap-4 mt-2">
-            <Box className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg">
-              <Typography fontWeight={600}>Database (MongoDB)</Typography>
-              <Box className="flex items-center gap-2">
-                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.isError || systemStatusQuery.data?.database === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
-                <Typography color={systemStatusQuery.isError || systemStatusQuery.data?.database === "error" ? "error" : "text.secondary"}>
-                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.isError || systemStatusQuery.data?.database === "error" ? "Offline" : "Online"}
-                </Typography>
-              </Box>
-            </Box>
-            <Box className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg">
-              <Typography fontWeight={600}>IMGT/V-QUEST</Typography>
-              <Box className="flex items-center gap-2">
-                <Box className={`w-[10px] h-[10px] rounded-full ${systemStatusQuery.isError || systemStatusQuery.data?.imgt === "error" ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`} />
-                <Typography color={systemStatusQuery.isError || systemStatusQuery.data?.imgt === "error" ? "error" : "text.secondary"}>
-                  {systemStatusQuery.isLoading ? "Checking..." : systemStatusQuery.isError || systemStatusQuery.data?.imgt === "error" ? "Offline" : "Online"}
-                </Typography>
-              </Box>
-            </Box>
+            {systemServices.map(({ key, label }) => {
+              const offline =
+                systemStatusQuery.isError ||
+                systemStatusQuery.data?.[key] === "error";
+              return (
+                <Box
+                  key={key}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg"
+                >
+                  <Typography fontWeight={600}>{label}</Typography>
+                  <Box className="flex items-center gap-2">
+                    <Box
+                      className={`w-[10px] h-[10px] rounded-full ${offline ? "bg-red-500" : systemStatusQuery.isLoading ? "bg-gray-400" : "bg-emerald-500"}`}
+                    />
+                    <Typography color={offline ? "error" : "text.secondary"}>
+                      {systemStatusQuery.isLoading
+                        ? "Checking..."
+                        : offline
+                          ? "Offline"
+                          : "Online"}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setStatusDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-      <Paper  className="data-panel">
+      <Paper className="data-panel">
         <Box className="toolbar-row">
           <Tabs
             value={tab}
@@ -171,10 +208,34 @@ export function WorklistPage() {
           <table>
             <thead>
               <tr>
-                <SortableTableHead label="Date" sortKey="date_added" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
-                <SortableTableHead label="Sample" sortKey="name" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
-                <SortableTableHead label="Clarity ID" sortKey="clarity_id" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
-                <SortableTableHead label="Run" sortKey="run_id" currentSortKey={sortKey as string} currentSortOrder={sortOrder} onRequestSort={requestSort} />
+                <SortableTableHead
+                  label="Date"
+                  sortKey="date_added"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
+                <SortableTableHead
+                  label="Sample"
+                  sortKey="name"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
+                <SortableTableHead
+                  label="Clarity ID"
+                  sortKey="clarity_id"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
+                <SortableTableHead
+                  label="Run"
+                  sortKey="run_id"
+                  currentSortKey={sortKey as string}
+                  currentSortOrder={sortOrder}
+                  onRequestSort={requestSort}
+                />
                 <th>Data</th>
                 <th>Analysis</th>
                 <th>Report</th>
@@ -227,15 +288,29 @@ export function WorklistPage() {
                   <td>
                     <Chip
                       size="small"
-                      color={sample.report ? (sample.latest_report_type === "NEGATIVE" ? "warning" : "success") : "default"}
-                      label={sample.report ? (sample.latest_report_type === "NEGATIVE" ? "Created (NR)" : "Created") : "Pending"}
+                      color={
+                        sample.report
+                          ? sample.latest_report_type === "NEGATIVE"
+                            ? "warning"
+                            : "success"
+                          : "default"
+                      }
+                      label={
+                        sample.report
+                          ? sample.latest_report_type === "NEGATIVE"
+                            ? "Created (NR)"
+                            : "Created"
+                          : "Pending"
+                      }
                     />
                   </td>
                   {tab === "finished" && (
                     <td>
                       {sample.latest_report_id ? (
                         <a
-                          href={applicationUrl(`/api/v1/reports/${sample.latest_report_oid}/artifact`)}
+                          href={applicationUrl(
+                            `/api/v1/reports/${sample.latest_report_oid}/artifact`,
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:text-blue-700 font-medium text-sm"
@@ -261,16 +336,14 @@ export function WorklistPage() {
               {!query.isLoading && !query.data?.items.length && (
                 <tr>
                   <td colSpan={8} className="empty-cell">
-                    No samples found! 
+                    No samples found!
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        <Box
-          className="p-4 flex justify-between items-center"
-        >
+        <Box className="p-4 flex justify-between items-center">
           <Typography variant="body2" color="text.secondary">
             {query.data?.total ?? 0} samples
           </Typography>

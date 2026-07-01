@@ -46,6 +46,16 @@ class FakeSessions:
 
 
 class FakeCollections:
+    class Users:
+        last_update = None
+
+        def update_one(self, query, update):
+            type(self).last_update = (query, update)
+
+    def __init__(self) -> None:
+        self.Users.last_update = None
+        self.users = self.Users()
+
     def ping(self) -> None:
         return None
 
@@ -96,6 +106,9 @@ def test_login_me_and_csrf_protected_logout() -> None:
         assert login.status_code == 200
         assert login.json()["user"]["fullname"] == "Example Analyst"
         assert login.json()["provider"] == "ldap"
+        last_login_query, last_login_update = FakeCollections.Users.last_update
+        assert last_login_query == {"username": "analyst"}
+        assert last_login_update["$set"]["last_login"].tzinfo is not None
         assert "Path=/cll_genie" in login.headers["set-cookie"]
         assert test_client.cookies.get("cll_genie_session") == "opaque-token"
 

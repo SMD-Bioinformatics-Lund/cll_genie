@@ -71,6 +71,11 @@ def login(
             detail="The username, password, or authentication provider was not accepted",
         ) from exc
 
+    login_time = datetime.now(UTC)
+    services.collections.users.update_one(
+        {"username": user.username},
+        {"$set": {"last_login": login_time}},
+    )
     session = services.sessions.create(user, payload.provider)
     record_audit(
         services,

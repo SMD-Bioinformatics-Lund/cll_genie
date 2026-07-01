@@ -88,10 +88,14 @@ export async function updateUserSettings(
   payload: { fullname?: string; password?: string },
   csrfToken: string,
 ): Promise<{ updated: boolean }> {
-  return apiRequest<{ updated: boolean }>("/api/v1/auth/me", {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  }, csrfToken);
+  return apiRequest<{ updated: boolean }>(
+    "/api/v1/auth/me",
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+    csrfToken,
+  );
 }
 
 export async function login(
@@ -191,8 +195,6 @@ export function getJob(jobId: string): Promise<Job> {
   return apiRequest(`/api/v1/jobs/${jobId}`);
 }
 
-
-
 export function submitVquest(
   sampleId: string,
   sequences: any[],
@@ -221,17 +223,13 @@ export function deleteSubmission(
   );
 }
 
-export function deleteReport(
-  reportId: string,
-  csrfToken: string,
-) {
+export function deleteReport(reportId: string, csrfToken: string) {
   return apiRequest(
     `/api/v1/reports/${reportId}`,
     { method: "DELETE" },
     csrfToken,
   );
 }
-
 
 export function getSubmission(sampleId: string, submissionId: string) {
   return apiRequest<Record<string, unknown>>(
@@ -330,8 +328,14 @@ export function generateNegativeReport(
 }
 
 export function getSystemStatus() {
-  return apiRequest<{ database: string; imgt: string; version: string }>(
-    `/api/v1/health/system`
-  );
+  return apiRequest<{
+    api: string;
+    database: string;
+    imgt: string;
+    redis: string;
+    celery: string;
+    worker: string;
+    scheduler: string;
+    version: string;
+  }>(`/health/system`);
 }
-

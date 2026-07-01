@@ -15,7 +15,7 @@ class FakeSessions:
         ("admin",),
         "admin@example.test",
         None,
-        "local",
+        ("ldap", "local"),
     )
 
     def get(self, token: str) -> Session | None:
@@ -45,7 +45,7 @@ def client() -> tuple[TestClient, Collections]:
     return test_client, collections
 
 
-def test_create_local_user_stores_identity_and_hashed_password() -> None:
+def test_create_dual_login_user_stores_methods_and_hashed_password() -> None:
     test_client, collections = client()
     with test_client:
         response = test_client.post(
@@ -58,7 +58,7 @@ def test_create_local_user_stores_identity_and_hashed_password() -> None:
                 "lastname": "User",
                 "email": "local@example.test",
                 "roles": ["lymphotrack", "admin"],
-                "identity_provider": "local",
+                "allowed_login_methods": ["ldap", "local"],
                 "password": "local-password",
                 "enabled": True,
             },
@@ -66,12 +66,13 @@ def test_create_local_user_stores_identity_and_hashed_password() -> None:
 
     assert response.status_code == 201
     stored = collections.users.find_one({"username": "local-user"})
-    assert stored["identity_provider"] == "local"
+    assert stored["allowed_login_methods"] == ["ldap", "local"]
     assert check_password_hash(stored["password"], "local-password")
     assert stored["roles"] == ["admin", "lymphotrack"]
+    assert stored["last_login"] is None
 
 
-def test_switching_local_user_to_ldap_removes_local_password() -> None:
+def test_disabling_local_login_removes_local_password() -> None:
     test_client, collections = client()
     collections.users.insert_one(
         {
@@ -79,7 +80,7 @@ def test_switching_local_user_to_ldap_removes_local_password() -> None:
             "fullname": "Existing User",
             "email": "existing@example.test",
             "roles": ["lymphotrack"],
-            "identity_provider": "local",
+            "allowed_login_methods": ["ldap", "local"],
             "password": generate_password_hash("old-password", method="pbkdf2:sha256"),
             "enabled": True,
         }
@@ -89,10 +90,10 @@ def test_switching_local_user_to_ldap_removes_local_password() -> None:
         response = test_client.patch(
             "/cll_genie/api/v1/admin/users/existing-user",
             headers={"X-CSRF-Token": "csrf"},
-            json={"identity_provider": "ldap"},
+            json={"allowed_login_methods": ["ldap"]},
         )
 
     assert response.status_code == 200
     stored = collections.users.find_one({"username": "existing-user"})
-    assert stored["identity_provider"] == "ldap"
+    assert stored["allowed_login_methods"] == ["ldap"]
     assert "password" not in stored

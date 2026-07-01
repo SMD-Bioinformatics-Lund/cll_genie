@@ -40,6 +40,11 @@ def test_ldap_authentication_uses_coyote_search_settings(monkeypatch) -> None:
     server_arguments = {}
     connection_arguments = []
     search_arguments = {}
+    tls_arguments = {}
+
+    def fake_tls(**kwargs):
+        tls_arguments.update(kwargs)
+        return object()
 
     def fake_server(host, **kwargs):
         server_arguments.update({"host": host, **kwargs})
@@ -69,12 +74,14 @@ def test_ldap_authentication_uses_coyote_search_settings(monkeypatch) -> None:
 
     monkeypatch.setattr(authentication, "Server", fake_server)
     monkeypatch.setattr(authentication, "Connection", FakeConnection)
+    monkeypatch.setattr(authentication, "Tls", fake_tls)
 
     LdapAuthenticator(ldap_settings()).authenticate(directory_user(), "user-password")
 
     assert server_arguments["host"] == "ldap.example.test"
     assert server_arguments["port"] == 389
     assert server_arguments["use_ssl"] is False
+    assert tls_arguments["validate"] == authentication.ssl.CERT_REQUIRED
     assert search_arguments["base"] == "ou=people,dc=example,dc=test"
     assert search_arguments["filter"] == "(mail=user@example.test)"
     assert connection_arguments[0]["user"] == "cn=service,dc=example,dc=test"
@@ -84,6 +91,37 @@ def test_ldap_authentication_uses_coyote_search_settings(monkeypatch) -> None:
         "mail=user@example.test,ou=people,dc=example,dc=test"
     )
     assert connection_arguments[1]["password"] == "user-password"
+
+
+def test_ldap_certificate_validation_can_be_disabled_explicitly(monkeypatch) -> None:
+    tls_arguments = {}
+
+    def fake_tls(**kwargs):
+        tls_arguments.update(kwargs)
+        return object()
+
+    class FakeConnection:
+        def __init__(self, _server, **_kwargs) -> None:
+            self.entries = [SimpleNamespace(entry_dn="mail=user@example.test,dc=example,dc=test")]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback) -> None:
+            return None
+
+        def search(self, *_args, **_kwargs) -> bool:
+            return True
+
+    monkeypatch.setattr(authentication, "Tls", fake_tls)
+    monkeypatch.setattr(authentication, "Server", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(authentication, "Connection", FakeConnection)
+
+    LdapAuthenticator(ldap_settings(ldap_tls_validate=False)).authenticate(
+        directory_user(), "user-password"
+    )
+
+    assert tls_arguments["validate"] == authentication.ssl.CERT_NONE
 
 
 def test_ldap_rejects_simultaneous_ssl_and_starttls() -> None:

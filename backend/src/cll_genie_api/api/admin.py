@@ -203,9 +203,7 @@ def list_users(
     assert_role(session, ["admin", "lymphotrack_admin"])
     users = list(services.collections.users.find({}).sort("username", 1))
     for user in users:
-        user["identity_provider"] = user.get("identity_provider") or (
-            "local" if user.get("password") else "ldap"
-        )
+        user["allowed_login_methods"] = user.get("allowed_login_methods", [])
         user.pop("password", None)
     return serialize(users)
 
@@ -223,6 +221,7 @@ def create_user(
         {
             "created_at": now,
             "updated_at": now,
+            "last_login": None,
             "created_by": session.user.username,
             "updated_by": session.user.username,
         }
@@ -236,7 +235,7 @@ def create_user(
     record_audit(
         services,
         "user.created",
-        f"{payload.identity_provider.upper()} user {document['username']} was created",
+        f"User {document['username']} was created",
         category="identity",
         actor=session.user,
         provider=session.provider,
@@ -247,7 +246,7 @@ def create_user(
         metadata={
             "roles": document.get("roles", []),
             "enabled": document.get("enabled", True),
-            "identity_provider": payload.identity_provider,
+            "allowed_login_methods": payload.allowed_login_methods,
         },
     )
     return {"user_id": str(result.inserted_id), "username": document["username"]}
@@ -264,16 +263,23 @@ def update_user(
     existing = services.collections.users.find_one({"username": username})
     if existing is None:
         raise HTTPException(status_code=404, detail="User not found")
-    current_identity = existing.get("identity_provider") or (
-        "local" if existing.get("password") else "ldap"
-    )
-    target_identity = payload.identity_provider or current_identity
-    if payload.password and target_identity != "local":
-        raise HTTPException(status_code=422, detail="LDAP users cannot have a local password")
-    if target_identity == "local" and not payload.password and not existing.get("password"):
+    current_methods = existing.get("allowed_login_methods", [])
+    if payload.allowed_login_methods is None and not current_methods:
         raise HTTPException(
             status_code=422,
-            detail="Set a password when changing an LDAP user to local authentication",
+            detail="Configure at least one allowed login method for this user",
+        )
+    target_methods = (
+        payload.allowed_login_methods
+        if payload.allowed_login_methods is not None
+        else current_methods
+    )
+    if payload.password and "local" not in target_methods:
+        raise HTTPException(status_code=422, detail="Local login is not allowed for this user")
+    if "local" in target_methods and not payload.password and not existing.get("password"):
+        raise HTTPException(
+            status_code=422,
+            detail="Set a password when enabling local login",
         )
 
     values = payload.model_dump(exclude_none=True, exclude={"password"})
@@ -283,7 +289,7 @@ def update_user(
         return {"updated": False}
     values.update({"updated_at": datetime.now(UTC), "updated_by": session.user.username})
     update_document: dict = {"$set": values}
-    if target_identity == "ldap" and existing.get("password"):
+    if "local" not in target_methods and existing.get("password"):
         update_document["$unset"] = {"password": ""}
     try:
         services.collections.users.update_one({"username": username}, update_document)
@@ -294,7 +300,7 @@ def update_user(
     )
     if payload.password:
         changed_fields.append("password")
-    if target_identity == "ldap" and existing.get("password"):
+    if "local" not in target_methods and existing.get("password"):
         changed_fields.append("password_removed")
     record_audit(
         services,
@@ -309,7 +315,7 @@ def update_user(
         tags=["user-management", "identity", "configuration-change"],
         metadata={
             "changed_fields": changed_fields,
-            "identity_provider": target_identity,
+            "allowed_login_methods": target_methods,
         },
     )
     return {"updated": True}

@@ -46,10 +46,11 @@ class Settings(BaseSettings):
     ldap_user_login_attr: str = "mail"
     ldap_use_ssl: bool = False
     ldap_use_tls: bool = True
+    ldap_tls_validate: bool = True
     ldap_binddn: str | None = None
     ldap_secret: str | None = None
     ldap_user_dn: str | None = None
-    ldap_connect_timeout_seconds: float = 5.0
+    ldap_connect_timeout_seconds: int = 5
     log_root: Path = Path("/var/log/cll-genie")
     log_service_name: str = "api"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"

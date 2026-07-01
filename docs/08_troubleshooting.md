@@ -1,30 +1,30 @@
-# 8. Troubleshooting & Errors
+# 8. Troubleshooting
 
-While CLL Genie automates the heavy lifting, environmental issues or external service outages can cause errors. Below are common issues and how to resolve them.
+This guide lists common runtime symptoms, diagnostic commands, and corrective actions.
 
 ## V-QUEST / IMGT Errors
 
 Because CLL Genie relies on scraping the external IMGT/V-QUEST web service, it is susceptible to IMGT downtime.
 
-- **`IMGT/V-QUEST returned HTTP 502/503`**: IMGT is currently down for maintenance or overloaded. Wait 15 minutes and retry the submission.
+- **`IMGT/V-QUEST returned HTTP 502/503`**: IMGT may be unavailable for maintenance or overloaded. Wait 15 minutes and retry the submission.
 - **`IMGT/V-QUEST could not be reached`**: The Celery worker cannot access the internet, or IMGT's servers are completely offline.
 - **`IMGT/V-QUEST returned an unexpected response`**: IMGT may have changed their HTML layout, breaking the scraper. Contact an administrator to update the `vquest.py` parser.
 
 > [!TIP]
-> If a submission fails, it will be marked as `ERROR` in the UI. You do not need to delete the sample; you can simply create a new submission once the issue is resolved.
+> A failed submission is marked as `ERROR` in the UI. Retain the sample and create another submission after resolving the underlying issue.
 
 ## Upload and Parsing Errors
 
-- **`Missing required columns`**: The LymphoTrack Excel file does not contain the exact column headers expected (e.g., `Rank`, `Sequence`, `% total reads`). Ensure you are uploading the *Merged Read Summary* worksheet.
+- **`Missing required columns`**: The LymphoTrack Excel file does not contain the exact column headers expected (e.g., `Rank`, `Sequence`, `% total reads`). Ensure you are uploading the _Merged Read Summary_ worksheet.
 - **`The LymphoTrack QC file is invalid`**: The uploaded QC document is not a valid text-based TSV/CSV format or is missing the `totalCount` or `countQ30` keys.
 
 ## Application State Errors
 
-- **Missing Artifact ID**: An older bug that occurred when reports were generated but the PDF generation failed silently. If you encounter this, hide the broken report and click "Generate Report" again to spin up a fresh artifact.
+- **Missing Artifact ID**: The report record does not reference a usable generated artifact. Hide the affected report, review API and worker logs for the PDF-generation error, and generate the report again.
 
 ## Checking Docker Logs
 
-For administrators troubleshooting deeper issues, the Docker logs are your best friend.
+Container logs provide the primary runtime diagnostics for the API, worker, and scheduler.
 
 ```bash
 # View backend API logs
@@ -47,16 +47,22 @@ Runtime diagnostics are JSON Lines files named `cll-genie-api.json.log`, `cll-ge
 
 The worker reports `ServerSelectionTimeoutError`, often mentioning `host.docker.internal:27017` or `Connection refused`.
 
-### Development fix
+### Resolution
 
-Docker-based development must use `MONGODB_URI=mongodb://mongo:27017` from `.env.dev`. The host-published `MONGO_DEV_PORT` is for tools running on the host and must not be used by application containers.
+Use a `MONGODB_URI` that is reachable from the application containers:
+
+- Compose MongoDB: `mongodb://mongo:27017`, with the `mongo` profile enabled.
+- Host-installed MongoDB: use the Docker host address, verify the active bridge gateway, and permit traffic from the Docker network.
+- Remote MongoDB: use its reachable DNS name or IP address and required connection options.
+
+Do not use `localhost` or `127.0.0.1` for a host-installed MongoDB service because those addresses refer to the application container itself.
 
 Recreate the affected services with the complete development command:
 
 ```bash
 docker compose --env-file .env.dev \
   -f compose.yaml -f compose.dev.yaml \
-  --profile mongo up -d --force-recreate worker scheduler
+  up -d --force-recreate worker scheduler
 ```
 
 Verify connectivity from the worker:
@@ -64,9 +70,11 @@ Verify connectivity from the worker:
 ```bash
 docker compose --env-file .env.dev \
   -f compose.yaml -f compose.dev.yaml \
-  --profile mongo exec worker python -c \
+  exec worker python -c \
   "from cll_genie_api.infrastructure.mongo import get_collections; print(get_collections().samples.count_documents({}))"
 ```
+
+Add `--profile mongo` to these commands when using the optional Compose MongoDB service.
 
 Do not run a plain `docker compose up` for development: it omits `compose.dev.yaml` and may recreate services using `.env` production/base settings.
 
