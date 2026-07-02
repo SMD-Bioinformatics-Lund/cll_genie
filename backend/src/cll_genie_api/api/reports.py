@@ -67,7 +67,7 @@ def generate_report(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
+    assert_role(session, ["user", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
@@ -147,7 +147,11 @@ def generate_report(
             "rule_matches": len(trace),
         },
     )
-    return {"report_id": report_id, "display_report_id": display_report_id, "artifact": serialize(artifact)}
+    return {
+        "report_id": report_id,
+        "display_report_id": display_report_id,
+        "artifact": serialize(artifact),
+    }
 
 
 @router.post(
@@ -161,7 +165,7 @@ def preview_report(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
+    assert_role(session, ["user", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
@@ -200,7 +204,7 @@ def download_report_pdf(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
+    assert_role(session, ["user", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
@@ -239,7 +243,7 @@ def generate_negative_report(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
+    assert_role(session, ["user", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
         raise HTTPException(status_code=404, detail="Sample not found")
@@ -290,7 +294,11 @@ def generate_negative_report(
         tags=["report", "negative", "clinical-output"],
         metadata={"sample_id": sample_id, "artifact_id": str(artifact["_id"])},
     )
-    return {"report_id": report_id, "display_report_id": display_report_id, "artifact": serialize(artifact)}
+    return {
+        "report_id": report_id,
+        "display_report_id": display_report_id,
+        "artifact": serialize(artifact),
+    }
 
 
 @router.get("/samples/{sample_id}/reports")
@@ -300,6 +308,8 @@ def list_reports(
     services: Annotated[Services, Depends(get_services)],
 ):
     reports = services.reports.list_for_sample(sample_id)
+    if not session.user.can_moderate:
+        reports = [report for report in reports if not report.get("hidden")]
     return serialize(reports)
 
 
@@ -309,6 +319,8 @@ def all_reports(
     services: Annotated[Services, Depends(get_services)],
 ):
     reports = services.reports.list_all()
+    if not session.user.can_moderate:
+        reports = [report for report in reports if not report.get("hidden")]
     return serialize(reports)
 
 
@@ -344,7 +356,7 @@ def report_artifact(
     return FileResponse(
         stored[1],
         media_type="text/html; charset=utf-8",
-        headers={"Content-Disposition": f"inline; filename=\"{stored[0]['filename']}\""},
+        headers={"Content-Disposition": f'inline; filename="{stored[0]["filename"]}"'},
     )
 
 

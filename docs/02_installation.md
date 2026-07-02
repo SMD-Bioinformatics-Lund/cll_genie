@@ -78,16 +78,19 @@ The Worklist system-status panel performs the same configured-client ping. It do
 | Variable             | Example             | Purpose                                                                                                                                                            |
 | -------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `APP_NAME`           | `CLL Genie`         | Application title exposed in API metadata.                                                                                                                         |
-| `APP_VERSION`        | `2.0.0`             | Version reported by health, authentication, API, and generated-report metadata.                                                                                    |
 | `ENVIRONMENT`        | `development`       | Runtime mode: `development`, `test`, `validation`, or `production`. Production disables the interactive API documentation and enables production logging behavior. |
 | `APPLICATION_PREFIX` | `/cll_genie`        | URL prefix used by health endpoints and the session cookie path.                                                                                                   |
 | `API_PREFIX`         | `/cll_genie/api/v1` | URL prefix applied to the versioned API routes and API documentation.                                                                                              |
 | `CLL_GENIE_PORT`     | `8080`              | Host port mapped to the Nginx proxy. The UI is served from this port.                                                                                              |
 | `MONGO_DEV_PORT`     | `27017`             | Host port published by the optional Compose MongoDB service. It is unused when MongoDB runs outside Compose.                                                       |
+| `APP_UID`            | `10001`             | Numeric user ID used by the API, worker, and scheduler containers. Use `id -u`; do not enter a username.                                                            |
+| `APP_GID`            | `10001`             | Numeric group ID used by the API, worker, and scheduler containers. Use `id -g`; do not enter a group name.                                                         |
+
+The application version is defined once in `backend/src/cll_genie_api/version.py`. Python package metadata, API metadata, health responses, reports, and the frontend build all read that file. The version is not an environment setting.
 
 ### Container resource limits
 
-Every container has an environment-controlled hard CPU and memory ceiling. CPU values represent CPU cores and may be fractional. Memory values use Docker units such as `128M`, `1G`, or `2G`.
+Every container has a Compose-controlled hard CPU and memory ceiling. CPU values represent CPU cores and may be fractional. Memory values use Docker units such as `128M`, `1G`, or `2G`.
 
 | Variable                                         | Development default | Container                                 |
 | ------------------------------------------------ | ------------------: | ----------------------------------------- |
@@ -101,7 +104,7 @@ Every container has an environment-controlled hard CPU and memory ceiling. CPU v
 
 These are upper limits, not reservations. A container may use less. When it reaches its CPU ceiling, Docker throttles it. When it exceeds its memory ceiling, the process may be terminated as out-of-memory, so production limits must be sized from observed workload. The worker needs the largest allowance because workbook parsing, IMGT ZIP parsing, report preparation, and concurrent Celery processes can overlap.
 
-All variables are required by the relevant Compose service. This prevents an accidental unlimited deployment when a value is omitted. The production `.env` may use different limits from `.env.dev` without changing Compose YAML.
+These values are Compose settings, not Python application settings. They are kept in the environment file because Docker applies them before the Python process starts. The production `.env` may use different limits from `.env.dev` without changing Compose YAML.
 
 Inspect live consumption and configured ceilings with:
 
@@ -112,23 +115,29 @@ docker inspect cll-genie-worker --format \
   'memory={{.HostConfig.Memory}} bytes nano_cpus={{.HostConfig.NanoCpus}}'
 ```
 
-### Databases, collections, and Celery
+### Databases and Celery
 
 | Variable               | Example                                  | Purpose                                                                                                                                            |
 | ---------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MONGODB_URI`          | `mongodb://mongo.example.internal:27017` | MongoDB connection URI used by the API, worker, and scheduler. It may reference the Compose service, the Docker host, or another reachable server. |
 | `APPLICATION_DATABASE` | `cll_genie`                              | MongoDB database containing users, sessions, application data, and analysis data.                                                                  |
-| `USERS_COLLECTION`     | `users`                                  | Application-database collection containing local user profiles, roles, and optional local password hashes.                                         |
-| `SESSIONS_COLLECTION`  | `cll_genie_sessions`                     | Application-database collection containing active login sessions and their expiry times.                                                           |
-| `SAMPLES_COLLECTION`   | `samples`                                | Application-database collection containing registered sequencing samples and QC metadata.                                                          |
-| `RESULTS_COLLECTION`   | `vquest_results`                         | Application-database collection containing IMGT/V-QUEST submissions, results, and comments.                                                        |
-| `JOBS_COLLECTION`      | `analysis_jobs`                          | Application-database collection tracking asynchronous analysis-job status and progress.                                                            |
-| `COUNTERS_COLLECTION`  | `submission_counters`                    | Application-database collection allocating sequential submission IDs per sample.                                                                   |
-| `ARTIFACTS_COLLECTION` | `artifacts`                              | Application-database collection containing metadata for stored report and analysis files.                                                          |
-| `REPORTS_COLLECTION`   | `reports`                                | Application-database collection containing generated report records and visibility state.                                                          |
-| `RULES_COLLECTION`     | `report_rules`                           | Application-database collection containing clinical report interpretation rules.                                                                   |
 | `REDIS_URL`            | `redis://redis:6379/0`                   | Redis URL used as both the Celery broker and result backend.                                                                                       |
 | `CELERY_EAGER`         | `false`                                  | When `true`, executes Celery tasks synchronously in the calling process. Intended for tests, not normal deployments.                               |
+
+Collection names are stable Python defaults and are normally not listed in `.env`. They remain overrideable for migrations or coexistence with legacy data:
+
+| Optional override       | Default                  | Collection contents                                                                                     |
+| ----------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `USERS_COLLECTION`      | `users`                  | Local user profiles, roles, login methods, optional local password hashes, and `last_login`.             |
+| `SESSIONS_COLLECTION`   | `cll_genie_sessions`     | Active login sessions and expiry timestamps.                                                            |
+| `SAMPLES_COLLECTION`    | `samples`                | Registered sequencing samples and LymphoTrack QC metadata.                                              |
+| `RESULTS_COLLECTION`    | `vquest_results`         | IMGT/V-QUEST submissions, parsed results, ZIP metadata, and comments.                                   |
+| `JOBS_COLLECTION`       | `analysis_jobs`          | Asynchronous analysis-job status, progress, and worker messages.                                        |
+| `COUNTERS_COLLECTION`   | `submission_counters`    | Sequential submission counters per sample.                                                              |
+| `ARTIFACTS_COLLECTION`  | `artifacts`              | Metadata for uploaded workbooks, QC files, generated reports, and analysis artifacts.                    |
+| `REPORTS_COLLECTION`    | `reports`                | Generated clinical report records and visibility state.                                                 |
+| `RULES_COLLECTION`      | `report_rules`           | Clinical report interpretation rules.                                                                   |
+| `AUDIT_EVENTS_COLLECTION` | `audit_events`         | Security and business audit events.                                                                     |
 
 ### Authentication and sessions
 
@@ -161,14 +170,14 @@ LDAP authentication does not automatically provision application users. The subm
 
 ### Filesystem and ingestion
 
-Compose bind-mounts each configured host path at the same absolute path inside the services that consume it. Container UID/GID `10001` requires the following access:
+Compose bind-mounts each configured host path at the same absolute path inside the services that consume it. The API, worker, and scheduler run as `APP_UID:APP_GID`; those IDs require the following access:
 
 - `LOG_ROOT`: writable by the API, worker, and scheduler.
 - `ARTIFACT_ROOT`: writable by the API and worker.
 - `RUN_ROOT`: writable by the worker because successful ingestion creates `RUN_CLL_GENIE_MARKER`.
 - `LYMPHOTRACK_RESULTS_ROOT`: readable by the API and worker; the Compose mount is read-only.
 
-Create writable output directories before starting Compose, substituting the paths configured in `.env`:
+For a dedicated service account, keep `APP_UID=10001` and `APP_GID=10001`, then create writable output directories before starting Compose:
 
 ```bash
 sudo install -d -o 10001 -g 10001 \
@@ -177,13 +186,14 @@ sudo install -d -o 10001 -g 10001 \
   /data/MiSeq
 ```
 
+For development, set `APP_UID=$(id -u)` and `APP_GID=$(id -g)` in `.env.dev` if uploaded artifacts and logs should be owned by the developer account on the host. Existing files created by another UID need to be corrected once with `chown` before the new runtime UID can overwrite them.
+
 | Variable                   | Example                                    | Purpose                                                                                                                     |
 | -------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `LOG_ROOT`                 | `/data/cll-genie/logs`                     | Root directory for rotating API, worker, and scheduler JSON logs.                                                           |
 | `LOG_LEVEL`                | `INFO`                                     | Minimum runtime file/stdout severity.                                                                                       |
 | `LOG_FILE_ENABLED`         | `true`                                     | Enables daily rotating files in addition to stdout.                                                                         |
 | `LOG_RETENTION_DAYS`       | `30`                                       | Number of rotated daily runtime files retained per service.                                                                 |
-| `AUDIT_EVENTS_COLLECTION`  | `audit_events`                             | Append-only MongoDB collection for security and business events.                                                            |
 | `AUDIT_RETENTION_DAYS`     | `730`                                      | Days retained before MongoDB's TTL index removes an audit event.                                                            |
 | `ARTIFACT_ROOT`            | `/data/cll-genie/artifacts`                | Root directory for generated reports and downloaded analysis artifacts.                                                     |
 | `LYMPHOTRACK_RESULTS_ROOT` | `/data/lymphotrack/results/lymphotrack_dx` | Root directory recursively scanned for LymphoTrack Excel and QC result files.                                               |
@@ -236,7 +246,7 @@ After startup, access the application at `http://localhost:<CLL_GENIE_PORT><APPL
 
 ## Initial User
 
-CLL Genie does not create a default account. Before the first login, create or import at least one enabled user with an `admin` or `lymphotrack_admin` role in `APPLICATION_DATABASE.USERS_COLLECTION`. See [User Management](09_user_management.md#user-document-schema) for the document schema. LDAP authenticates the password but does not create the local authorization record.
+CLL Genie does not create a default account. Before the first login, create or import one enabled user with the `admin` role in `APPLICATION_DATABASE.USERS_COLLECTION`. A `lymphotrack_admin` cannot manage users or application settings. See [User Management](09_user_management.md#user-document-schema) for the document schema. LDAP authenticates the password but does not create the local authorization record.
 
 ## Architecture Diagram (Logical)
 

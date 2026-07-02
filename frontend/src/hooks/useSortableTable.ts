@@ -24,9 +24,11 @@ export function useSortableTable<T>(
     if (!sortKey) return data;
 
     return [...data].sort((a, b) => {
-      // Handle nested keys like "user.name"
-      const getVal = (obj: any, path: string) => {
-        return path.split(".").reduce((acc, part) => acc && acc[part], obj);
+      const getVal = (obj: T, path: string): unknown => {
+        return path.split(".").reduce<unknown>((value, part) => {
+          if (typeof value !== "object" || value === null) return undefined;
+          return (value as Record<string, unknown>)[part];
+        }, obj);
       };
 
       const valA = getVal(a, sortKey as string);
@@ -36,12 +38,10 @@ export function useSortableTable<T>(
       if (valA === null || valA === undefined) return 1;
       if (valB === null || valB === undefined) return -1;
 
-      // Handle numbers
       if (typeof valA === "number" && typeof valB === "number") {
         return sortOrder === "asc" ? valA - valB : valB - valA;
       }
 
-      // Fallback to string comparison
       const strA = String(valA).toLowerCase();
       const strB = String(valB).toLowerCase();
 

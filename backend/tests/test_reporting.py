@@ -1,5 +1,6 @@
 import pytest
 
+from cll_genie_api import __version__
 from cll_genie_api.reporting.clinical import mutation_status, report_facts, suggested_summary
 from cll_genie_api.reporting.render import ReportRenderer
 from cll_genie_api.reporting.rules import RuleValidationError, evaluate, render_rules
@@ -65,12 +66,12 @@ def test_clarity_report_has_parity_fields_and_escapes_summary() -> None:
         summary="Reviewed <script>alert(1)</script>",
         author="Test User",
         report_id="report-id",
-        app_version="2.0.0",
+        app_version=__version__,
         analysis_run_at="SMD",
     )
     assert "&lt;PATIENT_NAME&gt;" in html
     assert "IGHV-mutationsstatus" in html
     assert "Detaljerade analysresultat" in html
-    assert "report-id" in html and "2.0.0" in html
+    assert "report-id" in html and __version__ in html
     assert "<script>" not in html
     assert "&lt;script&gt;" in html

@@ -37,7 +37,7 @@ def list_audit_logs(
     to_time: Annotated[datetime | None, Query(alias="to")] = None,
 ):
     """Return filterable, newest-first audit events from MongoDB."""
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     query: dict = {}
     if severity:
         if severity not in {"info", "warning", "error", "critical"}:
@@ -114,7 +114,7 @@ def list_rules(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     return serialize(services.rules.list())
 
 
@@ -124,7 +124,7 @@ def create_rule(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     try:
         evaluate(payload.condition, _simulation_facts())
         rule_id = services.rules.create(
@@ -157,7 +157,7 @@ def update_rule(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     try:
         evaluate(payload.condition, _simulation_facts())
     except RuleValidationError as exc:
@@ -185,7 +185,7 @@ def simulate_rule(
     payload: RuleRequest,
     session: Annotated[Session, Depends(require_csrf)],
 ):
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     facts = _simulation_facts()
     try:
         matched = evaluate(payload.condition, facts)
@@ -200,7 +200,7 @@ def list_users(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     users = list(services.collections.users.find({}).sort("username", 1))
     for user in users:
         user["allowed_login_methods"] = user.get("allowed_login_methods", [])
@@ -214,7 +214,7 @@ def create_user(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     now = datetime.now(UTC)
     document = payload.model_dump(exclude={"password"})
     document.update(
@@ -259,7 +259,7 @@ def update_user(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["admin", "lymphotrack_admin"])
+    assert_role(session, ["admin"])
     existing = services.collections.users.find_one({"username": username})
     if existing is None:
         raise HTTPException(status_code=404, detail="User not found")

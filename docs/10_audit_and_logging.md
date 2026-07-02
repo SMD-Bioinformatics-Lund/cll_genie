@@ -34,7 +34,7 @@ Audit writes are append-only. Application workflows do not update or reuse exist
   actor: {
     username: "jsmith",
     fullname: "Jane Smith",
-    roles: ["lymphotrack"],
+    roles: ["user"],
     provider: "local" | "ldap" | null
   },
   resource: {
@@ -69,7 +69,7 @@ Severity describes operational importance; `outcome` independently records wheth
 
 ## Recorded event families
 
-The current implementation records successful and failed login, logout, missing/invalid sessions, authorization denials, profile changes, user administration, report-rule changes, LymphoTrack workbook/QC uploads, V-QUEST queue/success/failure, comments, report creation/download/hide/restore, and permanent submission deletion.
+The current implementation records successful and failed login, logout, missing or invalid sessions, authorization denials, profile changes, user administration, report-rule changes, sample registration and duplicate-name skips, LymphoTrack attachment and uploads, V-QUEST queue/success/failure, comments, report creation/access/hide/restore, and permanent sample or submission deletion.
 
 Resource metadata includes useful, non-sensitive measurements where available: uploaded file size, selected sequence count (never sequences), V-QUEST option names, rule match count, job ID, sample ID, submission ID, report ID, and artifact ID. These fields support activity and resource-volume monitoring without turning MongoDB into an operational log sink.
 
@@ -89,7 +89,7 @@ Index initialization is independent per index. If existing data violates a uniqu
 
 ## Administration UI and API
 
-Users with `admin` or `lymphotrack_admin` roles can open **Administration → Audit logs**. The page shows severity totals, newest-first events, actor/IP, affected resource, outcome, tags, request correlation, safe metadata, and expiry. Filters cover severity, category, username, and free text across message, event type, resource identifiers, resource names, and tags. Results are server-paginated at 50 events per page and refresh every 30 seconds.
+Only users with the `admin` role can open **Administration → Audit logs**. The page shows severity totals, newest-first events, actor/IP, affected resource, outcome, tags, request correlation, safe metadata, and expiry. Filters cover severity, category, username, and free text across message, event type, resource identifiers, resource names, and tags. Results are server-paginated at 50 events per page and refresh every 30 seconds.
 
 The UI calls:
 

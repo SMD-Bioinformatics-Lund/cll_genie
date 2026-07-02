@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 
 from cll_genie_api.api.common import serialize
 from cll_genie_api.api.dependencies import (
@@ -39,6 +40,39 @@ def _attempted_upload_metadata(file: UploadFile) -> dict:
     }
 
 
+def _latest_submission_id(submissions: dict) -> str | None:
+    if not submissions:
+        return None
+
+    def sort_key(item: tuple[str, dict]) -> tuple[str, str]:
+        submission_id, submission = item
+        return (str(submission.get("data_added") or ""), submission_id)
+
+    return max(submissions.items(), key=sort_key)[0]
+
+
+def _enrich_sample_summary(sample: dict, services: Services) -> dict:
+    sample_id = str(sample["_id"])
+    result_document = services.vquest.get(sample_id)
+    submissions = (result_document or {}).get("results", {})
+    reports = [
+        report for report in services.reports.list_for_sample(sample_id) if not report.get("hidden")
+    ]
+    latest_report = reports[0] if reports else None
+    sample["vquest"] = bool(submissions)
+    sample["report"] = bool(reports)
+    sample["latest_submission_id"] = _latest_submission_id(submissions)
+    if latest_report:
+        sample["latest_report_oid"] = latest_report["_id"]
+        sample["latest_report_id"] = latest_report.get("display_id")
+        sample["latest_report_type"] = latest_report.get("report_type")
+    else:
+        sample["latest_report_oid"] = None
+        sample["latest_report_id"] = None
+        sample["latest_report_type"] = None
+    return sample
+
+
 @router.get("")
 def list_samples(
     session: Annotated[Session, Depends(get_current_session)],
@@ -55,6 +89,7 @@ def list_samples(
         skip=(page - 1) * page_size,
         limit=min(page_size, services.settings.page_size_max),
     )
+    samples = [_enrich_sample_summary(sample, services) for sample in samples]
     return {"items": serialize(samples), "total": total, "page": page, "page_size": page_size}
 
 
@@ -87,7 +122,7 @@ def upload_excel(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
+    assert_role(session, ["user", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
         record_audit(
@@ -173,7 +208,7 @@ def upload_qc(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
+    assert_role(session, ["user", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
         record_audit(
@@ -261,6 +296,48 @@ def upload_qc(
     return {"artifact": serialize(artifact), "qc": qc_values}
 
 
+@router.get("/{sample_id}/artifacts/{kind}")
+def download_sample_artifact(
+    sample_id: str,
+    kind: str,
+    session: Annotated[Session, Depends(get_current_session)],
+    services: Annotated[Services, Depends(get_services)],
+):
+    sample = services.samples.get(sample_id)
+    if sample is None:
+        raise HTTPException(status_code=404, detail="Sample not found")
+    artifact_fields = {
+        "lymphotrack-excel": "lymphotrack_excel_artifact_id",
+        "lymphotrack-qc": "lymphotrack_qc_artifact_id",
+    }
+    if kind not in artifact_fields:
+        raise HTTPException(status_code=404, detail="Artifact type not found")
+    artifact_id = sample.get(artifact_fields[kind])
+    if not artifact_id:
+        raise HTTPException(status_code=404, detail="Artifact has not been uploaded")
+    stored = services.artifacts.get(artifact_id)
+    if stored is None or not stored[1].is_file():
+        raise HTTPException(status_code=404, detail="Artifact file is unavailable")
+    record_audit(
+        services,
+        f"sample.{kind.replace('-', '_')}.downloaded",
+        "A sample input artifact was downloaded",
+        category="activity",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="sample",
+        resource_id=sample_id,
+        resource_name=sample.get("name"),
+        tags=["sample", "download", "lymphotrack", "artifact"],
+        metadata={"artifact_id": str(artifact_id), "kind": kind},
+    )
+    return FileResponse(
+        stored[1],
+        media_type=stored[0].get("media_type") or "application/octet-stream",
+        filename=stored[0].get("filename") or f"{kind}.bin",
+    )
+
+
 @router.post("/{sample_id}/preview-sequences", status_code=status.HTTP_200_OK)
 def preview_sequences(
     sample_id: str,
@@ -268,7 +345,7 @@ def preview_sequences(
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["lymphotrack", "lymphotrack_admin", "admin"])
+    assert_role(session, ["user", "lymphotrack_admin", "admin"])
     sample = services.samples.get(sample_id)
     if sample is None:
         raise HTTPException(status_code=404, detail="Sample not found")
@@ -299,14 +376,47 @@ def preview_sequences(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"sequences": sequences}
 
+
+@router.patch("/{sample_id}")
+def update_sample(
+    sample_id: str,
+    payload: dict,
+    session: Annotated[Session, Depends(require_csrf)],
+    services: Annotated[Services, Depends(get_services)],
+):
+    assert_role(session, ["admin"])
+    sample = services.samples.get(sample_id)
+    if sample is None:
+        raise HTTPException(status_code=404, detail="Sample not found")
+    values = {key: value for key, value in payload.items() if key != "_id"}
+    if not values:
+        raise HTTPException(status_code=422, detail="No editable sample fields were provided")
+    services.samples.update(sample_id, values)
+    record_audit(
+        services,
+        "sample.updated",
+        "Sample fields were updated by an application administrator",
+        severity="warning",
+        category="data",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="sample",
+        resource_id=sample_id,
+        resource_name=sample.get("name"),
+        tags=["sample", "administration", "configuration-change"],
+        metadata={"changed_fields": sorted(values)},
+    )
+    return {"updated": True}
+
+
 @router.delete("/{sample_id}", status_code=204)
 def delete_sample(
     sample_id: str,
     session: Annotated[Session, Depends(require_csrf)],
     services: Annotated[Services, Depends(get_services)],
 ):
-    assert_role(session, ["admin"])
-    
+    assert_role(session, ["admin", "lymphotrack_admin"])
+
     sample = services.samples.get(sample_id)
     if not sample:
         raise HTTPException(status_code=404, detail="Sample not found")
@@ -327,28 +437,32 @@ def delete_sample(
     vquest_doc = services.vquest.get(sample_id)
     if vquest_doc and vquest_doc.get("results"):
         from pathlib import Path
-        for sub_id, sub_data in vquest_doc["results"].items():
+
+        for sub_data in vquest_doc["results"].values():
             zip_path = sub_data.get("results_zip_file")
             if zip_path:
                 try:
                     Path(zip_path).unlink(missing_ok=True)
                     relative = Path(zip_path).relative_to(services.artifacts.root)
-                    art_doc = services.artifacts.collection.find_one({"relative_path": str(relative)})
+                    art_doc = services.artifacts.collection.find_one(
+                        {"relative_path": str(relative)}
+                    )
                     if art_doc:
                         services.artifacts.delete(art_doc["_id"])
                 except Exception:
                     pass
         # Delete submissions from DB
         from cll_genie_api.infrastructure.repositories import object_id
+
         services.vquest.collection.delete_one({"_id": object_id(sample_id)})
 
     # Delete the sample itself
     services.samples.delete(sample_id)
-    
+
     record_audit(
         services,
         "sample.deleted",
-        "A sample and all its associated data (submissions, reports, artifacts) were permanently deleted",
+        "A sample and all its associated data was permanently deleted",
         severity="warning",
         category="data",
         actor=session.user,

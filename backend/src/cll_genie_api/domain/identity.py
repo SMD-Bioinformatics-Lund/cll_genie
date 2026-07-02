@@ -14,6 +14,11 @@ class LocalUser:
     allowed_login_methods: tuple[str, ...] = ("ldap",)
     enabled: bool = True
 
+    @property
+    def has_valid_roles(self) -> bool:
+        supported_roles = {"admin", "lymphotrack_admin", "user"}
+        return bool(self.roles) and set(self.roles) <= supported_roles
+
     @classmethod
     def from_document(cls, document: dict[str, Any]) -> "LocalUser":
         username = str(document["username"])
@@ -39,13 +44,17 @@ class LocalUser:
 
     @property
     def is_admin(self) -> bool:
-        admin_roles = {"admin", "lymphotrack_admin"}
-        return bool(admin_roles.intersection(self.roles))
+        return self.has_valid_roles and "admin" in self.roles
 
     @property
-    def is_lymphotrack(self) -> bool:
-        lymphotrack_roles = {"lymphotrack", "lymphotrack_admin"}
-        return bool(lymphotrack_roles.intersection(self.roles))
+    def can_analyze(self) -> bool:
+        return self.has_valid_roles
+
+    @property
+    def can_moderate(self) -> bool:
+        return self.has_valid_roles and bool(
+            {"admin", "lymphotrack_admin"} & set(self.roles)
+        )
 
 
 @dataclass(frozen=True, slots=True)

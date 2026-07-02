@@ -57,7 +57,7 @@ def test_create_dual_login_user_stores_methods_and_hashed_password() -> None:
                 "firstname": "Local",
                 "lastname": "User",
                 "email": "local@example.test",
-                "roles": ["lymphotrack", "admin"],
+                "roles": ["user"],
                 "allowed_login_methods": ["ldap", "local"],
                 "password": "local-password",
                 "enabled": True,
@@ -68,7 +68,7 @@ def test_create_dual_login_user_stores_methods_and_hashed_password() -> None:
     stored = collections.users.find_one({"username": "local-user"})
     assert stored["allowed_login_methods"] == ["ldap", "local"]
     assert check_password_hash(stored["password"], "local-password")
-    assert stored["roles"] == ["admin", "lymphotrack"]
+    assert stored["roles"] == ["user"]
     assert stored["last_login"] is None
 
 
@@ -79,7 +79,7 @@ def test_disabling_local_login_removes_local_password() -> None:
             "username": "existing-user",
             "fullname": "Existing User",
             "email": "existing@example.test",
-            "roles": ["lymphotrack"],
+            "roles": ["user"],
             "allowed_login_methods": ["ldap", "local"],
             "password": generate_password_hash("old-password", method="pbkdf2:sha256"),
             "enabled": True,

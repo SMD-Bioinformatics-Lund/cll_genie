@@ -72,7 +72,7 @@ This is an aggregate across every matching conversion/lane entry, not just the f
 
 ### MongoDB insert and duplicate behavior
 
-Each accepted sample is inserted into the `samples` collection only when no document with the same `name` exists. The current code performs an application-level lookup; it does not overwrite an existing sample.
+Each accepted sample is inserted into the `samples` collection only when no document with the same `name` exists. The current code performs an application-level lookup; it does not overwrite an existing sample. If the name already exists, including when it appears in a different run, ingestion writes a structured warning and a `sample.registration_skipped` warning audit event containing the existing and incoming run IDs. The new occurrence is skipped and requires manual intervention.
 
 A newly registered document has this effective shape (MongoDB adds `_id`):
 
@@ -164,11 +164,12 @@ Manually uploaded files receive artifact records. Automatically discovered exter
 
 ## 4. Audit events
 
-Every successful data addition produces an append-only MongoDB audit event visible in **Administration > Audit events**:
+Automatic ingestion, manual attachment, and skipped duplicate names produce append-only MongoDB audit events visible in **Administration > Audit events**:
 
 | Activity                                     | Event type                                                                        | Actor                          |
 | -------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------ |
 | Sample inserted from a completed run         | `sample.registered`                                                               | `cll-genie-ingestion` / system |
+| Existing sample name skipped                  | `sample.registration_skipped`                                                     | `cll-genie-ingestion` / system |
 | Workbook discovered and attached             | `sample.lymphotrack_excel.attached`                                               | `cll-genie-ingestion` / system |
 | QC file discovered, parsed, and attached     | `sample.lymphotrack_qc.attached`                                                  | `cll-genie-ingestion` / system |
 | Workbook uploaded by a person                | `sample.lymphotrack_excel.uploaded`                                               | Authenticated local/LDAP user  |

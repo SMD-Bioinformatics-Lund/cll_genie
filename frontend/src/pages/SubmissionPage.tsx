@@ -5,13 +5,10 @@ import {
 import {
   Download,
   EyeOff,
-  FileCheck2,
   MessageSquarePlus,
   RotateCcw,
   Trash2,
   ChevronLeft,
-  Pencil,
-  Eye,
   Wand2,
   Bold,
   Italic,
@@ -32,7 +29,6 @@ import Markdown from "react-markdown";
 import {
   apiRequest,
   applicationUrl,
-  generateReport,
   getReportSuggestion,
   getSubmission,
   previewReport,
@@ -63,9 +59,9 @@ type Submission = {
 export function SubmissionPage() {
   const { sampleId = "", submissionId = "" } = useParams();
   const { session } = useSession();
-  const canReport = session.user.is_admin || session.user.is_lymphotrack;
-  const canComment = session.user.is_admin || session.user.is_lymphotrack;
-  const canModerate = session.user.is_admin || session.user.roles?.includes("lymphotrack_admin");
+  const canReport = session.user.can_analyze;
+  const canComment = session.user.can_analyze;
+  const canModerate = session.user.can_moderate;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const submission = useQuery({
@@ -82,12 +78,16 @@ export function SubmissionPage() {
     enabled: Boolean(submission.data),
   });
   
+  const vquestParameters = submission.data?.vquest_parameters ?? {};
+  const vquestResults = submission.data?.vquest_results ?? {};
+  const hasMalformedSubmission = Boolean(submission.data) && (
+    !submission.data?.vquest_parameters || !submission.data?.vquest_results
+  );
   const validComments = [...(submission.data?.submission_comments || [])].filter(c => !c.hidden).sort((a, b) => new Date(b.time_created).getTime() - new Date(a.time_created).getTime());
   const latestCommentText = validComments.length > 0 ? validComments[0].text : "";
   const [comment, setComment] = useState("");
   const [commentTab, setCommentTab] = useState<"edit" | "preview">("edit");
   const [commentPage, setCommentPage] = useState(1);
-  const commentsPerPage = 5;
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -141,18 +141,6 @@ export function SubmissionPage() {
     setConfirmConfig({ isOpen: true, title, message, destructive, onConfirm });
   };
 
-  // Removed auto-set summary useEffect
-
-  const report = useMutation({
-    mutationFn: () =>
-      generateReport(sampleId, submissionId, latestCommentText, session.csrf_token),
-    onSuccess: (value) =>
-      window.open(
-        applicationUrl(`/api/v1/reports/${value.report_id}/artifact`),
-        `_blank`,
-      ),
-  });
-  
   const removeSubmission = useMutation({
     mutationFn: () =>
       deleteSubmission(sampleId, submissionId, session.csrf_token),
@@ -167,7 +155,7 @@ export function SubmissionPage() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'REPORT_SAVED') {
+      if (event.origin === window.location.origin && event.data?.type === "REPORT_SAVED") {
         queryClient.invalidateQueries({
           queryKey: ["sample", sampleId],
         });
@@ -177,7 +165,7 @@ export function SubmissionPage() {
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [queryClient, sampleId, submissionId]);
+  }, [navigate, queryClient, sampleId]);
 
   const preview = useMutation({
     mutationFn: () =>
@@ -256,7 +244,7 @@ export function SubmissionPage() {
           <div>
             <div className="mb-1 text-xs font-bold tracking-wider text-gray-500 dark:text-gray-400 uppercase flex items-center gap-2">
               <Link to={`/samples/${sampleId}`} className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
-                Sample: {(sample.data?.sample as any)?.name || sampleId}
+                Sample: {sample.data?.sample.name || sampleId}
               </Link>
               <span className="text-gray-300 dark:text-gray-600">/</span>
               <span>IMGT/V-QUEST Results</span>
@@ -271,7 +259,7 @@ export function SubmissionPage() {
               <Download size={16} />
               Download ZIP
             </a>
-            {session.user.is_admin && (
+            {canModerate && (
               <button
                 disabled={removeSubmission.isPending}
                 onClick={() => {
@@ -296,13 +284,19 @@ export function SubmissionPage() {
         {removeSubmission.error && (
           <Alert severity="error">{removeSubmission.error.message}</Alert>
         )}
+        {hasMalformedSubmission && (
+          <Alert severity="error">
+            This submission is missing parsed IMGT/V-QUEST result sections. The raw
+            record was loaded, but it cannot be rendered as an analysis result.
+          </Alert>
+        )}
 
         <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800 shadow-sm">
           <div className="border-b border-gray-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800 px-6 py-5">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Analysis Parameters</h2>
           </div>
           <div className="grid grid-cols-1 gap-y-6 gap-x-8 p-8 text-xs sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 bg-gray-50/50 dark:bg-neutral-900/50">
-            {Object.entries(submission.data.vquest_parameters).map(([key, value]) => (
+            {Object.entries(vquestParameters).map(([key, value]) => (
               <div key={key} className="flex flex-col border-l-2 border-brand-detail dark:border-brand-detail pl-3">
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">{key}</span>
                 <span className="text-gray-900 dark:text-gray-200 font-medium">{String(value ?? "–")}</span>
@@ -311,7 +305,7 @@ export function SubmissionPage() {
           </div>
         </div>
 
-        {Object.entries(submission.data.vquest_results).map(([id, result]) => (
+        {Object.entries(vquestResults).map(([id, result]) => (
           <div key={id} className="overflow-hidden rounded-xl border border-gray-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800 shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-neutral-700/50 bg-white dark:bg-neutral-800 px-6 py-5">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Sequence Id: <span className="text-brand-primary">{id.split("_")[0]}</span></h3>

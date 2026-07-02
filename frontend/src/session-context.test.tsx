@@ -30,7 +30,7 @@ describe('SessionContext', () => {
     const fakeSession: Session = {
       csrf_token: 'fake',
       provider: 'local',
-      user: { username: 'test', fullname: 'Test User', email: '', roles: [], is_admin: false, is_lymphotrack: false }
+      user: { username: 'test', fullname: 'Test User', email: '', roles: ["user"], is_admin: false, can_analyze: true, can_moderate: false }
     };
 
     render(

@@ -1,34 +1,30 @@
-# 7. Rules Engine & Application Logic
+# 7. Report rules
 
-To provide clinical utility, raw sequence metadata (like mutation percentage) needs to be translated into human-readable interpretations (e.g., "Mutated", "Unmutated", "Borderline"). 
+Report rules convert derived submission facts into Swedish clinical text. Administrators manage rules under **Administration → Report rules**.
 
-CLL Genie accomplishes this through a dynamic **Rules Engine**.
+## Rule structure
 
-## What is a Rule?
+Each rule contains:
 
-A Rule is a logical statement that is evaluated against an IMGT/V-QUEST sequence result. If the logic evaluates to `True`, a predefined message is attached to that sequence.
+- a stable rule key and numeric version;
+- status (`DRAFT`, `ACTIVE`, or `RETIRED`);
+- section and priority;
+- an optional exclusive group;
+- a condition tree; and
+- a restricted text template.
 
-For example, a common clinical rule in CLL is the 98% identity threshold for IgHV mutation:
-- **Condition:** If `v_mutation_percent >= 2.0`
-- **Result:** Return the interpretation "Mutated".
+Conditions support `all`, `any`, and `not` groups. Leaf conditions name a fact, operator, and expected value. Supported operators are equality and ordering comparisons, membership, containment, and null checks.
 
-## The Rule Builder Interface
+The clinical facts currently include sequence count, productive status, stop-codon status, combined mutation status, detected subset IDs, and subset conflicts. Unknown facts, unknown operators, incompatible comparisons, and invalid template variables are rejected.
 
-Administrators can configure these rules directly from the web interface without touching code.
+## Evaluation
 
-Navigate to **Admin > Rule Builder**. Here you can construct rules using an intuitive UI:
-1. **Name:** A descriptive name for the rule.
-2. **Conditions:** A set of logical checks. You can select a field (e.g., `v_mutation`, `v_gene`), an operator (`>`, `<`, `==`, `contains`), and a target value.
-3. **Logic:** You can chain multiple conditions using `AND` / `OR` operators to create complex clinical logic (e.g., "If V-Gene contains IGHV3-21 AND Mutation > 2.0").
-4. **Conclusion:** The human-readable text that will be displayed in the UI and injected into the PDF report if the conditions are met.
+Active rules are evaluated in priority order when report text is requested. Once a rule in an exclusive group matches, later rules in that group do not contribute text. The API returns the generated text, derived facts, and a trace showing which rule versions matched.
 
-## Execution Flow
+If no active rules exist, the backend uses its built-in Swedish report text. Invalid active rules fail report suggestion instead of silently using the fallback.
 
-During the report generation process, the backend evaluates all active rules against every sequence in the submission. The resulting array of conclusions is what populates the "Interpretation" column on the final clinical PDF.
+## Report history
 
-> [!NOTE]
-> Changes to rules only affect *future* reports. If you modify a rule today, reports generated yesterday are untouched, preserving the immutable clinical record.
+Saved positive reports include a snapshot of the derived facts and rule trace. Later rule changes do not rewrite existing report records or artifacts. Administrators should simulate and review a rule before changing it to `ACTIVE`.
 
----
-
-**[Next up: Troubleshooting & Errors ➔](08_troubleshooting.md)**
+See [Reports and comments](06_reports_and_comments.md) for report storage and PDF generation.

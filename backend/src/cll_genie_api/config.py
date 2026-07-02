@@ -5,6 +5,8 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from cll_genie_api import __version__
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -15,7 +17,6 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "CLL Genie"
-    app_version: str = "2.0.0"
     environment: Literal["development", "test", "validation", "production"] = "development"
     application_prefix: str = "/cll_genie"
     api_prefix: str = "/cll_genie/api/v1"
@@ -72,6 +73,11 @@ class Settings(BaseSettings):
     run_rta_marker: str = "RTAComplete.txt"
     run_pipeline_marker: str = "cdm.done"
     run_cll_genie_marker: str = "cll_genie.done"
+
+    @property
+    def app_version(self) -> str:
+        """Return the package version; this is intentionally not environment-configurable."""
+        return __version__
 
     @field_validator("auth_providers", mode="before")
     @classmethod

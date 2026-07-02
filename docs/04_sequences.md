@@ -10,7 +10,7 @@ The frontend calls:
 POST /cll_genie/api/v1/samples/{sample_id}/preview-sequences
 ```
 
-The authenticated user must have `lymphotrack`, `lymphotrack_admin`, or `admin`. CSRF validation also applies. The request supports:
+The authenticated user must have the `user`, `lymphotrack_admin`, or `admin` role. CSRF validation also applies. The request supports:
 
 ```json
 {

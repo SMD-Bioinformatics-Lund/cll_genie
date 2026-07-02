@@ -1,4 +1,4 @@
-export type ApplicationRole = "admin" | "lymphotrack_admin" | "lymphotrack";
+export type ApplicationRole = "admin" | "lymphotrack_admin" | "user";
 
 export const applicationRoles: Array<{
   id: ApplicationRole;
@@ -13,11 +13,11 @@ export const applicationRoles: Array<{
   {
     id: "lymphotrack_admin",
     label: "LymphoTrack admin",
-    description: "Clinical workflow administration and content controls.",
+    description: "Clinical deletion, hiding, restoration, and workflow moderation.",
   },
   {
-    id: "lymphotrack",
-    label: "LymphoTrack",
-    description: "Sample analysis, V-QUEST, and reporting workflows.",
+    id: "user",
+    label: "User",
+    description: "Sample analysis, IMGT/V-QUEST, comments, and report creation.",
   },
 ];

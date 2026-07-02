@@ -62,13 +62,9 @@ def test_ldap_authentication_uses_coyote_search_settings(monkeypatch) -> None:
             return None
 
         def search(self, base, search_filter, **kwargs) -> bool:
-            search_arguments.update(
-                {"base": base, "filter": search_filter, **kwargs}
-            )
+            search_arguments.update({"base": base, "filter": search_filter, **kwargs})
             self.entries = [
-                SimpleNamespace(
-                    entry_dn="mail=user@example.test,ou=people,dc=example,dc=test"
-                )
+                SimpleNamespace(entry_dn="mail=user@example.test,ou=people,dc=example,dc=test")
             ]
             return True
 
@@ -143,7 +139,7 @@ def test_local_object_id_user_records_can_be_loaded_by_email() -> None:
         "username": "directory-user",
         "email": "user@example.test",
         "fullname": "Directory User",
-        "roles": ["user", "lymphotrack"],
+        "roles": ["user"],
         "enabled": True,
     }
 
@@ -162,5 +158,5 @@ def test_local_object_id_user_records_can_be_loaded_by_email() -> None:
     assert user is not None
     assert user.username == "directory-user"
     assert user.email == "user@example.test"
-    assert user.roles == ("user", "lymphotrack")
+    assert user.roles == ("user",)
     assert user.enabled is True

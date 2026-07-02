@@ -16,7 +16,7 @@ import {
   DialogActions,
   Button,
 } from "../components/ui";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight, ExternalLink, FlaskConical, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSortableTable } from "../hooks/useSortableTable";
 import { SortableTableHead } from "../components/SortableTableHead";
@@ -27,6 +27,7 @@ import { Link } from "react-router-dom";
 import { listSamples, applicationUrl, getSystemStatus } from "../api";
 
 export function WorklistPage() {
+  const { session } = useSession();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"open" | "finished">("open");
   const [page, setPage] = useState(1);
@@ -70,6 +71,7 @@ export function WorklistPage() {
     ({ key }) => systemStatusQuery.data?.[key] === "error",
   );
   const pages = Math.max(1, Math.ceil((query.data?.total ?? 0) / 25));
+  const canAnalyze = session.user.can_analyze;
   return (
     <Container maxWidth="xl" className="py-8">
       <Typography variant="overline" color="primary.main" fontWeight={800}>
@@ -323,13 +325,49 @@ export function WorklistPage() {
                     </td>
                   )}
                   <td>
-                    <IconButton
-                      component={Link}
-                      to={`/samples/${sample._id}`}
-                      aria-label={`Open ${sample.name}`}
-                    >
-                      <ChevronRight size={19} />
-                    </IconButton>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {canAnalyze && (
+                        <Button
+                          component={Link}
+                          to={`/samples/${sample._id}/analyze`}
+                          size="small"
+                          variant={sample.vquest ? "outlined" : "contained"}
+                          startIcon={<FlaskConical size={14} />}
+                        >
+                          Analyse
+                        </Button>
+                      )}
+                      {sample.latest_submission_id && (
+                        <Button
+                          component={Link}
+                          to={`/samples/${sample._id}/submissions/${sample.latest_submission_id}`}
+                          size="small"
+                          variant="outlined"
+                        >
+                          View results
+                        </Button>
+                      )}
+                      {tab === "finished" && sample.latest_report_oid && (
+                        <Button
+                          href={applicationUrl(
+                            `/api/v1/reports/${sample.latest_report_oid}/artifact`,
+                          )}
+                          target="_blank"
+                          size="small"
+                          variant="outlined"
+                          endIcon={<ExternalLink size={14} />}
+                        >
+                          View report
+                        </Button>
+                      )}
+                      <IconButton
+                        component={Link}
+                        to={`/samples/${sample._id}`}
+                        aria-label={`Open ${sample.name}`}
+                      >
+                        <ChevronRight size={19} />
+                      </IconButton>
+                    </div>
                   </td>
                 </tr>
               ))}

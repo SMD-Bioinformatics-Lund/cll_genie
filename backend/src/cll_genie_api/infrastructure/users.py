@@ -6,9 +6,7 @@ class MongoUserRepository:
         self.collection = collection
 
     def get(self, login: str) -> LocalUser | None:
-        document = self.collection.find_one(
-            {"$or": [{"username": login}, {"email": login}]}
-        )
+        document = self.collection.find_one({"$or": [{"username": login}, {"email": login}]})
         if document is None:
             return None
         return LocalUser.from_document(document)

@@ -15,7 +15,7 @@ class FakeSessions:
         user = LocalUser(
             username="analyst",
             fullname="Example Analyst",
-            roles=("lymphotrack",),
+            roles=("user",),
             email="analyst@example.test",
             password_hash=None,
         )

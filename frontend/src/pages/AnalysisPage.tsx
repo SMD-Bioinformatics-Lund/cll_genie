@@ -17,10 +17,11 @@ import {
 import { Play, Send } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { getJob, getSample, previewSequences, submitVquest } from "../api";
 import { useSession } from "../session-context";
+import type { DraftSequence } from "../types";
 
 export function AnalysisPage() {
   const { sampleId = "" } = useParams();
@@ -33,7 +34,7 @@ export function AnalysisPage() {
     in_frame: "B",
     no_stop_codon: "B",
   });
-  const [sequences, setSequences] = useState<any[]>([]);
+  const [sequences, setSequences] = useState<DraftSequence[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [analysisJobId, setAnalysisJobId] = useState<string>();
   const [uiStep, setUiStep] = useState<0 | 1 | 2>(0);
@@ -89,7 +90,7 @@ export function AnalysisPage() {
   const parse = useMutation({
     mutationFn: () => previewSequences(sampleId, filters, session.csrf_token),
     onSuccess: (data) => {
-      const seqs = data.sequences as any[];
+      const seqs = data.sequences;
       if (!seqs || seqs.length === 0) {
         toast.error("No sequences passed the filters. Try adjusting the filter values.");
         return;
@@ -252,12 +253,12 @@ export function AnalysisPage() {
                   <th>Select</th>
                   <th>Sequence</th>
                   <th>Length</th>
-                  <th>Total seq. read</th>
+                  <th>Merge Count</th>
                   <th>Reads %</th>
                   <th>V-gene</th>
                   <th>J-gene</th>
-                  <th>D-gene</th>
                   <th>V-mutation</th>
+                  <th>V-Coverage</th>
                   <th>Productivity</th>
                 </tr>
               </thead>
@@ -279,11 +280,11 @@ export function AnalysisPage() {
                     <td>{seq.sequence_id}</td>
                     <td>{seq.length ?? seq.sequence.length}</td>
                     <td>{seq.merge_count.toLocaleString()}</td>
-                    <td>{seq.total_reads_percent.toFixed(2)}%</td>
-                    <td>{seq.v_gene || "–"}</td>
-                    <td>{seq.j_gene || "–"}</td>
-                    <td>{seq.d_gene || "–"}</td>
-                    <td>{seq.v_mutation !== undefined ? `${seq.v_mutation}%` : "–"}</td>
+                    <td>{seq.total_reads_percent.toFixed(5)}</td>
+                    <td>{seq.v_gene || "-"}</td>
+                    <td>{seq.j_gene || "-"}</td>
+                    <td>{seq.v_mutation !== undefined ? `${seq.v_mutation}%` : "-"}</td>
+                    <td>{seq.v_coverage || "-"}</td>
                     <td>
                       <Chip
                         size="small"
@@ -295,7 +296,7 @@ export function AnalysisPage() {
                         label={
                           seq.in_frame && seq.no_stop_codon
                             ? "Productive"
-                            : "Review"
+                            : seq.in_frame && !seq.no_stop_codon ? "stop codon" : !seq.in_frame && seq.no_stop_codon ? "Out-of-frame" : "Review"
                         }
                       />
                     </td>
@@ -527,7 +528,9 @@ export function AnalysisPage() {
                   { key: "xv_scFv", label: "scFv" },
                 ].map((item) => {
                   const isLocked = ["xv_summary", "xv_JUNCTION", "xv_parameters"].includes(item.key);
-                  const isChecked = (options as any)[item.key];
+                  const isChecked = Boolean(
+                    options[item.key as keyof typeof options],
+                  );
                   return (
                     <label
                       key={item.key}
@@ -599,4 +602,3 @@ export function AnalysisPage() {
     </Container>
   );
 }
-

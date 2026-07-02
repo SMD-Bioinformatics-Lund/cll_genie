@@ -18,7 +18,7 @@ export function Brand({ compact = false, inverse = false }: { compact?: boolean,
           <div className="text-xl leading-none tracking-wide mb-0.5 drop-shadow-lg text-brand-detail">
             <strong className="font-extrabold">CLL</strong> <span className="font-medium">Genie</span>
           </div>
-          <div className="text-[9px] font-bold tracking-wider text-brand-accent leading-none uppercase drop-shadow-lg pb-1">
+          <div className={`text-[9px] font-bold tracking-wider leading-none uppercase drop-shadow-lg pb-1 ${inverse ? "text-white/80" : "text-brand-accent"}`}>
             Chronic Lymphocytic Leukemia<br/>Powered by IMGT
           </div>
         </div>

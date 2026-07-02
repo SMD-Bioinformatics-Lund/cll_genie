@@ -15,7 +15,8 @@ export type User = {
   email: string | null;
   roles: string[];
   is_admin: boolean;
-  is_lymphotrack: boolean;
+  can_analyze: boolean;
+  can_moderate: boolean;
 };
 
 export type Session = {
@@ -34,7 +35,9 @@ export type Sample = {
   sequencer?: string | null;
   is_control?: boolean;
   lymphotrack_excel?: boolean;
+  lymphotrack_excel_artifact_id?: string;
   lymphotrack_qc?: boolean;
+  lymphotrack_qc_artifact_id?: string;
   vquest?: boolean;
   report?: boolean;
   total_raw_reads?: number;
@@ -47,6 +50,7 @@ export type Sample = {
   latest_report_id?: string;
   latest_report_oid?: string;
   latest_report_type?: string;
+  latest_submission_id?: string;
 };
 
 export type SamplesPayload = {
@@ -79,14 +83,8 @@ export type DraftSequence = {
   j_gene?: string;
   d_gene?: string;
   v_mutation?: number;
-};
-
-export type Draft = {
-  _id: string;
-  sample_id: string;
-  status: string;
-  sequences: DraftSequence[];
-  metadata: Record<string, unknown>;
+  v_coverage?: number;
+  cdr3_seq?: string;
 };
 
 export type Report = {

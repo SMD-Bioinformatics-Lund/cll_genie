@@ -12,7 +12,6 @@ import { useSession } from "../session-context";
 import { Brand } from "./Brand";
 import { ThemeControl } from "./ThemeControl";
 import { useState } from "react";
-import packageJson from "../../package.json";
 import { UserSettingsModal } from "./UserSettingsModal";
 
 export function AppLayout() {
@@ -133,16 +132,16 @@ export function AppLayout() {
                 {session.user.fullname || session.user.username}
               </span>
               <span className="truncate text-xs text-white/60 mt-0.5">
-                CLL Genie v{packageJson.version}
+                CLL Genie v{__APP_VERSION__}
               </span>
             </div>
           ) : (
             <div className="flex justify-center">
               <span
                 className="text-[10px] font-bold text-white/60 tracking-tighter"
-                title={`CLL Genie v${packageJson.version}`}
+                title={`CLL Genie v${__APP_VERSION__}`}
               >
-                v{packageJson.version}
+                v{__APP_VERSION__}
               </span>
             </div>
           )}

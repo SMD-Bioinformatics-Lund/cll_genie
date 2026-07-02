@@ -126,6 +126,7 @@ class AuthenticationService:
         if (
             user is None
             or not user.enabled
+            or not user.has_valid_roles
             or authenticator is None
             or provider not in user.allowed_login_methods
         ):

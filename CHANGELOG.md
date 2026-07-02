@@ -1,25 +1,47 @@
 # Changelog
 
-## [Unreleased]
-- Rebuilt CLL Genie as a FastAPI and React application at `/cll_genie`.
-- Preserved the MongoDB 3.4 `vquest_results` contract and local login behavior.
-- Added optional LDAP password authentication backed by local application profiles.
-- Added queued LymphoTrack and IMGT/V-QUEST workflows and immutable local artifacts.
-- Added dynamic report rules, full Clarity-compatible reports, administration, and audit events.
-- Added a responsive light/dark interface, redesigned brand, single-port Nginx topology, and CI.
-- Standardized application styling on Tailwind CSS 4.3 with Material UI retained for accessible widgets.
-- Added a development Compose override with a validated MongoDB 3.4.24 container; production remains external-MongoDB only.
+## [2.0.0] - 2026-07-02
 
-## v1.1.1
-- Added a visible V-QUEST molecule type selector, defaulting to Unknown, so submissions include the current IMGT-required moleculeType parameter. The sequence textarea now auto-expands to fit its prefilled FASTA content.
+### Added
 
-## v1.1.0
-- Control samples can now be loaded into the database
-- Control samples are suffixed with run_number to avoid conficts between the runs, since the names are same across different runs7
-- Control sample naming format `POS-SHM-R0000`, `NEG-SHM-R0000`, `IGHSHM-SHM-R0000`
-- Fix IGHV mutation status in CLL Genie svarstext to display only the correct status (M-CLL or U-CLL)
-- Preview reports will now be opened in a new tab
-- Added run number and is control columns in the samples table
+- React and Tailwind CSS web interface with light and dark themes.
+- FastAPI service, Celery worker and scheduler, Redis queue, and Nginx proxy deployment.
+- Local and LDAP login using authorization profiles stored in the CLL Genie database.
+- Role-based administration for users, report rules, hidden content, and audit events.
+- Scheduled Illumina run registration, LymphoTrack result attachment, QC parsing, and manual workbook/QC uploads.
+- Asynchronous IMGT/V-QUEST submissions with progress reporting, response validation, and retained ZIP artifacts.
+- Positive and negative clinical reports, report previews, PDF downloads, comments, and report history.
+- Structured JSON runtime logs, request correlation IDs, audit retention, and application system-status checks.
 
-## v1.0.0
-- Initial release of the project.
+### Changed
+
+- Replaced the Flask application and server-rendered interface with separate API and frontend services.
+- Replaced Material UI with repository-owned Tailwind CSS components.
+- Moved users and application data into the configured CLL Genie database.
+- Made deployment paths, MongoDB connectivity, LDAP settings, resource limits, and runtime UID/GID configurable.
+- Centralized the application version in `backend/src/cll_genie_api/version.py`.
+- Added direct actions for analysis, result viewing, report viewing, artifact downloads, and confirmed uploads from sample pages.
+
+### Operational notes
+
+- Existing users must have an explicit `allowed_login_methods` array containing `ldap`, `local`, or both.
+- Existing `lymphotrack` roles must be changed to `user`. Accounts may have one or more of `admin`, `lymphotrack_admin`, and `user`; permissions are additive.
+- The API, worker, and scheduler must be able to write to `LOG_ROOT` and `ARTIFACT_ROOT` using `APP_UID:APP_GID`.
+- Development can use the optional MongoDB Compose profile, a host-installed MongoDB service, or a remote MongoDB server.
+- Duplicate sample names are skipped during run registration and recorded as warning audit events requiring manual review.
+
+## [1.1.1]
+
+- Added the IMGT/V-QUEST molecule-type selector and included `moleculeType` in submissions.
+- Made the sequence text area expand to fit its FASTA content.
+
+## [1.1.0]
+
+- Registered control samples with run-specific names such as `POS-SHM-R0000`.
+- Corrected IGHV mutation-status text in reports.
+- Opened report previews in a separate browser tab.
+- Added run number and control status to the sample table.
+
+## [1.0.0]
+
+- Initial release.

@@ -1,36 +1,32 @@
-# 1. Start Here & Introduction
+# 1. Introduction
 
-Welcome to **CLL Genie**, a robust, scalable platform tailored for clinical geneticists, researchers, and system administrators involved in Chronic Lymphocytic Leukemia (CLL) diagnostics.
+CLL Genie supports the CLL IGHV workflow between completed sequencing runs and clinical report preparation.
 
-## What is CLL Genie?
+## Workflow
 
-CLL Genie serves as the central hub bridging raw sequencer outputs and clinical decision-making.
-The primary objective of the application is to:
+1. Register eligible samples from a completed Illumina run.
+2. Attach LymphoTrack Dx workbook and QC outputs to the registered samples.
+3. Let a user review and filter workbook sequences.
+4. Submit selected sequences to IMGT/V-QUEST through a Celery worker.
+5. Parse and retain the IMGT response.
+6. Apply active report rules and let a user review the report text.
+7. Store the generated report record and HTML artifact; produce a PDF when requested.
 
-1. Intake raw sequence data from sequencing assays (specifically LymphoTrack Excel summaries).
-2. Interface autonomously with the external **IMGT/V-QUEST** database to analyze V-D-J gene rearrangements and mutational statuses.
-3. Apply predefined clinical rules to the IMGT results to automatically determine disease subsets or clinical implications.
-4. Output a verified, tamper-evident PDF report that clinicians can review and sign.
+The application reduces manual transfer between LymphoTrack and IMGT, but it does not replace review of source data, selected sequences, clinical text, or the final report.
 
-> [!NOTE]
-> This platform replaces manual copy-pasting of genetic sequences into web portals, significantly reducing human error and speeding up the clinical turnaround time.
+## Intended users
 
-## Target Audience
+- Laboratory and clinical staff use the worklist, analysis, comments, and reports.
+- Administrators manage users, roles, report rules, and audit events.
+- System administrators operate Compose services, MongoDB, storage, backups, and monitoring.
 
-The documentation is organized for the following audiences:
+## Architecture
 
-- **Clinicians / Geneticists:** You will focus on how to upload samples, what sequences the system selects by default, and how to interpret/generate reports (Sections 3-6).
-- **Developers / System Admins:** You will focus on the deployment topology, Docker environments, and troubleshooting API connectivity (Sections 2 and 8).
+- The React frontend provides the browser interface and uses Tailwind CSS for styling.
+- The FastAPI service handles authentication, authorization, application data, and HTTP endpoints.
+- Celery workers run scheduled ingestion and IMGT/V-QUEST analysis. Redis provides the queue and result backend.
+- MongoDB stores users, sessions, samples, submissions, jobs, rules, reports, and audit events.
+- Uploaded and generated files are stored below `ARTIFACT_ROOT`. Automatically discovered LymphoTrack files remain in their configured external results directory.
+- Nginx serves the frontend and proxies API requests through the configured application prefix.
 
-## Core Architecture
-
-CLL Genie is a modern decoupled system:
-
-- **Frontend (SPA):** Built with React, Vite, and Tailwind CSS. It is highly responsive and designed for complex data tables and rule builders.
-- **Backend (API):** A robust Python FastAPI server. It manages data ingestion, handles authentication (RBAC), and serves data.
-- **Task Workers:** Celery workers backed by Redis handle the long-running task of querying the external IMGT/V-QUEST service, ensuring the main application never freezes.
-- **Persistence:** MongoDB is used for structured data (users, rules, samples), while a local file system is used to store immutable artifacts (PDF reports, Excel uploads, raw HTML responses from IMGT).
-
----
-
-**[Next up: Installation & Setup ➔](02_installation.md)**
+See [Installation and setup](02_installation.md) for deployment requirements.

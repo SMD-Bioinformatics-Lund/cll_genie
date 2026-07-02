@@ -88,10 +88,10 @@ class LocalArtifactStore:
         document = self.collection.find_one({"_id": ObjectId(str(artifact_id))})
         if not document:
             return False
-        
+
         path = self.resolve(document["relative_path"])
         path.unlink(missing_ok=True)
-        
+
         # If the parent directory is empty (and is inside root), we can optionally clean it up
         try:
             if path.parent != self.root and not any(path.parent.iterdir()):

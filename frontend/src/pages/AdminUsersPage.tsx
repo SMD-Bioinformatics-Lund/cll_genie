@@ -66,7 +66,7 @@ const initial: UserForm = {
   firstname: "",
   lastname: "",
   email: "",
-  roles: ["lymphotrack"],
+  roles: ["user"],
   allowed_login_methods: ["ldap"],
   password: "",
   confirmPassword: "",
@@ -398,7 +398,7 @@ export function AdminUsersPage() {
 
           <FormSection
             title="Application roles"
-            description="Select one or more roles. Each role is independently enforced by the API."
+            description="Assign one or more roles. Permissions are combined; admin grants every application permission."
           >
             <div className="grid gap-2 sm:grid-cols-3">
               {applicationRoles.map((role) => {

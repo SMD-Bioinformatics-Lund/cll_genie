@@ -56,9 +56,6 @@ class SampleRepository:
         return result.deleted_count == 1
 
 
-
-
-
 class JobRepository:
     def __init__(self, collection) -> None:
         self.collection = collection
@@ -213,10 +210,10 @@ class VquestRepository:
     def update(self, sample_id: str, payload: dict[str, Any]) -> bool:
         if "_id" in payload:
             del payload["_id"]
-        result = self.collection.replace_one(
-            {"_id": object_id(sample_id)}, payload
-        )
+        result = self.collection.replace_one({"_id": object_id(sample_id)}, payload)
         return result.matched_count == 1
+
+
 class ReportRepository:
     def __init__(self, collection) -> None:
         self.collection = collection
@@ -240,9 +237,11 @@ class ReportRepository:
     def delete(self, report_id: str) -> bool:
         result = self.collection.delete_one({"_id": object_id(report_id)})
         return result.deleted_count == 1
-        
+
     def delete_by_submission(self, sample_id: str, submission_id: str) -> int:
-        result = self.collection.delete_many({"sample_id": object_id(sample_id), "submission_id": submission_id})
+        result = self.collection.delete_many(
+            {"sample_id": object_id(sample_id), "submission_id": submission_id}
+        )
         return result.deleted_count
 
     def get(self, report_id: str) -> dict[str, Any] | None:
@@ -260,6 +259,7 @@ class ReportRepository:
             },
         )
         return result.matched_count == 1
+
     def set_hidden_by_submission(self, submission_id: str, hidden: bool, actor: str) -> int:
         result = self.collection.update_many(
             {"submission_id": submission_id},
@@ -299,4 +299,3 @@ class RuleRepository:
             {"_id": object_id(rule_id)}, {"$set": {**document, "updated_at": utcnow()}}
         )
         return result.matched_count == 1
-

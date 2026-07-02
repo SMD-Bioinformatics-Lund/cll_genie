@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -18,7 +19,9 @@ def _settings(run_root: Path, results_root: Path) -> SimpleNamespace:
     )
 
 
-def test_automatic_sample_and_lymphotrack_additions_are_audited(tmp_path, monkeypatch) -> None:
+def test_automatic_sample_and_lymphotrack_additions_are_audited(
+    tmp_path, monkeypatch, caplog
+) -> None:
     database = mongomock.MongoClient().cll_genie
     run_root = tmp_path / "runs"
     result_root = tmp_path / "results"
@@ -97,3 +100,22 @@ def test_automatic_sample_and_lymphotrack_additions_are_audited(tmp_path, monkey
         "q30_bases": 18_000,
         "q30_per": 90.25,
     }
+
+    database.samples.update_one(
+        {"name": "25AB12345-SHM"},
+        {"$set": {"run_id": "older-run", "run_path": "/runs/older-run"}},
+    )
+    (run / "cll_genie.done").unlink()
+    caplog.set_level(logging.WARNING, logger="cll_genie.ingestion")
+
+    assert ingest.register_runs(audit=audit) == 0
+
+    warning = database.audit_events.find_one({"event_type": "sample.registration_skipped"})
+    assert warning is not None
+    assert warning["severity"] == "warning"
+    assert warning["outcome"] == "failure"
+    assert warning["metadata"]["manual_intervention_required"] is True
+    assert warning["metadata"]["existing_run_id"] == "older-run"
+    assert warning["metadata"]["incoming_run_id"] == run.name
+    assert "already exists in the database" in caplog.text
+    assert "manual intervention is required" in caplog.text

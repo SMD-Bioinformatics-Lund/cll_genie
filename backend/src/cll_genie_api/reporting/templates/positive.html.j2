@@ -68,7 +68,7 @@
           }
           
           if (window.opener) {
-            window.opener.postMessage({ type: 'REPORT_SAVED' }, '*');
+            window.opener.postMessage({ type: 'REPORT_SAVED' }, window.location.origin);
           }
         } else {
           throw new Error('Failed to save report');

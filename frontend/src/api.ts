@@ -1,8 +1,9 @@
 import type {
-  Draft,
+  DraftSequence,
   Job,
   ProvidersPayload,
   Report,
+  Sample,
   SamplesPayload,
   Session,
 } from "./types";
@@ -138,7 +139,7 @@ export function listSamples(
 
 export function getSample(sampleId: string) {
   return apiRequest<{
-    sample: Record<string, unknown>;
+    sample: Sample;
     submissions: Record<string, unknown>;
     reports: Report[];
   }>(`/api/v1/samples/${sampleId}`);
@@ -157,6 +158,13 @@ export function uploadSampleArtifact(
     { method: "POST", body: data },
     csrfToken,
   );
+}
+
+export function sampleArtifactUrl(
+  sampleId: string,
+  kind: "lymphotrack-excel" | "lymphotrack-qc",
+) {
+  return applicationUrl(`/api/v1/samples/${sampleId}/artifacts/${kind}`);
 }
 
 export function deleteSample(sampleId: string, csrfToken: string) {
@@ -184,7 +192,7 @@ export function previewSequences(
   filters: Record<string, unknown>,
   csrfToken: string,
 ) {
-  return apiRequest<{ sequences: unknown[] }>(
+  return apiRequest<{ sequences: DraftSequence[] }>(
     `/api/v1/samples/${sampleId}/preview-sequences`,
     { method: "POST", body: JSON.stringify(filters) },
     csrfToken,
@@ -197,7 +205,7 @@ export function getJob(jobId: string): Promise<Job> {
 
 export function submitVquest(
   sampleId: string,
-  sequences: any[],
+  sequences: DraftSequence[],
   options: Record<string, unknown>,
   csrfToken: string,
 ) {
@@ -223,13 +231,6 @@ export function deleteSubmission(
   );
 }
 
-export function deleteReport(reportId: string, csrfToken: string) {
-  return apiRequest(
-    `/api/v1/reports/${reportId}`,
-    { method: "DELETE" },
-    csrfToken,
-  );
-}
 
 export function getSubmission(sampleId: string, submissionId: string) {
   return apiRequest<Record<string, unknown>>(

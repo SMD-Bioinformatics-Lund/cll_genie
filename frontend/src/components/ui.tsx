@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- This polymorphic UI facade accepts
+   legacy component props while call sites are migrated to native Tailwind components. */
 import {
   Children,
   cloneElement,
@@ -306,7 +308,7 @@ export function TextField({
   ...props
 }: ChangeProps & { error?: boolean; fullWidth?: boolean }) {
   const inputBase =
-    "w-full rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:bg-gray-100 disabled:text-gray-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 dark:focus:border-brand-primary dark:focus:ring-brand-primary dark:disabled:bg-neutral-700";
+    "w-full rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm [color-scheme:light] transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:bg-gray-100 disabled:text-gray-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 dark:[color-scheme:dark] dark:focus:border-brand-primary dark:focus:ring-brand-primary dark:disabled:bg-neutral-700";
 
   const textareaBase =
     "w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 font-mono text-xs transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 resize-y";
@@ -479,7 +481,7 @@ function CustomSelect({
 }
 
 export function MenuItem(props: Props) {
-  // Used only for rendering inside CustomSelect — the actual <option> is never shown
+  void props;
   return null;
 }
 export function Select({ sx, className = "", ...props }: ChangeProps) {
@@ -585,7 +587,6 @@ export function Tabs({
 
 export function Tab({
   label,
-  value,
   selected,
   onClick,
 }: {

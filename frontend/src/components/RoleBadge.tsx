@@ -14,8 +14,8 @@ const roleStyles = {
     className:
       "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   },
-  lymphotrack: {
-    label: "LymphoTrack",
+  user: {
+    label: "User",
     icon: Microscope,
     className:
       "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300",

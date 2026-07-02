@@ -4,19 +4,19 @@ This guide lists common runtime symptoms, diagnostic commands, and corrective ac
 
 ## V-QUEST / IMGT Errors
 
-Because CLL Genie relies on scraping the external IMGT/V-QUEST web service, it is susceptible to IMGT downtime.
+CLL Genie sends form-encoded requests to the external IMGT/V-QUEST service, so submissions depend on that service being reachable and retaining its expected request and response formats.
 
 - **`IMGT/V-QUEST returned HTTP 502/503`**: IMGT may be unavailable for maintenance or overloaded. Wait 15 minutes and retry the submission.
 - **`IMGT/V-QUEST could not be reached`**: The Celery worker cannot access the internet, or IMGT's servers are completely offline.
-- **`IMGT/V-QUEST returned an unexpected response`**: IMGT may have changed their HTML layout, breaking the scraper. Contact an administrator to update the `vquest.py` parser.
+- **`IMGT/V-QUEST returned an unexpected response`**: IMGT returned neither the expected ZIP nor a recognized HTML error response. Review the worker log and verify the configured endpoint.
 
 > [!TIP]
-> A failed submission is marked as `ERROR` in the UI. Retain the sample and create another submission after resolving the underlying issue.
+> A failed job is marked as `FAILED_FINAL`. Retain the sample and submit a new analysis after resolving the underlying issue.
 
 ## Upload and Parsing Errors
 
 - **`Missing required columns`**: The LymphoTrack Excel file does not contain the exact column headers expected (e.g., `Rank`, `Sequence`, `% total reads`). Ensure you are uploading the _Merged Read Summary_ worksheet.
-- **`The LymphoTrack QC file is invalid`**: The uploaded QC document is not a valid text-based TSV/CSV format or is missing the `totalCount` or `countQ30` keys.
+- **`The LymphoTrack QC file is invalid`**: The uploaded QC document is not a valid tab-separated key/value file or is missing `totalCount`, `countQ30`, or `indexQ30`.
 
 ## Application State Errors
 

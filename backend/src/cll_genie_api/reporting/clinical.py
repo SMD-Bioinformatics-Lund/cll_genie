@@ -104,12 +104,12 @@ def suggested_summary(facts: dict) -> str:
     combined = facts["combined_mutation_status"]
     if combined == "U-CLL":
         blocks.append(
-            f"Analysen påvisar ingen somatisk hypermutation (U-CLL) ({identities} identitet "
+            f"Analysen påvisar ingen somatisk hypermutation U-CLL ({identities} identitet "
             "mot IGHV-genen)."
         )
     elif combined == "M-CLL":
         blocks.append(
-            f"Analysen påvisar somatisk hypermutation (M-CLL) ({identities} identitet mot "
+            f"Analysen påvisar somatisk hypermutation M-CLL ({identities} identitet mot "
             "IGHV-genen)."
         )
     elif combined == "Borderline":
@@ -139,7 +139,8 @@ def suggested_summary(facts: dict) -> str:
         )
     elif combined == "Borderline":
         blocks.append(
-            "IGHV-mutationsstatus med borderlinetillhörighet bör beaktas med försiktighet."
+            "IGHV-mutationsstatus med borderlinetillhörighet bör beaktas med "
+            "försiktighet (ERIC Guidelines 2022)."
         )
     if facts["subset_ids"] == ["#2"]:
         blocks.append("Subset #2 utgör en prognostisk markör som är oberoende av mutationsstatus.")

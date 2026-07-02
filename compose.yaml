@@ -17,6 +17,7 @@ services:
 
   api:
     container_name: cll-genie-api
+    user: "${APP_UID:?APP_UID must be set in the environment file}:${APP_GID:?APP_GID must be set in the environment file}"
     cpus: "${API_CPU_LIMIT:?API_CPU_LIMIT must be set in the environment file}"
     mem_limit: "${API_MEMORY_LIMIT:?API_MEMORY_LIMIT must be set in the environment file}"
     build:
@@ -57,6 +58,7 @@ services:
 
   worker:
     container_name: cll-genie-worker
+    user: "${APP_UID:?APP_UID must be set in the environment file}:${APP_GID:?APP_GID must be set in the environment file}"
     cpus: "${WORKER_CPU_LIMIT:?WORKER_CPU_LIMIT must be set in the environment file}"
     mem_limit: "${WORKER_MEMORY_LIMIT:?WORKER_MEMORY_LIMIT must be set in the environment file}"
     build:
@@ -89,6 +91,7 @@ services:
 
   scheduler:
     container_name: cll-genie-scheduler
+    user: "${APP_UID:?APP_UID must be set in the environment file}:${APP_GID:?APP_GID must be set in the environment file}"
     cpus: "${SCHEDULER_CPU_LIMIT:?SCHEDULER_CPU_LIMIT must be set in the environment file}"
     mem_limit: "${SCHEDULER_MEMORY_LIMIT:?SCHEDULER_MEMORY_LIMIT must be set in the environment file}"
     build:

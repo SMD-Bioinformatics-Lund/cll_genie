@@ -16,6 +16,7 @@ import {
 } from "../components/ui";
 import {
   ArrowRight,
+  Download,
   ExternalLink,
   FileUp,
   FileX2,
@@ -36,8 +37,8 @@ import {
   apiRequest,
   applicationUrl,
   uploadSampleArtifact,
+  sampleArtifactUrl,
   deleteSubmission,
-  deleteReport,
   updateSampleJson,
   deleteSample,
 } from "../api";
@@ -50,8 +51,8 @@ import { ConfirmModal } from "../components/ConfirmModal";
 export function SamplePage() {
   const { sampleId = "" } = useParams();
   const { session } = useSession();
-  const canAnalyze = session.user.is_admin || session.user.is_lymphotrack;
-  const canReport = session.user.is_admin || session.user.is_lymphotrack;
+  const canAnalyze = session.user.can_analyze;
+  const canReport = session.user.can_analyze;
   const client = useQueryClient();
   const [tab, setTab] = useState(0);
   const [negativeOpen, setNegativeOpen] = useState(false);
@@ -81,10 +82,27 @@ export function SamplePage() {
     queryKey: ["sample", sampleId],
     queryFn: () => getSample(sampleId),
   });
-  
+
   const handleOpenJson = () => {
     setJsonText(JSON.stringify(query.data?.sample, null, 2));
     setJsonOpen(true);
+  };
+
+  const confirmUpload = (
+    kind: "lymphotrack-excel" | "lymphotrack-qc",
+    file: File,
+    input: HTMLInputElement,
+  ) => {
+    const label = kind === "lymphotrack-excel" ? "LymphoTrack Excel workbook" : "LymphoTrack QC file";
+    confirmAction(
+      `Upload ${label}`,
+      `Upload "${file.name}" for this sample? Existing attached ${label.toLowerCase()} metadata will point to the new upload after this succeeds.`,
+      false,
+      () => {
+        upload.mutate({ kind, file });
+      },
+    );
+    input.value = "";
   };
 
   const updateJson = useMutation({
@@ -169,7 +187,14 @@ export function SamplePage() {
   const sample = query.data.sample as unknown as Sample;
   const submissions = query.data.submissions;
   const reports = query.data.reports;
-  const canDelete = session.user.is_admin || session.user.roles?.includes("lymphotrack_admin");
+  const canDelete = session.user.can_moderate;
+  const q30Value =
+    typeof sample.q30_per === "number"
+      ? sample.q30_per
+      : typeof sample.q30_per === "string" && sample.q30_per !== ""
+        ? Number(sample.q30_per)
+        : undefined;
+  const q30IsLow = q30Value !== undefined && !Number.isNaN(q30Value) && q30Value < 70;
   return (
     <Container maxWidth="xl" className="py-8">
       <Box className="page-heading">
@@ -202,13 +227,15 @@ export function SamplePage() {
           )}
           {canDelete && (
             <>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleOpenJson}
-              >
-                Edit JSON
-              </Button>
+              {session.user.is_admin && (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleOpenJson}
+                >
+                  Edit JSON
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 color="error"
@@ -248,10 +275,6 @@ export function SamplePage() {
                 ["Total Raw Bases", sample.total_raw_bases?.toLocaleString()],
                 ["Total AT Bases", sample.total_bases?.toLocaleString()],
                 ["Q30 AT Bases", sample.q30_bases?.toLocaleString()],
-                [
-                  "Q30 AT Reads Percentage",
-                  sample.q30_per === "" || sample.q30_per === undefined ? "–" : `${sample.q30_per}%`,
-                ],
                 ["Date Added", sample.date_added ? new Date(sample.date_added).toLocaleDateString() : "–"],
               ].map(([label, value]) => (
                 <div key={String(label)} className="p-2">
@@ -259,6 +282,23 @@ export function SamplePage() {
                   <strong className="block text-xs font-medium">{value || "–"}</strong>
                 </div>
               ))}
+              <div
+                className={`p-2 ${
+                  q30IsLow
+                    ? "rounded-lg border border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+                    : ""
+                }`}
+              >
+                <span className="text-[0.7rem] uppercase tracking-wider">Q30 AT Reads Percentage</span>
+                <strong className={`block text-xs font-medium ${q30IsLow ? "text-red-700 dark:text-red-300" : ""}`}>
+                  {q30Value === undefined || Number.isNaN(q30Value) ? "–" : `${q30Value}%`}
+                </strong>
+                {q30IsLow && (
+                  <span className="mt-1 block text-[0.68rem] font-semibold text-red-700 dark:text-red-300">
+                    Below default threshold 70%
+                  </span>
+                )}
+              </div>
             </div>
             <div className="mt-6 flex flex-wrap gap-2.5">
               {canAnalyze && (
@@ -275,15 +315,22 @@ export function SamplePage() {
                       hidden
                       type="file"
                       accept=".xlsx,.xlsm"
-                      onChange={(event) =>
-                        event.target.files?.[0] &&
-                        upload.mutate({
-                          kind: "lymphotrack-excel",
-                          file: event.target.files[0],
-                        })
-                      }
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) confirmUpload("lymphotrack-excel", file, event.currentTarget);
+                      }}
                     />
                   </label>
+                  {sample.lymphotrack_excel_artifact_id && (
+                    <Button
+                      variant="outlined"
+                      href={sampleArtifactUrl(sampleId, "lymphotrack-excel")}
+                      target="_blank"
+                      startIcon={<Download size={14} />}
+                    >
+                      Download Excel
+                    </Button>
+                  )}
                   <label className="group relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-4 py-2.5 transition-all duration-200 hover:border-brand-primary/60 hover:bg-brand-primary/10 hover:shadow-md dark:border-brand-detail/30 dark:bg-brand-detail/5 dark:hover:border-brand-detail/50 dark:hover:bg-brand-detail/10">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-primary/15 text-brand-primary transition-transform duration-200 group-hover:scale-110 dark:bg-brand-detail/15 dark:text-brand-detail">
                       <FileUp size={14} />
@@ -295,15 +342,22 @@ export function SamplePage() {
                     <input
                       hidden
                       type="file"
-                      onChange={(event) =>
-                        event.target.files?.[0] &&
-                        upload.mutate({
-                          kind: "lymphotrack-qc",
-                          file: event.target.files[0],
-                        })
-                      }
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) confirmUpload("lymphotrack-qc", file, event.currentTarget);
+                      }}
                     />
                   </label>
+                  {sample.lymphotrack_qc_artifact_id && (
+                    <Button
+                      variant="outlined"
+                      href={sampleArtifactUrl(sampleId, "lymphotrack-qc")}
+                      target="_blank"
+                      startIcon={<Download size={14} />}
+                    >
+                      Download QC
+                    </Button>
+                  )}
                 </>
               )}
               {canReport && (
@@ -348,7 +402,9 @@ export function SamplePage() {
                     data_added?: string;
                     vquest_results?: Record<string, unknown>;
                   };
-                  const submissionReports = reports.filter((r: any) => r.submission_id === id && !r.hidden);
+                  const submissionReports = reports.filter(
+                    (report) => report.submission_id === id && !report.hidden,
+                  );
                   return (
                     <tr key={id}>
                       <td>{id}</td>
@@ -526,7 +582,7 @@ export function SamplePage() {
       <Dialog
         open={jsonOpen}
         onClose={() => setJsonOpen(false)}
-        maxWidth="md"
+        maxWidth="xl"
         fullWidth
       >
         <DialogTitle>Edit Sample JSON</DialogTitle>
@@ -534,7 +590,7 @@ export function SamplePage() {
           <Alert severity="warning" className="mb-4">
             Editing raw JSON can break the application. Ensure syntax is correct.
           </Alert>
-          <Box className="h-[450px] overflow-hidden">
+          <Box className="h-[70vh] min-h-[560px] overflow-hidden">
             <Editor
               height="100%"
               defaultLanguage="json"

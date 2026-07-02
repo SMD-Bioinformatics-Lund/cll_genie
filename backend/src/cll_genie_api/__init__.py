@@ -1,3 +1,5 @@
 """CLL Genie API package."""
 
-__version__ = "2.0.0"
+from .version import __version__
+
+__all__ = ["__version__"]

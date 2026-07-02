@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-USER_ROLES = {"admin", "lymphotrack_admin", "lymphotrack"}
+USER_ROLES = {"admin", "lymphotrack_admin", "user"}
 
 
 class LoginRequest(BaseModel):
@@ -17,7 +17,8 @@ class UserResponse(BaseModel):
     email: str | None
     roles: list[str]
     is_admin: bool
-    is_lymphotrack: bool
+    can_analyze: bool
+    can_moderate: bool
 
 
 class SessionResponse(BaseModel):
@@ -192,5 +193,6 @@ def user_response(user) -> UserResponse:
         email=user.email,
         roles=list(user.roles),
         is_admin=user.is_admin,
-        is_lymphotrack=user.is_lymphotrack,
+        can_analyze=user.can_analyze,
+        can_moderate=user.can_moderate,
     )

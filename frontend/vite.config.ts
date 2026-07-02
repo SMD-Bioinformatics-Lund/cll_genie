@@ -6,7 +6,29 @@ import { defineConfig } from "vite";
 
 declare const process: {
   env: Record<string, string | undefined>;
+  getBuiltinModule(name: "node:fs"): {
+    readFileSync(path: string, encoding: "utf8"): string;
+  };
 };
+
+function readAppVersion(): string {
+  const { readFileSync } = process.getBuiltinModule("node:fs");
+  const candidates = [
+    "../backend/src/cll_genie_api/version.py",
+    "./app-version.py",
+  ];
+
+  for (const path of candidates) {
+    try {
+      const match = readFileSync(path, "utf8").match(/__version__\s*=\s*["']([^"']+)["']/);
+      if (match) return match[1];
+    } catch {
+      // The container build copies the version module to the second path.
+    }
+  }
+
+  throw new Error("Unable to read the CLL Genie application version");
+}
 
 function normalizePrefix(prefix: string): string {
   if (!prefix.startsWith("/")) {
@@ -30,6 +52,10 @@ export default defineConfig(() => {
 
   return {
     base: appBase,
+
+    define: {
+      __APP_VERSION__: JSON.stringify(readAppVersion()),
+    },
 
     plugins: [react(), tailwindcss()],
 

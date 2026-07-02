@@ -107,6 +107,8 @@ def parse_workbook(
                 "j_gene": values.get("J-gene"),
                 "d_gene": values.get("D-gene"),
                 "v_mutation": values.get("Mutation rate to partial V-gene (%)"),
+                "v_coverage": values.get("V-coverage"),
+                "cdr3_seq": values.get("CDR3 Seq"),
             }
         )
     workbook.close()

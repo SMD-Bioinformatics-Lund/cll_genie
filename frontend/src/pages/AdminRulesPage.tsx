@@ -15,9 +15,12 @@ import {
 import { FlaskConical, Pencil, Plus, Save, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { RuleBuilder, VisualCondition, parseAstToVisual, buildAstFromVisual } from "./RuleBuilder";
-import { useSortableTable } from "../hooks/useSortableTable";
-import { SortableTableHead } from "../components/SortableTableHead";
+import { RuleBuilder } from "./RuleBuilder";
+import {
+  buildAstFromVisual,
+  parseAstToVisual,
+  type VisualCondition,
+} from "./ruleBuilderModel";
 
 import { apiRequest } from "../api";
 import { useSession } from "../session-context";
@@ -45,7 +48,7 @@ const initial = {
   section: "conclusion",
   priority: 100,
   exclusive_group: null as string | null,
-  condition: {} as any,
+  condition: {} as Record<string, unknown>,
   template: "",
 };
 
@@ -61,10 +64,8 @@ export function AdminRulesPage() {
     queryKey: ["admin-rules"],
     queryFn: () => apiRequest<Rule[]>("/api/v1/admin/rules"),
   });
-  const { sortedData, sortKey, sortOrder, requestSort } = useSortableTable(
-    rules.data,
-    "rule_key",
-    "asc"
+  const sortedData = [...(rules.data ?? [])].sort((left, right) =>
+    left.rule_key.localeCompare(right.rule_key),
   );
   const body = () => ({
     ...form,

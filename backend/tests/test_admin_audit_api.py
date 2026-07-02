@@ -91,6 +91,14 @@ def test_non_admin_cannot_read_audit_events() -> None:
     assert response.status_code == 403
 
 
+def test_lymphotrack_admin_cannot_access_management_endpoints() -> None:
+    test_client, _collections = client(("lymphotrack_admin",))
+    with test_client:
+        assert test_client.get("/cll_genie/api/v1/admin/audit-logs").status_code == 403
+        assert test_client.get("/cll_genie/api/v1/admin/users").status_code == 403
+        assert test_client.get("/cll_genie/api/v1/admin/rules").status_code == 403
+
+
 def test_audit_service_redacts_secrets_and_sets_expiry() -> None:
     _test_client, collections = client()
     service = AuditService(collections.audit_events, retention_days=90, environment="test")

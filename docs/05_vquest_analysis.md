@@ -10,7 +10,9 @@ The wizard submits:
 POST /cll_genie/api/v1/samples/{sample_id}/submit-vquest
 ```
 
-with one to 50 selected sequence objects and an options object. The endpoint requires `lymphotrack`, `lymphotrack_admin`, or `admin`, validates CSRF, and then:
+The request contains between one and 50 rows selected from the LymphoTrack preview. Each row contains the sequence identifier, nucleotide sequence, read measurements, and productivity fields required by the worker. A separate `options` object contains the selected IMGT/V-QUEST settings.
+
+All three roles may submit an analysis: `user`, `lymphotrack_admin`, and `admin`. After CSRF validation, the endpoint:
 
 1. inserts an `analysis_jobs` document with status `QUEUED`;
 2. stores only `sequence_count` and `options` in that job payload;
@@ -22,14 +24,14 @@ The worker receives the complete selected sequence objects in the Celery message
 
 ## 2. Payload construction
 
-The worker changes the job to `RUNNING` at 5% and reloads the sample. Each selected row is converted to FASTA using this identifier:
+The worker changes the job to `RUNNING` at 5% and reloads the sample. Each selected row is converted to FASTA using a sequence-only identifier:
 
 ```text
->Seq<rank>_<sample name>
+>Seq<rank>
 <nucleotide sequence>
 ```
 
-The default IMGT request includes:
+Sample names are not included in the FASTA content sent to IMGT. The default request includes:
 
 | Setting                 | Default                       |
 | ----------------------- | ----------------------------- |
@@ -77,7 +79,7 @@ The successful submission written below `vquest_results.results.submission_N` ha
 
 ```javascript
 {
-  vquest_results: { "Seq1_<sample name>": { /* parsed IMGT tables */ } },
+  vquest_results: { "Seq1": { /* parsed IMGT tables */ } },
   vquest_parameters: { /* parsed parameters */ },
   data_added: ISODate("..."),
   results_zip_file: "<resolved local artifact path>",

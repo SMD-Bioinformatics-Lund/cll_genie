@@ -1,39 +1,30 @@
-# 6. Reports & Comments
+# 6. Reports and comments
 
-Once an IMGT/V-QUEST submission completes successfully, the raw sequence data has been augmented with biological annotations (V-gene, J-gene, mutation rates, subset analysis). The final step is to interpret this data and generate a **Clinical Report**.
+A completed IMGT/V-QUEST submission can be used to prepare one or more clinical reports. A submission contains parsed analysis data; a report records the reviewed summary, the rule facts and trace, its author, and a stored HTML artifact.
 
-## Submissions vs. Reports
+## Comments
 
-A critical concept in CLL Genie is the 1-to-Many relationship between Submissions and Reports.
+Users with a clinical workflow role can add Markdown comments to a submission. Hidden comments remain in MongoDB for traceability but are excluded from report text. Users with `admin` or `lymphotrack_admin` can hide and restore comments.
 
-- **A Submission** is the raw output from IMGT/V-QUEST.
-- **A Report** is a PDF document that combines the Submission data, the Rules Engine interpretation (see Section 7), and human-authored Comments.
+The report interface uses the most recent visible comment as the initial report text. The user must review that text before saving or downloading a report.
 
-Because clinical interpretations and comments can evolve, you can generate **multiple reports** for a single submission. Each time you generate a report, it receives a unique Report ID, ensuring that older versions are never overwritten. This provides strict traceability.
+## Report text and rules
 
-## Analysis Comments
+For a positive report, the backend derives clinical facts from the selected submission and evaluates active report rules. If no active rules exist, the built-in Swedish clinical text is used. The report record stores the derived facts and rule trace used at creation time.
 
-Before generating a report, clinical geneticists often review the automated interpretations and add their own qualitative insights. 
+Negative reports do not require an IMGT/V-QUEST submission.
 
-On the Submission Details page, you can add **Analysis Comments**. 
-- The *most recent, non-hidden* comment is automatically injected into the final PDF report.
-- The comment system supports full Markdown, allowing clinicians to format text, add lists, and emphasize critical findings.
+## Stored artifacts and PDF downloads
 
-### Hiding Comments
+Saving a report creates:
 
-Sometimes a comment is added in error. To preserve audit integrity, comments are never truly deleted from the database. Instead, they are **Hidden** (soft-deleted).
-- **Standard Users:** See a redacted message (*"This comment has been hidden"*) and cannot read the original text. Hidden comments are omitted from PDF reports.
-- **Administrators:** Can view the redacted text and have the ability to click "Restore" to unhide the comment.
+1. a report document in MongoDB; and
+2. an HTML artifact below `ARTIFACT_ROOT`.
 
-## Generating and Managing Reports
+The PDF download endpoint renders a PDF from report HTML when requested. Reports are not digitally signed, and the application does not perform cryptographic verification when an artifact is opened. Filesystem permissions, backups, audit events, and artifact hashes must be included in the deployment's integrity controls.
 
-When you click **"Generate Report"**:
-1. The backend compiles the sample metadata, sequence data, rule interpretations, and the latest comment.
-2. A PDF artifact is rendered and stored on the local file system.
-3. The report is added to the database with a unique timestamp and ID.
+Each report has its own database ID and display ID. Creating another report does not overwrite the previous report record. Administrators can hide and restore reports; hidden reports are unavailable to ordinary users.
 
-Similar to comments, Reports cannot be permanently deleted. They can only be **Hidden**. Hidden reports appear with low opacity in the UI, and their "Open" button is disabled for standard users. Administrators can view hidden reports and choose to restore them if necessary.
+Report creation, access, hiding, and restoration are recorded as audit events.
 
----
-
-**[Next up: Rules Engine & Logic ➔](07_rules_engine.md)**
+See [Report rules](07_rules_engine.md) for condition evaluation.

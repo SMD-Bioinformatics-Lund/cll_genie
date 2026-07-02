@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from cll_genie_api.parsers.ingestion import (
 from cll_genie_api.parsers.lymphotrack import LymphotrackParseError, parse_qc
 
 SYSTEM_ACTOR = "cll-genie-ingestion"
+logger = logging.getLogger("cll_genie.ingestion")
 
 
 def _file_metadata(path: Path) -> dict[str, Any]:
@@ -53,37 +55,80 @@ def register_runs(*, audit: AuditService | None = None) -> int:
         samples, instrument = parse_samplesheet(samplesheet, run_number)
         stats = parse_run_stats(stats_path)
         for sample in samples:
-            if samples_collection.find_one({"name": sample["name"]}) is None:
-                document = sample_document(sample, run, instrument, stats)
-                result = samples_collection.insert_one(document)
-                inserted += 1
+            existing = samples_collection.find_one({"name": sample["name"]})
+            if existing is not None:
+                message = (
+                    f"Sample '{sample['name']}' from run '{run.name}' was skipped because "
+                    "that sample name already exists in the database; manual intervention "
+                    "is required"
+                )
+                metadata = {
+                    "action": "skipped",
+                    "reason": "sample_name_already_exists",
+                    "manual_intervention_required": True,
+                    "incoming_run_id": run.name,
+                    "incoming_run_path": str(run),
+                    "existing_sample_id": str(existing["_id"]),
+                    "existing_run_id": existing.get("run_id"),
+                    "existing_run_path": existing.get("run_path"),
+                }
+                logger.warning(
+                    message,
+                    extra={"event_type": "sample.registration_skipped", **metadata},
+                )
                 if audit is not None:
                     audit.record(
-                        "sample.registered",
-                        "Sample was registered from a completed sequencing run",
+                        "sample.registration_skipped",
+                        message,
+                        severity="warning",
                         category="data",
+                        outcome="failure",
                         actor=SYSTEM_ACTOR,
                         provider="system",
                         resource_type="sample",
-                        resource_id=str(result.inserted_id),
-                        resource_name=document["name"],
-                        tags=["sample", "registration", "automated-ingestion", "sequencing-run"],
-                        metadata={
-                            "ingestion_mode": "automatic",
-                            "clarity_id": document["clarity_id"],
-                            "run_id": document["run_id"],
-                            "run_path": document["run_path"],
-                            "run_number": document["run_number"],
-                            "flowcell_id": document["flowcell_id"],
-                            "instrument_type": document["sequencer"],
-                            "assay": document["assay"],
-                            "is_control": document["is_control"],
-                            "total_raw_reads": document["total_raw_reads"],
-                            "total_raw_bases": document["total_raw_bases"],
-                            "sample_sheet": _file_metadata(samplesheet),
-                            "run_statistics": _file_metadata(stats_path),
-                        },
+                        resource_id=str(existing["_id"]),
+                        resource_name=sample["name"],
+                        tags=[
+                            "sample",
+                            "registration",
+                            "automated-ingestion",
+                            "duplicate-name",
+                            "manual-intervention",
+                        ],
+                        metadata=metadata,
                     )
+                continue
+
+            document = sample_document(sample, run, instrument, stats)
+            result = samples_collection.insert_one(document)
+            inserted += 1
+            if audit is not None:
+                audit.record(
+                    "sample.registered",
+                    "Sample was registered from a completed sequencing run",
+                    category="data",
+                    actor=SYSTEM_ACTOR,
+                    provider="system",
+                    resource_type="sample",
+                    resource_id=str(result.inserted_id),
+                    resource_name=document["name"],
+                    tags=["sample", "registration", "automated-ingestion", "sequencing-run"],
+                    metadata={
+                        "ingestion_mode": "automatic",
+                        "clarity_id": document["clarity_id"],
+                        "run_id": document["run_id"],
+                        "run_path": document["run_path"],
+                        "run_number": document["run_number"],
+                        "flowcell_id": document["flowcell_id"],
+                        "instrument_type": document["sequencer"],
+                        "assay": document["assay"],
+                        "is_control": document["is_control"],
+                        "total_raw_reads": document["total_raw_reads"],
+                        "total_raw_bases": document["total_raw_bases"],
+                        "sample_sheet": _file_metadata(samplesheet),
+                        "run_statistics": _file_metadata(stats_path),
+                    },
+                )
         done.touch()
     return inserted
 

@@ -49,6 +49,8 @@ def test_workbook_filters_and_preserves_sequence_metadata(tmp_path: Path) -> Non
             "j_gene": None,
             "d_gene": None,
             "v_mutation": None,
+            "v_coverage": None,
+            "cdr3_seq": None,
         }
     ]
 

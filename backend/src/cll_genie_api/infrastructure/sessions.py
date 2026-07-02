@@ -42,7 +42,7 @@ class MongoSessionRepository:
         if document is None:
             return None
         user = self.user_repository.get(document["user_id"])
-        if user is None or not user.enabled:
+        if user is None or not user.enabled or not user.has_valid_roles:
             return None
         self.collection.update_one(
             {"_id": document["_id"]},

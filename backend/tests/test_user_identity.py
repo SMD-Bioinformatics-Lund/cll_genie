@@ -23,7 +23,7 @@ def user(methods: tuple[str, ...]) -> LocalUser:
     return LocalUser(
         username="analyst",
         fullname="Example Analyst",
-        roles=("lymphotrack",),
+        roles=("user",),
         email="analyst@example.test",
         password_hash=generate_password_hash("local-password", method="pbkdf2:sha256"),
         allowed_login_methods=methods,
@@ -62,7 +62,7 @@ def test_local_user_requires_password_and_ldap_user_rejects_password() -> None:
         "firstname": "New",
         "lastname": "User",
         "email": "new.user@example.test",
-        "roles": ["lymphotrack"],
+        "roles": ["user"],
     }
 
     with pytest.raises(ValidationError):

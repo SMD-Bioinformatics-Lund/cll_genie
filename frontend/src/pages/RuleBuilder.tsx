@@ -1,48 +1,6 @@
-import { Box, Button, IconButton, MenuItem, Select, TextField, Typography } from "../components/ui";
+import { Box, Button, IconButton, MenuItem, TextField, Typography } from "../components/ui";
 import { Plus, Trash } from "lucide-react";
-
-export type VisualCondition = {
-  id: string;
-  fact: string;
-  op: string;
-  value: any;
-};
-
-export const parseAstToVisual = (ast: any): VisualCondition[] => {
-  if (!ast || Object.keys(ast).length === 0) return [];
-  
-  const parseNode = (node: any): VisualCondition[] => {
-    if (node.all) {
-      return node.all.flatMap(parseNode);
-    }
-    if (node.fact && node.op) {
-      return [{
-        id: Math.random().toString(36).substr(2, 9),
-        fact: node.fact,
-        op: node.op,
-        value: node.value,
-      }];
-    }
-    return [];
-  };
-  
-  return parseNode(ast);
-};
-
-export const buildAstFromVisual = (conditions: VisualCondition[]) => {
-  if (conditions.length === 0) return {};
-  if (conditions.length === 1) {
-    const c = conditions[0];
-    return { fact: c.fact, op: c.op, value: c.value };
-  }
-  return {
-    all: conditions.map(c => ({
-      fact: c.fact,
-      op: c.op,
-      value: c.value
-    }))
-  };
-};
+import type { RuleValue, VisualCondition } from "./ruleBuilderModel";
 
 const CATEGORIES = [
   { value: "combined_mutation_status", label: "Mutation Status" },
@@ -71,7 +29,7 @@ export function RuleBuilder({
 
   const addCondition = () => {
     onChange([...conditions, {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).slice(2, 11),
       fact: "combined_mutation_status",
       op: "eq",
       value: "U-CLL"
@@ -88,7 +46,7 @@ export function RuleBuilder({
         </Typography>
       )}
 
-      {conditions.map((cond, index) => {
+      {conditions.map((cond) => {
         const isCustom = !CATEGORIES.find(cat => cat.value === cond.fact) && cond.fact !== "custom";
         const selectedFact = isCustom ? "custom" : cond.fact;
 
@@ -194,7 +152,7 @@ export function RuleBuilder({
                       size="small"
                       value={cond.value}
                       onChange={(e) => {
-                         let val: any = e.target.value;
+                         let val: RuleValue = e.target.value;
                          if (cond.op === "in" || cond.op === "not_in") {
                            val = val.split(",").map((s: string) => s.trim());
                          }

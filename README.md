@@ -23,90 +23,90 @@
 
 ---
 
-## Overview
+# CLL Genie
 
-`cll_genie` is a modern, web-based application providing a streamlined workflow for processing sequencing data and generating clinical reports. The application is designed to track samples, automate the secondary stage of analysis for LymphoTrack Dx outputs, and dynamically produce clinical PDF reports.
+`cll_genie` is a modern, web-based application providing a streamlined workflow for processing sequencing data and generating clinical reports for the analysis and reporting of immunoglobulin heavy-chain variable region (IGHV) rearrangements in chronic lymphocytic leukemia (CLL). The application is designed to track samples, automate the secondary stage of analysis for LymphoTrack Dx outputs, and dynamically produce clinical reports.
 
-Built with scalability, accuracy, and usability in mind, this platform is tailored to the needs of clinical geneticists, doctors, developers, and administrators involved in Chronic Lymphocytic Leukemia (CLL) research and diagnostics.
+## Biological background
 
-## Features
+CLL develops from mature B lymphocytes. During normal B-cell development, immunoglobulin heavy-chain genes are assembled through V-D-J recombination. The resulting rearrangement contains the variable-region sequence used by the B-cell receptor. In a clonal B-cell population, the dominant rearrangement can be detected and characterized by targeted sequencing.
 
-- **Sample Tracking & Ingestion:** Automated ingestion of sequencing runs and auto-attachment of LymphoTrack Dx results and QC metrics.
-- **IMGT/V-QUEST Integration:** Automated secondary analysis that sends data to the IMGT/V-QUEST server and retrieves/parses the results.
-- **Rules Engine & Clinical Fallbacks:** Dynamic clinical interpretations for V-gene mutation status and subset information based on customizable rules. If no database rules are configured, the system automatically falls back to a robust, hardcoded Python logic engine (`suggested_summary`) to generate standard Swedish clinical phrases.
-- **Reporting:** Generate immutable, signed clinical PDF reports containing both the automated interpretation and clinical comments.
-- **Security & RBAC:** Role-Based Access Control and authentication for User and Admin privileges.
-- **Dockerized Architecture:** Highly scalable backend (FastAPI, Celery, MongoDB, Redis) and a modern frontend (React, Vite).
+The IGHV sequence is compared with the closest reference germline sequence to determine its identity and mutation status. CLL cases are commonly described as having mutated or unmutated IGHV, with a defined borderline interval requiring careful interpretation. IMGT/V-QUEST also provides V, D, and J gene assignments, junction annotation, sequence functionality, and information used to evaluate stereotyped CLL subsets such as subsets #2 and #8.
 
-## Workflow
+These findings are interpreted together with sequence quality, clone abundance, reading frame, stop-codon status, assay controls, and the wider clinical and laboratory context. CLL Genie supports this review; it does not make an autonomous diagnosis or replace professional assessment of the underlying data.
 
-1. **Sequencing, Demultiplexing, and QC**  
-   Prepare raw sequencing data by performing sequencing, demultiplexing, and quality control. Completed run folders are registered automatically in the `cll_genie` database; development fixtures use a separate loader.
-2. **Run LymphoTrack Dx Software**  
-   Process FASTQ files using LymphoTrack Dx to generate first-stage results. This outputs an Excel file with sequence metrics and a text file with QC metrics. These results are attached to the samples.
-3. **cll_genie Analysis**  
-   The sample is analyzed within `cll_genie`. Sequences are parsed, filtered, and sent to the IMGT/V-QUEST server. The secondary analysis results, along with CLL subset information, are displayed in the application.
-4. **Clinical Reporting**  
-   Clinicians review the interpretations, add qualitative comments, and generate a final PDF report for diagnostic casework.
+## Purpose
 
-## Important Links & Endpoints
+The application connects the main stages of the laboratory workflow:
 
-When running the application locally via Docker Compose, the following URLs are available:
+1. It registers samples from completed Illumina sequencing runs and records run-level read statistics.
+2. It attaches LymphoTrack Dx workbook results and Q30 quality-control measurements to each sample.
+3. It presents detected rearrangements so a user can review clone abundance, productivity, gene calls, mutation measurements, and sequence-level metadata.
+4. It submits only the selected nucleotide sequences to IMGT/V-QUEST. Sample names are excluded from the FASTA identifiers sent to IMGT.
+5. It parses the returned IMGT tables and combines them with the corresponding LymphoTrack measurements.
+6. It derives report facts, evaluates the configured clinical rules, and prepares Swedish report text for review.
+7. It stores report history, comments, artifacts, and audit events so the analysis can be traced back to its sample, submission, author, and rule evaluation.
 
-- **Web UI:** [http://localhost:8080/cll_genie/](http://localhost:8080/cll_genie/)
-- **API Swagger Docs:** [http://localhost:8080/cll_genie/api/v1/docs](http://localhost:8080/cll_genie/api/v1/docs)
-- **API OpenAPI JSON:** [http://localhost:8080/cll_genie/api/v1/openapi.json](http://localhost:8080/cll_genie/api/v1/openapi.json)
-- **Health Check (Live):** [http://localhost:8080/cll_genie/health/live](http://localhost:8080/cll_genie/health/live)
-- **Health Check (Ready):** [http://localhost:8080/cll_genie/health/ready](http://localhost:8080/cll_genie/health/ready)
+The system is intended to reduce manual transfer of sequences and results between laboratory tools while retaining an explicit human review step before report creation.
 
-## Documentation
+## Main components
 
-The documentation is modularized and designed to be read as a flow from start to finish.
+- React and Tailwind CSS frontend
+- FastAPI backend
+- Celery worker and scheduler with Redis
+- MongoDB application database
+- Local filesystem storage for uploaded and generated artifacts
+- Nginx reverse proxy exposing the application through one port
 
-**Start here: [docs/index.md](docs/index.md)**
+## Functions
 
-**📖 [Read the CLL Genie Master Guide](docs/index.md)**
+- Scheduled registration of completed Illumina runs
+- LymphoTrack workbook and QC attachment
+- Filtered sequence preview before submission
+- Asynchronous IMGT/V-QUEST analysis
+- Versioned report rules and Swedish clinical report text
+- Positive and negative report generation
+- Local and LDAP authentication against local user profiles
+- Role-based access control and administrative user management
+- Structured runtime logs and queryable audit events
+- Health checks for the API, MongoDB, IMGT, Redis, Celery workers, and scheduler
 
-<div align="center">
-  <img src="docs/assets/ui_login.png" width="800" alt="Dashboard" />
-</div>
+## Development setup
 
-## Quick Start (Docker Compose)
+Requirements:
 
-The entire application runs via Docker Compose.
+- Docker Engine
+- Docker Compose
+- Access to a MongoDB server, or the optional development MongoDB profile
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/cll_genie.git
+git clone https://github.com/ramsainanduri/cll_genie.git
 cd cll_genie
-
-# Configure development values and filesystem paths
 cp .env.example .env.dev
-nano .env.dev
+```
 
-# Build and launch development, including the Docker MongoDB service
+Review `.env.dev`, particularly filesystem paths, MongoDB connectivity, LDAP settings, and `APP_UID`/`APP_GID`. Then start the development stack:
+
+```bash
 docker compose --env-file .env.dev \
   -f compose.yaml -f compose.dev.yaml \
   --profile mongo up -d --build
 ```
 
-Access the UI at the `APPLICATION_PREFIX` and `CLL_GENIE_PORT` configured in `.env.dev`.
+Omit `--profile mongo` when using a host-installed or remote MongoDB server.
 
-CPU and memory ceilings for every container are configured in the environment file. Review the `*_CPU_LIMIT` and `*_MEMORY_LIMIT` values before production deployment; see [Installation and Developer Setup](docs/02_installation.md#container-resource-limits).
+CLL Genie does not create a default account. Add an enabled administrator to the configured `users` collection before the first login.
 
-> [!IMPORTANT]
-> **First-time login:** Create or import an enabled administrator in the configured CLL Genie `users` collection. No default account is created.
+## Documentation
 
-## Who Built It?
+Start with [the documentation index](docs/index.md). Installation, data ingestion, analysis, reporting, user management, logging, and troubleshooting are documented separately.
 
-CLL Genie is developed and maintained by the bioinformaticians at the Section for Molecular Diagnostics (SMD), Lund, in close collaboration with clinical geneticists. The system is in active use for diagnostics casework, variant interpretation, and report creation.
+The application version is defined in `backend/src/cll_genie_api/version.py` and is used by the Python package, API, reports, and frontend build.
 
-## Contact & Support
+## Support
 
-For inquiries, feedback, or deployment support, please contact the SMD development team at Lund.
-**Email:** ram.nanduri@skane.se  
-**GitHub Issues:** [cll_genie/issues](https://github.com/ramsainanduri/cll_genie/issues)
+CLL Genie is maintained by the Section for Molecular Diagnostics in Lund. Use the repository issue tracker for defects and change requests.
 
 ## License
 
-© 2026 Section for Molecular Diagnostics (SMD), Lund. All rights reserved. Internal use only.
+Copyright 2026 Section for Molecular Diagnostics, Lund. All rights reserved. This repository does not currently include an open-source license; obtain permission before redistribution or external deployment.

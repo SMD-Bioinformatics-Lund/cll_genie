@@ -16,7 +16,7 @@ import { timeAgo } from "../dateUtils";
 export function ReportsPage() {
   const { session } = useSession();
   const queryClient = useQueryClient();
-  const canArchive = session.user.is_admin;
+  const canArchive = session.user.can_moderate;
   const query = useQuery({
     queryKey: ["reports"],
     queryFn: () => apiRequest<Report[]>("/api/v1/reports"),

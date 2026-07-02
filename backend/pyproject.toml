@@ -1,6 +1,6 @@
 [project]
 name = "cll-genie-api"
-version = "2.0.0"
+dynamic = ["version"]
 description = "CLL Genie API"
 requires-python = ">=3.12"
 dependencies = [
@@ -34,6 +34,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cll_genie_api"]
+
+[tool.hatch.version]
+path = "src/cll_genie_api/version.py"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

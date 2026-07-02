@@ -2,6 +2,7 @@ FROM node:22-alpine AS frontend-build
 
 WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json frontend/tsconfig.json frontend/tsconfig.app.json frontend/tsconfig.node.json frontend/vite.config.ts frontend/index.html ./
+COPY backend/src/cll_genie_api/version.py ./app-version.py
 COPY frontend/public ./public
 COPY frontend/src ./src
 RUN npm install --no-audit --no-fund \
