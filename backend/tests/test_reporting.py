@@ -1,6 +1,7 @@
 import pytest
 
 from cll_genie_api import __version__
+from cll_genie_api.api.reports import latest_visible_comment
 from cll_genie_api.reporting.clinical import mutation_status, report_facts, suggested_summary
 from cll_genie_api.reporting.render import ReportRenderer
 from cll_genie_api.reporting.rules import RuleValidationError, evaluate, render_rules
@@ -75,3 +76,28 @@ def test_clarity_report_has_parity_fields_and_escapes_summary() -> None:
     assert "report-id" in html and __version__ in html
     assert "<script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def test_latest_visible_comment_is_used_for_reports() -> None:
+    submission_with_comments = {
+        "submission_comments": [
+            {
+                "text": "Older visible comment",
+                "time_created": "2026-07-01T10:00:00+00:00",
+                "hidden": False,
+            },
+            {
+                "text": "Newest but hidden",
+                "time_created": "2026-07-01T12:00:00+00:00",
+                "hidden": True,
+            },
+            {
+                "text": "Latest visible comment",
+                "time_created": "2026-07-01T11:00:00+00:00",
+                "hidden": False,
+            },
+        ]
+    }
+
+    assert latest_visible_comment(submission_with_comments) == "Latest visible comment"
+    assert latest_visible_comment({"submission_comments": []}) is None

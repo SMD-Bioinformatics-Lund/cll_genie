@@ -6,13 +6,13 @@ A completed IMGT/V-QUEST submission can be used to prepare one or more clinical 
 
 Users with a clinical workflow role can add Markdown comments to a submission. Hidden comments remain in MongoDB for traceability but are excluded from report text. Users with `admin` or `lymphotrack_admin` can hide and restore comments.
 
-The report interface uses the most recent visible comment as the initial report text. The user must review that text before saving or downloading a report.
+The report interface uses the most recent visible comment as the report text. The user must review that comment before saving or downloading a report. Saving a report does not create another submission comment.
 
 ## Report text and rules
 
 For a positive report, the backend derives clinical facts from the selected submission and evaluates active report rules. If no active rules exist, the built-in Swedish clinical text is used. The report record stores the derived facts and rule trace used at creation time.
 
-Negative reports do not require an IMGT/V-QUEST submission.
+No-result reports do not require an IMGT/V-QUEST submission. When creating one, select whether a clonal but non-functional sequence was found or no clonal sequence was detected. Each option supplies the corresponding conclusion used by the established workflow; the text remains editable before report creation.
 
 ## Stored artifacts and PDF downloads
 

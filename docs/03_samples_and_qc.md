@@ -145,6 +145,8 @@ Decimal commas are normalized to decimal points. A valid file also sets `lymphot
 
 Sample registration is performed by the run-ingestion path described above. The Worklist does not expose arbitrary sample creation. The Sample Details page can attach files to an existing sample.
 
+The interface requests confirmation before starting either upload. If the sample already has an attachment of the same type, the confirmation identifies the operation as a replacement and names the selected file.
+
 ### Workbook upload
 
 `POST /cll_genie/api/v1/samples/{sample_id}/artifacts/lymphotrack-excel` accepts `.xlsx` and `.xlsm`. The API:

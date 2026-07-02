@@ -15,12 +15,34 @@ from cll_genie_api.api.dependencies import (
 )
 from cll_genie_api.api.schemas import ReportGenerateRequest
 from cll_genie_api.domain.identity import Session
-from cll_genie_api.infrastructure.repositories import utcnow
 from cll_genie_api.reporting.clinical import report_facts, suggested_summary
 from cll_genie_api.reporting.render import ReportRenderer
 from cll_genie_api.reporting.rules import RuleValidationError, render_rules
 
 router = APIRouter(tags=["reports"])
+
+
+def latest_visible_comment(submission: dict) -> str | None:
+    comments = submission.get("submission_comments", [])
+    visible_comments = [
+        (index, comment)
+        for index, comment in enumerate(comments)
+        if not comment.get("hidden") and str(comment.get("text", "")).strip()
+    ]
+    if not visible_comments:
+        return None
+
+    def sort_key(item: tuple[int, dict]) -> tuple[str, int]:
+        index, comment = item
+        created_at = comment.get("time_created")
+        timestamp = (
+            created_at.isoformat()
+            if hasattr(created_at, "isoformat")
+            else str(created_at or "")
+        )
+        return timestamp, index
+
+    return str(max(visible_comments, key=sort_key)[1]["text"]).strip()
 
 
 def suggestion(services: Services, submission: dict) -> tuple[str, dict, list[dict]]:
@@ -72,6 +94,12 @@ def generate_report(
     submission = services.vquest.get_submission(sample_id, submission_id)
     if sample is None or submission is None:
         raise HTTPException(status_code=404, detail="Sample or submission not found")
+    summary = latest_visible_comment(submission)
+    if summary is None:
+        raise HTTPException(
+            status_code=400,
+            detail="A visible comment is required before generating a report",
+        )
     _suggested, facts, trace = suggestion(services, submission)
     report_oid = ObjectId()
 
@@ -87,7 +115,7 @@ def generate_report(
         sample=sample,
         submission_id=submission_id,
         submission=submission,
-        summary=payload.summary,
+        summary=summary,
         author=session.user.fullname,
         report_id=display_report_id,
         app_version=services.settings.app_version,
@@ -110,7 +138,7 @@ def generate_report(
             "sample_name": sample["name"],
             "submission_id": submission_id,
             "report_type": "POSITIVE",
-            "summary": payload.summary,
+            "summary": summary,
             "created_by": session.user.fullname,
             "artifact_id": artifact["_id"],
             "artifact_path": artifact["relative_path"],
@@ -118,16 +146,6 @@ def generate_report(
             "rule_trace": trace,
         }
     )
-    comment = {
-        "id": ObjectId(),
-        "text": payload.summary,
-        "time_created": utcnow(),
-        "author": session.user.fullname,
-        "hidden": False,
-        "hidden_by": "",
-        "time_hidden": "",
-    }
-    services.vquest.add_comment(sample_id, submission_id, comment)
     services.samples.update(sample_id, {"report": True})
     record_audit(
         services,

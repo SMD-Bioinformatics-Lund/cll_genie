@@ -48,6 +48,15 @@ import type { Report, Sample } from "../types";
 import { timeAgo } from "../dateUtils";
 import { ConfirmModal } from "../components/ConfirmModal";
 
+const noResultConclusions = {
+  nonFunctional:
+    "Vid analysen finner man en klonal sekvens, men då denna sekvens saknar ett funktionellt IGH-genrearrangemang kan mutationsstatus inte undersökas. Provet skickas till Göteborg för att utföra analys av RNA.",
+  noClonal:
+    "Vid analysen påvisas ingen förekomst av klonal IGH-sekvens, varpå analys av IG-genrearrangemang och mutationsstatus inte är möjlig att utföra. Provet skickas till Göteborg för att utföra analys av RNA.",
+} as const;
+
+type NoResultConclusion = keyof typeof noResultConclusions;
+
 export function SamplePage() {
   const { sampleId = "" } = useParams();
   const { session } = useSession();
@@ -56,8 +65,10 @@ export function SamplePage() {
   const client = useQueryClient();
   const [tab, setTab] = useState(0);
   const [negativeOpen, setNegativeOpen] = useState(false);
-  const [negativeText, setNegativeText] = useState(
-    "Vid analysen påvisas ingen förekomst av klonal IGH-sekvens, varpå mutationsstatus inte kan fastställas.",
+  const [negativeKind, setNegativeKind] =
+    useState<NoResultConclusion>("noClonal");
+  const [negativeText, setNegativeText] = useState<string>(
+    noResultConclusions.noClonal,
   );
   const [jsonOpen, setJsonOpen] = useState(false);
   const [jsonText, setJsonText] = useState("");
@@ -65,6 +76,7 @@ export function SamplePage() {
     isOpen: boolean;
     title: string;
     message: string;
+    confirmText?: string;
     destructive?: boolean;
     onConfirm: () => void;
   }>({
@@ -74,8 +86,21 @@ export function SamplePage() {
     onConfirm: () => {},
   });
 
-  const confirmAction = (title: string, message: string, destructive: boolean, onConfirm: () => void) => {
-    setConfirmConfig({ isOpen: true, title, message, destructive, onConfirm });
+  const confirmAction = (
+    title: string,
+    message: string,
+    destructive: boolean,
+    onConfirm: () => void,
+    confirmText = "Confirm",
+  ) => {
+    setConfirmConfig({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      destructive,
+      onConfirm,
+    });
   };
 
   const query = useQuery({
@@ -93,14 +118,24 @@ export function SamplePage() {
     file: File,
     input: HTMLInputElement,
   ) => {
-    const label = kind === "lymphotrack-excel" ? "LymphoTrack Excel workbook" : "LymphoTrack QC file";
+    const isExcel = kind === "lymphotrack-excel";
+    const label = isExcel ? "LymphoTrack Excel workbook" : "LymphoTrack QC file";
+    const sample = query.data?.sample;
+    const hasExistingFile = Boolean(
+      isExcel
+        ? sample?.lymphotrack_excel_artifact_id || sample?.lymphotrack_excel
+        : sample?.lymphotrack_qc_artifact_id || sample?.lymphotrack_qc,
+    );
     confirmAction(
-      `Upload ${label}`,
-      `Upload "${file.name}" for this sample? Existing attached ${label.toLowerCase()} metadata will point to the new upload after this succeeds.`,
-      false,
+      hasExistingFile ? `Replace existing ${label}?` : `Upload ${label}?`,
+      hasExistingFile
+        ? `This sample already has an attached ${label.toLowerCase()}. Uploading "${file.name}" will replace the current attachment. Continue?`
+        : `Upload "${file.name}" for this sample?`,
+      hasExistingFile,
       () => {
         upload.mutate({ kind, file });
       },
+      hasExistingFile ? "Replace file" : "Upload file",
     );
     input.value = "";
   };
@@ -547,13 +582,43 @@ export function SamplePage() {
       >
         <DialogTitle>Create no-result report</DialogTitle>
         <DialogContent>
+          <fieldset className="mt-2">
+            <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Result type
+            </legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  ["nonFunctional", "Clonal, non-functional sequence"],
+                  ["noClonal", "No clonal sequence"],
+                ] as const
+              ).map(([kind, label]) => {
+                const selected = negativeKind === kind;
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setNegativeKind(kind);
+                      setNegativeText(noResultConclusions[kind]);
+                    }}
+                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${selected ? "border-brand-primary bg-brand-primary/5 text-brand-primary ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10 dark:text-brand-detail" : "border-gray-200 text-gray-700 hover:border-gray-300 dark:border-neutral-700 dark:text-gray-300 dark:hover:border-neutral-600"}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
           <TextField
             multiline
-            minRows={6}
+            rows={7}
             label="Conclusion"
             value={negativeText}
             onChange={(e) => setNegativeText(e.target.value)}
-            className="mt-2"
+            fullWidth
+            className="mt-5"
           />
           {negative.error && (
             <Alert severity="error" className="mt-4">
@@ -629,6 +694,7 @@ export function SamplePage() {
         <ConfirmModal
           title={confirmConfig.title}
           message={confirmConfig.message}
+          confirmText={confirmConfig.confirmText}
           destructive={confirmConfig.destructive}
           onConfirm={() => {
             confirmConfig.onConfirm();
