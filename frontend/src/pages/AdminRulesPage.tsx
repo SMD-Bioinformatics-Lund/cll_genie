@@ -7,12 +7,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  InputAdornment,
   MenuItem,
+  Pagination,
   Paper,
   TextField,
   Typography,
 } from "../components/ui";
-import { FlaskConical, Pencil, Plus, Save, X } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Save, Search, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { RuleBuilder } from "./RuleBuilder";
@@ -52,6 +54,8 @@ const initial = {
   template: "",
 };
 
+const PAGE_SIZE = 25;
+
 export function AdminRulesPage() {
   const { session } = useSession();
   const client = useQueryClient();
@@ -60,6 +64,8 @@ export function AdminRulesPage() {
   const [form, setForm] = useState(initial);
   const [visualConditions, setVisualConditions] = useState<VisualCondition[]>([]);
   const [simulation, setSimulation] = useState<string>();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const rules = useQuery({
     queryKey: ["admin-rules"],
     queryFn: () => apiRequest<Rule[]>("/api/v1/admin/rules"),
@@ -67,6 +73,18 @@ export function AdminRulesPage() {
   const sortedData = [...(rules.data ?? [])].sort((left, right) =>
     left.rule_key.localeCompare(right.rule_key),
   );
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredRules = sortedData.filter((rule) =>
+    [
+      rule.rule_key,
+      rule.section,
+      rule.status,
+      rule.report_type,
+      rule.template.text,
+    ].some((value) => value.toLowerCase().includes(normalizedSearch)),
+  );
+  const pageCount = Math.max(1, Math.ceil(filteredRules.length / PAGE_SIZE));
+  const visibleRules = filteredRules.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const body = () => ({
     ...form,
     condition: buildAstFromVisual(visualConditions),
@@ -141,7 +159,30 @@ export function AdminRulesPage() {
         Active rules generate report text in priority order. Simulate and review
         changes before activation.
       </Alert>
-      <Paper className="data-panel" >
+      <Paper className="data-panel">
+        <Box className="toolbar-row">
+          <Typography variant="body2" color="text.secondary">
+            {filteredRules.length} {filteredRules.length === 1 ? "rule" : "rules"}
+          </Typography>
+          <TextField
+            size="small"
+            placeholder="Search report rules"
+            aria-label="Search report rules"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            sx={{ maxWidth: 420 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={17} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
         <div className="responsive-table">
           <table>
             <thead>
@@ -156,7 +197,7 @@ export function AdminRulesPage() {
               </tr>
             </thead>
             <tbody>
-              {sortedData.map((rule) => (
+              {visibleRules.map((rule) => (
                 <tr key={rule._id}>
                   <td>{rule.rule_key}</td>
                   <td>{rule.version}</td>
@@ -174,9 +215,20 @@ export function AdminRulesPage() {
                   </td>
                 </tr>
               ))}
+              {!visibleRules.length && (
+                <tr>
+                  <td colSpan={7} className="empty-cell">No report rules found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+        <Box className="flex items-center justify-between p-4">
+          <Typography variant="body2" color="text.secondary">
+            Page {Math.min(page, pageCount)} of {pageCount}
+          </Typography>
+          <Pagination page={page} count={pageCount} onChange={(_, value) => setPage(value)} />
+        </Box>
       </Paper>
       <Dialog
         open={open}

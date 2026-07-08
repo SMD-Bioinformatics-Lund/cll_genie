@@ -33,4 +33,6 @@ logs/
 .DS_Store
 *~
 samples.jsonl
-.design
+.design/
+.design/cll_genie.sample.jsonl
+.design/cll_genie.vquest.jsonl

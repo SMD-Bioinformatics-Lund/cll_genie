@@ -4,6 +4,7 @@ import {
   KeyRound,
   Pencil,
   Save,
+  Search,
   UserPlus,
   Users,
   X,
@@ -23,6 +24,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  InputAdornment,
+  Pagination,
   Paper,
   Switch,
   TextField,
@@ -73,12 +76,16 @@ const initial: UserForm = {
   enabled: true,
 };
 
+const PAGE_SIZE = 25;
+
 export function AdminUsersPage() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser>();
   const [form, setForm] = useState<UserForm>(initial);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const users = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => apiRequest<AdminUser[]>("/api/v1/admin/users"),
@@ -88,6 +95,18 @@ export function AdminUsersPage() {
     "username",
     "asc",
   );
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredUsers = sortedData.filter((user) =>
+    [
+      user.username,
+      user.fullname,
+      user.email,
+      ...user.roles,
+      ...user.allowed_login_methods,
+    ].some((value) => String(value ?? "").toLowerCase().includes(normalizedSearch)),
+  );
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const visibleUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const validationError = validateUserForm(form, editingUser);
   const save = useMutation({
@@ -210,6 +229,29 @@ export function AdminUsersPage() {
       </Alert>
 
       <Paper className="data-panel">
+        <Box className="toolbar-row">
+          <Typography variant="body2" color="text.secondary">
+            {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"}
+          </Typography>
+          <TextField
+            size="small"
+            placeholder="Search users"
+            aria-label="Search users"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            sx={{ maxWidth: 420 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={17} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
         <div className="responsive-table">
           <table>
             <thead>
@@ -255,7 +297,7 @@ export function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {sortedData.map((user: AdminUser) => (
+              {visibleUsers.map((user: AdminUser) => (
                 <tr key={user._id}>
                   <td className="font-medium">{user.username}</td>
                   <td>{user.fullname}</td>
@@ -300,9 +342,20 @@ export function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
+              {!visibleUsers.length && (
+                <tr>
+                  <td colSpan={8} className="empty-cell">No users found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+        <Box className="flex items-center justify-between p-4">
+          <Typography variant="body2" color="text.secondary">
+            Page {Math.min(page, pageCount)} of {pageCount}
+          </Typography>
+          <Pagination page={page} count={pageCount} onChange={(_, value) => setPage(value)} />
+        </Box>
       </Paper>
 
       <Dialog open={open} onClose={closeDialog} fullWidth maxWidth="md">

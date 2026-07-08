@@ -74,8 +74,32 @@ services:
       - ./backend/src:/app/src
 
   mongo:
+    image: mongo:3.4
+    platform: linux/amd64
+    container_name: cll-genie-mongo
+    cpus: "${MONGO_CPU_LIMIT:?MONGO_CPU_LIMIT must be set in .env.dev}"
+    mem_limit: "${MONGO_MEMORY_LIMIT:?MONGO_MEMORY_LIMIT must be set in .env.dev}"
     profiles: ["mongo"]
+    command: ["mongod", "--bind_ip", "0.0.0.0"]
     ports:
-      - "${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env}:27017"
+      - "${MONGO_DEV_PORT:?MONGO_DEV_PORT must be set in .env.dev}:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongo",
+          "--quiet",
+          "--eval",
+          "quit(db.runCommand({ping:1}).ok ? 0 : 2)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    networks: [cll_genie]
+    restart: unless-stopped
 volumes:
   frontend_node_modules: {}
+  mongo_data: {}

@@ -1,5 +1,8 @@
 FROM node:22-alpine AS frontend-build
 
+ARG APPLICATION_PREFIX=/cll_genie
+ENV APPLICATION_PREFIX=${APPLICATION_PREFIX}
+
 WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json frontend/tsconfig.json frontend/tsconfig.app.json frontend/tsconfig.node.json frontend/vite.config.ts frontend/index.html ./
 COPY backend/src/cll_genie_api/version.py ./app-version.py

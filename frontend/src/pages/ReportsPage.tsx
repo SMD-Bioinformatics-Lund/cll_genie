@@ -1,22 +1,31 @@
 import {
   Alert,
+  Box,
   Button,
   Chip,
   Container,
+  InputAdornment,
+  Pagination,
   Paper,
+  TextField,
   Typography,
 } from "../components/ui";
-import { EyeOff, ExternalLink, RotateCcw } from "lucide-react";
+import { EyeOff, ExternalLink, RotateCcw, Search } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, applicationUrl } from "../api";
 import { useSession } from "../session-context";
 import type { Report } from "../types";
 import { timeAgo } from "../dateUtils";
+import { useState } from "react";
+
+const PAGE_SIZE = 25;
 
 export function ReportsPage() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const canArchive = session.user.can_moderate;
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const query = useQuery({
     queryKey: ["reports"],
     queryFn: () => apiRequest<Report[]>("/api/v1/reports"),
@@ -33,6 +42,19 @@ export function ReportsPage() {
       ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
   });
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredReports = (query.data ?? []).filter((report) =>
+    [
+      report.display_id,
+      report.sample_name,
+      report.report_type,
+      report.submission_id,
+      report.created_by,
+      report.hidden ? "hidden" : "available",
+    ].some((value) => String(value ?? "").toLowerCase().includes(normalizedSearch)),
+  );
+  const pageCount = Math.max(1, Math.ceil(filteredReports.length / PAGE_SIZE));
+  const visibleReports = filteredReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   return (
     <Container maxWidth="xl" className="py-8">
       <Typography variant="overline" color="primary" fontWeight={800}>
@@ -46,7 +68,30 @@ export function ReportsPage() {
           {archive.error.message}
         </Alert>
       )}
-      <Paper className="data-panel" >
+      <Paper className="data-panel">
+        <Box className="toolbar-row">
+          <Typography variant="body2" color="text.secondary">
+            {filteredReports.length} {filteredReports.length === 1 ? "report" : "reports"}
+          </Typography>
+          <TextField
+            size="small"
+            placeholder="Search reports"
+            aria-label="Search reports"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            sx={{ maxWidth: 420 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={17} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
         <div className="responsive-table">
           <table>
             <thead>
@@ -61,7 +106,7 @@ export function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {query.data?.map((report) => (
+              {visibleReports.map((report) => (
                 <tr key={report._id} style={{ opacity: report.hidden ? 0.5 : 1 }}>
                   <td>{timeAgo(report.created_at)}</td>
                   <td>
@@ -110,9 +155,20 @@ export function ReportsPage() {
                   </td>
                 </tr>
               ))}
+              {!visibleReports.length && (
+                <tr>
+                  <td colSpan={7} className="empty-cell">No reports found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+        <Box className="flex items-center justify-between p-4">
+          <Typography variant="body2" color="text.secondary">
+            Page {Math.min(page, pageCount)} of {pageCount}
+          </Typography>
+          <Pagination page={page} count={pageCount} onChange={(_, value) => setPage(value)} />
+        </Box>
       </Paper>
     </Container>
   );

@@ -90,6 +90,7 @@ export type DraftSequence = {
 export type Report = {
   _id: string;
   display_id?: string;
+  sample_name?: string;
   report_type: string;
   submission_id: string | null;
   summary: string;
