@@ -59,7 +59,13 @@ def submit_vquest(
         {"sequence_count": len(payload.sequences), "options": payload.options},
         session.user.username,
     )
-    run_vquest.delay(job_id, sample_id, payload.sequences, payload.options, session.user.username)
+    async_result = run_vquest.delay(
+        job_id, sample_id, payload.sequences, payload.options, session.user.username
+    )
+    if services.operational_state:
+        services.operational_state.mark_queued(
+            "vquest_analysis", session.user.username, str(async_result.id)
+        )
     record_audit(
         services,
         "vquest.analysis.queued",

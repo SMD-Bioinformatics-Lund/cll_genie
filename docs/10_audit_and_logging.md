@@ -82,6 +82,7 @@ Indexes support newest-first browsing and filtering by severity, category, event
 Run index creation after deployment or configuration changes:
 
 ```bash
+docker compose exec api python -m cll_genie_api.scripts.check_user_integrity
 docker compose exec api python -m cll_genie_api.scripts.ensure_indexes
 ```
 

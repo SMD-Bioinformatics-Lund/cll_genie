@@ -94,6 +94,54 @@ export function AdminOperationsPage() {
                     ? `${timeAgo(control.updated_at)} by ${control.updated_by || "unknown"}`
                     : "not yet"}
                 </Typography>
+                <div className="mt-4 grid gap-2 text-xs text-gray-600 dark:text-[#c7beb4] sm:grid-cols-2">
+                  <div>
+                    <span className="font-semibold text-gray-800 dark:text-[#e8dfd5]">
+                      Last status:
+                    </span>{" "}
+                    {control.last_status || "No task run recorded"}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-800 dark:text-[#e8dfd5]">
+                      Last queued:
+                    </span>{" "}
+                    {control.last_queued_at
+                      ? `${timeAgo(control.last_queued_at)} by ${control.last_queued_by || "unknown"}`
+                      : "Never"}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-800 dark:text-[#e8dfd5]">
+                      Last started:
+                    </span>{" "}
+                    {control.last_started_at ? timeAgo(control.last_started_at) : "Never"}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-800 dark:text-[#e8dfd5]">
+                      Last finished:
+                    </span>{" "}
+                    {control.last_finished_at
+                      ? timeAgo(control.last_finished_at)
+                      : "Never"}
+                  </div>
+                </div>
+                {control.last_task_id && (
+                  <Typography color="text.secondary" className="mt-2 text-xs">
+                    Task ID: <span className="font-mono">{control.last_task_id}</span>
+                  </Typography>
+                )}
+                {control.last_error && (
+                  <Alert severity="error" className="mt-3">
+                    {control.last_error}
+                  </Alert>
+                )}
+                {control.last_result && (
+                  <Typography color="text.secondary" className="mt-2 text-xs">
+                    Last result:{" "}
+                    <span className="font-mono">
+                      {JSON.stringify(control.last_result)}
+                    </span>
+                  </Typography>
+                )}
               </div>
               <Switch
                 checked={control.enabled}

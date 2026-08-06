@@ -52,8 +52,10 @@ class FakeRulesCollection:
             }
         }
 
-    def list(self):
-        return list(self.rules.values())
+    def list(self, *, search="", skip=0, limit=25):
+        del search
+        items = list(self.rules.values())[skip : skip + limit]
+        return items, len(self.rules)
 
     def create(self, rule_data):
         rule_data["_id"] = "new_rule"
@@ -90,8 +92,8 @@ def test_list_rules_returns_latest():
         response = test_client.get("/cll_genie/api/v1/admin/rules")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["rule_key"] == "mutation.m_cll"
+        assert data["total"] == 1
+        assert data["items"][0]["rule_key"] == "mutation.m_cll"
 
 
 def test_create_rule_success():

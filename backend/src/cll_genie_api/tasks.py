@@ -21,10 +21,24 @@ def ingest() -> dict:
         "automated_ingestion"
     ):
         return {"registered": 0, "updated": 0, "skipped": "automated_ingestion_disabled"}
-    return {
-        "registered": register_runs(audit=services.audit),
-        "updated": attach_results(audit=services.audit),
-    }
+    if services.operational_state:
+        services.operational_state.mark_started("automated_ingestion")
+    try:
+        result = {
+            "registered": register_runs(audit=services.audit),
+            "updated": attach_results(audit=services.audit),
+        }
+        if services.operational_state:
+            services.operational_state.mark_finished(
+                "automated_ingestion", status="SUCCEEDED", result=result
+            )
+        return result
+    except Exception as exc:
+        if services.operational_state:
+            services.operational_state.mark_finished(
+                "automated_ingestion", status="FAILED", error=str(exc)
+            )
+        raise
 
 
 @celery_app.task(name="cll_genie.run_vquest")
@@ -37,6 +51,8 @@ def run_vquest(
             "vquest_analysis"
         ):
             raise ValueError("IMGT/V-QUEST analysis is disabled by an administrator")
+        if services.operational_state:
+            services.operational_state.mark_started("vquest_analysis")
         services.jobs.transition(job_id, "RUNNING", progress=5, message="Preparing sequences")
         sample = services.samples.get(sample_id)
         if sample is None:
@@ -118,6 +134,10 @@ def run_vquest(
                 "artifact_id": str(artifact["_id"]),
             },
         )
+        if services.operational_state:
+            services.operational_state.mark_finished(
+                "vquest_analysis", status="SUCCEEDED", result=result
+            )
         return result
     except Exception as exc:
         services.jobs.transition(
@@ -140,4 +160,8 @@ def run_vquest(
                 "error_type": type(exc).__name__,
             },
         )
+        if services.operational_state:
+            services.operational_state.mark_finished(
+                "vquest_analysis", status="FAILED", error=str(exc)
+            )
         raise

@@ -42,7 +42,7 @@ function renderPage() {
 describe("AdminUsersPage", () => {
   beforeEach(() => {
     apiRequest.mockReset();
-    apiRequest.mockResolvedValue([]);
+    apiRequest.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 25 });
   });
 
   it("defaults new users to LDAP and exposes role checkboxes", async () => {

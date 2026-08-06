@@ -6,6 +6,8 @@ CLL Genie has three application roles. An account can have one or more roles, an
 
 To access User Management, you must be logged in as an Administrator. Navigate to **Admin > Users** from the sidebar.
 
+The page uses server-side search and pagination. Search covers username, full name, email, assigned roles, and allowed login methods.
+
 Here you will see a table of all registered users with their:
 
 - **Username**
@@ -20,6 +22,14 @@ Here you will see a table of all registered users with their:
 Users are stored in `APPLICATION_DATABASE.USERS_COLLECTION`. MongoDB generates `_id` as an `ObjectId`; application login and updates use the unique `username` and `email` fields.
 
 CLL Genie reads users only from the configured `APPLICATION_DATABASE.USERS_COLLECTION`. To reuse profiles stored in another database, import them before deployment cutover. Session records are database-specific and are not transferable between deployments.
+
+Before creating indexes on an imported database, check for duplicate usernames and email addresses:
+
+```bash
+docker compose exec api python -m cll_genie_api.scripts.check_user_integrity
+```
+
+The command reports conflicting user documents and exits with a non-zero status when cleanup is required. It does not delete, merge, or rewrite records. Resolve duplicates manually, then run index creation.
 
 ```javascript
 {

@@ -25,6 +25,8 @@ The PDF download endpoint renders a PDF from report HTML when requested. Reports
 
 Each report has its own database ID and display ID. Creating another report does not overwrite the previous report record. Administrators can hide and restore reports; hidden reports are unavailable to ordinary users.
 
+The report archive uses server-side search and pagination. Search covers report ID, sample name, report type, submission ID, and report author. Users with `admin` or `lymphotrack_admin` can see hidden reports; other users only receive available reports from the API.
+
 Report creation, access, hiding, and restoration are recorded as audit events.
 
 See [Report rules](07_rules_engine.md) for condition evaluation.

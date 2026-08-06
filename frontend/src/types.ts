@@ -60,6 +60,13 @@ export type SamplesPayload = {
   page_size: number;
 };
 
+export type PaginatedPayload<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
 export type Job = {
   _id: string;
   kind: string;
@@ -107,4 +114,12 @@ export type TaskControl = {
   enabled: boolean;
   updated_at?: string | null;
   updated_by?: string | null;
+  last_queued_at?: string | null;
+  last_queued_by?: string | null;
+  last_task_id?: string | null;
+  last_started_at?: string | null;
+  last_finished_at?: string | null;
+  last_status?: string | null;
+  last_result?: Record<string, unknown> | null;
+  last_error?: string | null;
 };

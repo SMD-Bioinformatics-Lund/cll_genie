@@ -34,6 +34,7 @@ import {
 import { useSortableTable } from "../hooks/useSortableTable";
 import { useSession } from "../session-context";
 import { timeAgo } from "../dateUtils";
+import type { PaginatedPayload } from "../types";
 
 type LoginMethod = "ldap" | "local";
 
@@ -87,26 +88,25 @@ export function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const users = useQuery({
-    queryKey: ["admin-users"],
-    queryFn: () => apiRequest<AdminUser[]>("/api/v1/admin/users"),
+    queryKey: ["admin-users", search, page],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        search,
+        page: String(page),
+        page_size: String(PAGE_SIZE),
+      });
+      return apiRequest<PaginatedPayload<AdminUser>>(
+        `/api/v1/admin/users?${params}`,
+      );
+    },
   });
   const { sortedData, sortKey, sortOrder, requestSort } = useSortableTable(
-    users.data,
+    users.data?.items,
     "username",
     "asc",
   );
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredUsers = sortedData.filter((user) =>
-    [
-      user.username,
-      user.fullname,
-      user.email,
-      ...user.roles,
-      ...user.allowed_login_methods,
-    ].some((value) => String(value ?? "").toLowerCase().includes(normalizedSearch)),
-  );
-  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const visibleUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const total = users.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const validationError = validateUserForm(form, editingUser);
   const save = useMutation({
@@ -231,7 +231,7 @@ export function AdminUsersPage() {
       <Paper className="data-panel">
         <Box className="toolbar-row">
           <Typography variant="body2" color="text.secondary">
-            {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"}
+            {total} {total === 1 ? "user" : "users"}
           </Typography>
           <TextField
             size="small"
@@ -297,7 +297,7 @@ export function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {visibleUsers.map((user: AdminUser) => (
+              {sortedData.map((user: AdminUser) => (
                 <tr key={user._id}>
                   <td className="font-medium">{user.username}</td>
                   <td>{user.fullname}</td>
@@ -342,7 +342,7 @@ export function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
-              {!visibleUsers.length && (
+              {!sortedData.length && (
                 <tr>
                   <td colSpan={8} className="empty-cell">No users found.</td>
                 </tr>

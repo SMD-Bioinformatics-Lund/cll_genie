@@ -1,6 +1,6 @@
 # 7. Report rules
 
-Report rules convert derived submission facts into Swedish clinical text. Administrators manage rules under **Administration → Report rules**.
+Report rules convert derived submission facts into Swedish clinical text. Administrators manage rules under **Administration → Report rules**. The page uses server-side search and pagination; search covers rule key, section, status, report type, and template text.
 
 ## Rule structure
 

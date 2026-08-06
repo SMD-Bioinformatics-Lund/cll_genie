@@ -227,8 +227,31 @@ class ReportRepository:
             self.collection.find({"sample_id": object_id(sample_id)}).sort("created_at", -1)
         )
 
-    def list_all(self, limit: int = 250) -> list[dict[str, Any]]:
-        return list(self.collection.find().sort("created_at", -1).limit(limit))
+    def list_all(
+        self,
+        *,
+        search: str = "",
+        include_hidden: bool = False,
+        skip: int = 0,
+        limit: int = 25,
+    ) -> tuple[list[dict[str, Any]], int]:
+        query: dict[str, Any] = {}
+        if not include_hidden:
+            query["hidden"] = {"$ne": True}
+        if search.strip():
+            term = {"$regex": re.escape(search.strip()), "$options": "i"}
+            query["$or"] = [
+                {"display_id": term},
+                {"sample_name": term},
+                {"report_type": term},
+                {"submission_id": term},
+                {"created_by": term},
+            ]
+        total = self.collection.count_documents(query)
+        reports = list(
+            self.collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        )
+        return reports, total
 
     def delete_by_sample(self, sample_id: str) -> int:
         result = self.collection.delete_many({"sample_id": object_id(sample_id)})
@@ -278,8 +301,30 @@ class RuleRepository:
     def __init__(self, collection) -> None:
         self.collection = collection
 
-    def list(self) -> list[dict[str, Any]]:
-        return list(self.collection.find().sort([("section", 1), ("priority", 1)]))
+    def list(
+        self,
+        *,
+        search: str = "",
+        skip: int = 0,
+        limit: int | None = None,
+    ) -> tuple[list[dict[str, Any]], int]:
+        query: dict[str, Any] = {}
+        if search.strip():
+            term = {"$regex": re.escape(search.strip()), "$options": "i"}
+            query["$or"] = [
+                {"rule_key": term},
+                {"section": term},
+                {"status": term},
+                {"report_type": term},
+                {"template.text": term},
+            ]
+        total = self.collection.count_documents(query)
+        cursor = self.collection.find(query).sort(
+            [("section", 1), ("priority", 1), ("rule_key", 1)]
+        )
+        if limit is not None:
+            cursor = cursor.skip(skip).limit(limit)
+        return list(cursor), total
 
     def active(
         self, report_type: str = "CLL_IGHV", language: str = "sv-SE"
@@ -314,7 +359,9 @@ class OperationalStateRepository:
         {
             "key": "vquest_analysis",
             "label": "IMGT/V-QUEST analysis",
-            "description": "User-submitted IMGT/V-QUEST analysis jobs through the Celery worker.",
+            "description": (
+                "User-submitted IMGT/V-QUEST analysis jobs through the Celery worker."
+            ),
         },
     )
 
@@ -334,6 +381,14 @@ class OperationalStateRepository:
             "enabled": bool(document.get("enabled", True)),
             "updated_at": document.get("updated_at"),
             "updated_by": document.get("updated_by"),
+            "last_queued_at": document.get("last_queued_at"),
+            "last_queued_by": document.get("last_queued_by"),
+            "last_task_id": document.get("last_task_id"),
+            "last_started_at": document.get("last_started_at"),
+            "last_finished_at": document.get("last_finished_at"),
+            "last_status": document.get("last_status"),
+            "last_result": document.get("last_result"),
+            "last_error": document.get("last_error"),
         }
 
     def is_enabled(self, key: str) -> bool:
@@ -357,6 +412,61 @@ class OperationalStateRepository:
             upsert=True,
         )
         return self.get_task_control(key)
+
+    def mark_queued(self, key: str, actor: str, task_id: str | None = None) -> None:
+        self._definition(key)
+        self.collection.update_one(
+            {"_id": key},
+            {
+                "$set": {
+                    "last_queued_at": utcnow(),
+                    "last_queued_by": actor,
+                    "last_task_id": task_id,
+                    "last_status": "QUEUED",
+                    "last_error": None,
+                },
+                "$setOnInsert": {"enabled": True, "created_at": utcnow()},
+            },
+            upsert=True,
+        )
+
+    def mark_started(self, key: str) -> None:
+        self._definition(key)
+        self.collection.update_one(
+            {"_id": key},
+            {
+                "$set": {
+                    "last_started_at": utcnow(),
+                    "last_status": "RUNNING",
+                    "last_error": None,
+                },
+                "$setOnInsert": {"enabled": True, "created_at": utcnow()},
+            },
+            upsert=True,
+        )
+
+    def mark_finished(
+        self,
+        key: str,
+        *,
+        status: str,
+        result: dict[str, Any] | None = None,
+        error: str | None = None,
+    ) -> None:
+        self._definition(key)
+        self.collection.update_one(
+            {"_id": key},
+            {
+                "$set": {
+                    "last_finished_at": utcnow(),
+                    "last_status": status,
+                    "last_result": result,
+                    "last_error": error,
+                },
+                "$setOnInsert": {"enabled": True, "created_at": utcnow()},
+            },
+            upsert=True,
+        )
 
     def _definition(self, key: str) -> dict[str, str]:
         for item in self.DEFAULT_CONTROLS:

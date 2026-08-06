@@ -26,6 +26,7 @@ import {
 
 import { apiRequest } from "../api";
 import { useSession } from "../session-context";
+import type { PaginatedPayload } from "../types";
 
 type Rule = {
   _id: string;
@@ -67,24 +68,19 @@ export function AdminRulesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const rules = useQuery({
-    queryKey: ["admin-rules"],
-    queryFn: () => apiRequest<Rule[]>("/api/v1/admin/rules"),
+    queryKey: ["admin-rules", search, page],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        search,
+        page: String(page),
+        page_size: String(PAGE_SIZE),
+      });
+      return apiRequest<PaginatedPayload<Rule>>(`/api/v1/admin/rules?${params}`);
+    },
   });
-  const sortedData = [...(rules.data ?? [])].sort((left, right) =>
-    left.rule_key.localeCompare(right.rule_key),
-  );
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredRules = sortedData.filter((rule) =>
-    [
-      rule.rule_key,
-      rule.section,
-      rule.status,
-      rule.report_type,
-      rule.template.text,
-    ].some((value) => value.toLowerCase().includes(normalizedSearch)),
-  );
-  const pageCount = Math.max(1, Math.ceil(filteredRules.length / PAGE_SIZE));
-  const visibleRules = filteredRules.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const visibleRules = rules.data?.items ?? [];
+  const total = rules.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const body = () => ({
     ...form,
     condition: buildAstFromVisual(visualConditions),
@@ -162,7 +158,7 @@ export function AdminRulesPage() {
       <Paper className="data-panel">
         <Box className="toolbar-row">
           <Typography variant="body2" color="text.secondary">
-            {filteredRules.length} {filteredRules.length === 1 ? "rule" : "rules"}
+            {total} {total === 1 ? "rule" : "rules"}
           </Typography>
           <TextField
             size="small"

@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import FileResponse, HTMLResponse
 
 from cll_genie_api.api.common import serialize
@@ -335,11 +335,18 @@ def list_reports(
 def all_reports(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
+    search: str = Query(default="", max_length=100),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
 ):
-    reports = services.reports.list_all()
-    if not session.user.can_moderate:
-        reports = [report for report in reports if not report.get("hidden")]
-    return serialize(reports)
+    limit = min(page_size, services.settings.page_size_max)
+    reports, total = services.reports.list_all(
+        search=search,
+        include_hidden=session.user.can_moderate,
+        skip=(page - 1) * limit,
+        limit=limit,
+    )
+    return {"items": serialize(reports), "total": total, "page": page, "page_size": limit}
 
 
 @router.get("/reports/{report_id}/artifact")

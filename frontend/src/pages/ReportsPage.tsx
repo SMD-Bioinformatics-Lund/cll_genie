@@ -14,7 +14,7 @@ import { EyeOff, ExternalLink, RotateCcw, Search } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, applicationUrl } from "../api";
 import { useSession } from "../session-context";
-import type { Report } from "../types";
+import type { PaginatedPayload, Report } from "../types";
 import { timeAgo } from "../dateUtils";
 import { useState } from "react";
 
@@ -27,8 +27,15 @@ export function ReportsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const query = useQuery({
-    queryKey: ["reports"],
-    queryFn: () => apiRequest<Report[]>("/api/v1/reports"),
+    queryKey: ["reports", search, page],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        search,
+        page: String(page),
+        page_size: String(PAGE_SIZE),
+      });
+      return apiRequest<PaginatedPayload<Report>>(`/api/v1/reports?${params}`);
+    },
   });
   const archive = useMutation({
     mutationFn: (report: Report) =>
@@ -42,19 +49,9 @@ export function ReportsPage() {
       ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
   });
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredReports = (query.data ?? []).filter((report) =>
-    [
-      report.display_id,
-      report.sample_name,
-      report.report_type,
-      report.submission_id,
-      report.created_by,
-      report.hidden ? "hidden" : "available",
-    ].some((value) => String(value ?? "").toLowerCase().includes(normalizedSearch)),
-  );
-  const pageCount = Math.max(1, Math.ceil(filteredReports.length / PAGE_SIZE));
-  const visibleReports = filteredReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const reports = query.data?.items ?? [];
+  const total = query.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   return (
     <Container maxWidth="xl" className="py-8">
       <Typography variant="overline" color="primary" fontWeight={800}>
@@ -71,7 +68,7 @@ export function ReportsPage() {
       <Paper className="data-panel">
         <Box className="toolbar-row">
           <Typography variant="body2" color="text.secondary">
-            {filteredReports.length} {filteredReports.length === 1 ? "report" : "reports"}
+            {total} {total === 1 ? "report" : "reports"}
           </Typography>
           <TextField
             size="small"
@@ -106,7 +103,7 @@ export function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {visibleReports.map((report) => (
+              {reports.map((report) => (
                 <tr key={report._id} style={{ opacity: report.hidden ? 0.5 : 1 }}>
                   <td>{timeAgo(report.created_at)}</td>
                   <td>
@@ -155,7 +152,7 @@ export function ReportsPage() {
                   </td>
                 </tr>
               ))}
-              {!visibleReports.length && (
+              {!reports.length && (
                 <tr>
                   <td colSpan={7} className="empty-cell">No reports found.</td>
                 </tr>

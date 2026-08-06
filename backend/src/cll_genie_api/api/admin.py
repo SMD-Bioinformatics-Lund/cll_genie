@@ -118,9 +118,18 @@ def list_audit_logs(
 def list_rules(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
+    search: Annotated[str, Query(max_length=100)] = "",
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 25,
 ):
     assert_role(session, ["admin"])
-    return serialize(services.rules.list())
+    limit = min(page_size, services.settings.page_size_max)
+    rules, total = services.rules.list(
+        search=search,
+        skip=(page - 1) * limit,
+        limit=limit,
+    )
+    return {"items": serialize(rules), "total": total, "page": page, "page_size": limit}
 
 
 @router.post("/rules", status_code=status.HTTP_201_CREATED)
@@ -256,6 +265,10 @@ def run_ingestion_now(
     from cll_genie_api.tasks import ingest
 
     async_result = ingest.delay()
+    if services.operational_state:
+        services.operational_state.mark_queued(
+            "automated_ingestion", session.user.username, str(async_result.id)
+        )
     record_audit(
         services,
         "operations.ingestion.queued",
@@ -276,13 +289,33 @@ def run_ingestion_now(
 def list_users(
     session: Annotated[Session, Depends(get_current_session)],
     services: Annotated[Services, Depends(get_services)],
+    search: Annotated[str, Query(max_length=100)] = "",
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 25,
 ):
     assert_role(session, ["admin"])
-    users = list(services.collections.users.find({}).sort("username", 1))
+    query: dict = {}
+    if search.strip():
+        term = {"$regex": re.escape(search.strip()), "$options": "i"}
+        query["$or"] = [
+            {"username": term},
+            {"fullname": term},
+            {"email": term},
+            {"roles": term},
+            {"allowed_login_methods": term},
+        ]
+    limit = min(page_size, services.settings.page_size_max)
+    total = services.collections.users.count_documents(query)
+    users = list(
+        services.collections.users.find(query)
+        .sort("username", 1)
+        .skip((page - 1) * limit)
+        .limit(limit)
+    )
     for user in users:
         user["allowed_login_methods"] = user.get("allowed_login_methods", [])
         user.pop("password", None)
-    return serialize(users)
+    return {"items": serialize(users), "total": total, "page": page, "page_size": limit}
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED)

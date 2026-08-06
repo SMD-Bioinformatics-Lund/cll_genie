@@ -39,11 +39,11 @@ import {
 import { useSession } from "../session-context";
 import { timeAgo } from "../dateUtils";
 import { ConfirmModal } from "../components/ConfirmModal";
-
-type SequenceResult = {
-  summary: Record<string, unknown>;
-  junction: Record<string, unknown>;
-};
+import {
+  AnalysisParametersCard,
+  SequenceResultCard,
+  type SequenceResult,
+} from "./SubmissionResultCards";
 type Submission = {
   vquest_parameters: Record<string, unknown>;
   vquest_results: Record<string, SequenceResult>;
@@ -294,165 +294,10 @@ export function SubmissionPage() {
           </Alert>
         )}
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-[#3b3732] bg-white dark:bg-[#202020] shadow-sm">
-          <div className="border-b border-gray-200 dark:border-[#3b3732] bg-white dark:bg-[#202020] px-6 py-5">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Analysis Parameters</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-y-6 gap-x-8 p-8 text-xs sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 bg-gray-50/50 dark:bg-[#181818]/50">
-            {Object.entries(vquestParameters).map(([key, value]) => (
-              <div key={key} className="flex flex-col border-l-2 border-brand-detail dark:border-brand-detail pl-3">
-                <span className="text-xs font-semibold text-gray-500 dark:text-[#c7beb4] mb-1">{key}</span>
-                <span className="text-gray-900 dark:text-[#e8dfd5] font-medium">{String(value ?? "–")}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <AnalysisParametersCard parameters={vquestParameters} />
 
         {Object.entries(vquestResults).map(([id, result]) => (
-          <div key={id} className="overflow-hidden rounded-xl border border-gray-200 dark:border-[#3b3732] bg-white dark:bg-[#202020] shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#3b3732] bg-white dark:bg-[#202020] px-6 py-5">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Sequence Id: <span className="text-brand-primary">{id.split("_")[0]}</span></h3>
-              <span className={`rounded-full px-2.5 py-1.5 text-sm font-bold border ${
-                String(result.summary["CLL subset"] ?? "–") === "2" || String(result.summary["CLL subset"] ?? "–") === "8"
-                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40"
-                  : String(result.summary["CLL subset"] ?? "–") !== "–" && String(result.summary["CLL subset"] ?? "–") !== "None"
-                  ? "bg-brand-primary/10 text-brand-primary border-brand-primary/20 dark:bg-brand-detail/10 dark:border-brand-detail/20"
-                  : "bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#202020] dark:text-[#c7beb4] dark:border-[#3b3732]"
-              }`}>
-                CLL Subset: {String(result.summary["CLL subset"] ?? "–")}
-              </span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-gray-800 dark:text-[#d8d0c7]">
-                <tbody className="divide-y divide-gray-200/60 dark:divide-[#34302c]">
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] w-1/4 bg-gray-50/80 dark:bg-[#181818]/40">Sequence analysis category</th>
-                    <td className="py-2.5 px-3 w-1/4 font-medium">{String(result.summary['Sequence analysis category'] ?? "–")}</td>
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] w-1/4 bg-gray-50/80 dark:bg-[#181818]/40">CLL subset</th>
-                    <td className="py-2.5 px-3 w-1/4 font-medium">{String(result.summary['CLL subset'] ?? "–")}</td>
-                  </tr>
-                  
-                  {Boolean(result.summary['V-REGION potential ins/del']) && (
-                    <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                      <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">V-REGION ins/del</th>
-                      <td colSpan={3} className="py-2.5 px-3 text-red-600 dark:text-red-400 font-medium">
-                        {String(result.summary['V-REGION potential ins/del'])}
-                      </td>
-                    </tr>
-                  )}
-                  
-                  {(Boolean(result.summary['V-REGION insertions']) || Boolean(result.summary['V-REGION deletions'])) && (
-                    <tr className="bg-yellow-50/50 dark:bg-yellow-900/10">
-                      <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-yellow-50/80 dark:bg-yellow-900/20">Indel summary</th>
-                      <td colSpan={3} className="py-2.5 px-3">
-                        {Boolean(result.summary['V-REGION insertions']) && (
-                          <div className="mb-1.5">
-                            <span className="block text-xs font-semibold text-brand-detail dark:text-brand-detail mb-0.5">Nucleotide insertions have been detected and removed.</span>
-                            <i className="text-gray-800 dark:text-[#d8d0c7] font-medium">{String(result.summary['V-REGION insertions'])}</i>
-                          </div>
-                        )}
-                        {Boolean(result.summary['V-REGION deletions']) && (
-                          <div>
-                            <span className="block text-xs font-semibold text-brand-detail dark:text-brand-detail mb-0.5">Nucleotide deletions have been detected and removed.</span>
-                            <i className="text-gray-800 dark:text-[#d8d0c7] font-medium">{String(result.summary['V-REGION deletions'])}</i>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">V-DOMAIN functionality</th>
-                    <td colSpan={3} className="py-2.5 px-3">
-                      <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-semibold border ${
-                        String(result.summary['V-DOMAIN Functionality']).toLowerCase().includes("productive") && !String(result.summary['V-DOMAIN Functionality']).toLowerCase().includes("unproductive")
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40"
-                          : String(result.summary['V-DOMAIN Functionality']).toLowerCase().includes("unproductive")
-                          ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40"
-                          : "bg-gray-100 text-gray-600 border-gray-200 dark:bg-[#202020] dark:text-[#c7beb4] dark:border-[#3b3732]"
-                      }`}>
-                        {String(result.summary['V-DOMAIN Functionality'] ?? "–")}
-                      </span>
-                      {result.summary['V-DOMAIN Functionality comment'] ? <><br/><span className="text-gray-500 dark:text-[#c7beb4] text-xs mt-1 inline-block">{String(result.summary['V-DOMAIN Functionality comment'])}</span></> : null}
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">V-GENE and allele</th>
-                    <td className="py-2.5 px-3 font-medium">{String(result.summary['V-GENE and allele'] ?? "–")}</td>
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40 border-l border-gray-200/60 dark:border-[#3b3732]">Score: {String(result.summary['V-REGION score'] ?? "–")}</th>
-                    <td className="py-2.5 px-3 border-l border-gray-200/60 dark:border-[#3b3732]">
-                      <span className="text-gray-600 dark:text-[#c7beb4] mr-1">Identity:</span>
-                      <span 
-                        title={parseFloat(String(result.summary['V-REGION identity %'])) >= 98 ? "U-CLL (Unmutated)" : parseFloat(String(result.summary['V-REGION identity %'])) >= 97 ? "Borderline" : "M-CLL (Mutated)"}
-                        className={`inline-block rounded-md px-1.5 py-0.5 text-xs font-bold border cursor-help ${
-                        parseFloat(String(result.summary['V-REGION identity %'])) >= 98
-                          ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40"
-                          : parseFloat(String(result.summary['V-REGION identity %'])) >= 97
-                          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40"
-                          : parseFloat(String(result.summary['V-REGION identity %'])) < 97
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40"
-                          : "font-medium text-gray-900 dark:text-[#f4efe8] border-transparent"
-                      }`}>
-                        {String(result.summary['V-REGION identity %'] ?? "–")}% 
-                      </span>
-                      <span className="text-gray-500 dark:text-[#c7beb4] ml-1 text-xs">({String(result.summary['V-REGION identity nt'] ?? "–")})</span>
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">J-GENE and allele</th>
-                    <td className="py-2.5 px-3 font-medium">{String(result.summary['J-GENE and allele'] ?? "–")}</td>
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40 border-l border-gray-200/60 dark:border-[#3b3732]">Score: {String(result.summary['J-REGION score'] ?? "–")}</th>
-                    <td className="py-2.5 px-3 font-medium border-l border-gray-200/60 dark:border-[#3b3732]">
-                      Identity: {String(result.summary['J-REGION identity %'] ?? "–")}% 
-                      <span className="text-gray-500 dark:text-[#c7beb4] ml-1">({String(result.summary['J-REGION identity nt'] ?? "–")})</span>
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">D-GENE and allele</th>
-                    <td className="py-2.5 px-3 font-medium">{String(result.summary['D-GENE and allele'] ?? "–")}</td>
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40 border-l border-gray-200/60 dark:border-[#3b3732]">D-REGION reading frame</th>
-                    <td className="py-2.5 px-3 font-medium border-l border-gray-200/60 dark:border-[#3b3732]">{String(result.summary['D-REGION reading frame'] ?? "–")}</td>
-                  </tr>
-
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">FR/CDR lengths</th>
-                    <td className="py-2.5 px-3 font-medium text-gray-600 dark:text-[#c7beb4]">
-                      <span className="text-gray-900 dark:text-[#e8dfd5] font-medium">{String(result.summary['FR-IMGT lengths'] ?? "–")}</span> / <span className="text-gray-900 dark:text-[#e8dfd5] font-medium">[{String(result.summary['CDR-IMGT lengths'] ?? "–")}]</span>
-                    </td>
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40 border-l border-gray-200/60 dark:border-[#3b3732]">AA JUNCTION</th>
-                    <td className="py-2.5 px-3 font-mono text-xs text-brand-primary font-bold tracking-wider break-all border-l border-gray-200/60 dark:border-[#3b3732]">{String(result.summary['AA JUNCTION'] ?? "–")}</td>
-                  </tr>
-
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">JUNCTION length/decryption</th>
-                    <td colSpan={3} className="py-2.5 px-3">
-                      {Boolean(result.junction['JUNCTION-nt nb']) && Boolean(result.junction['JUNCTION decryption']) ? (
-                        <span className="font-medium text-gray-900 dark:text-[#f4efe8]">
-                          {String(result.junction['JUNCTION-nt nb'])} nt = {String(result.junction['JUNCTION decryption'])}
-                        </span>
-                      ) : (
-                        "–"
-                      )}
-                      <br />
-                      <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank" rel="noreferrer" className="text-brand-detail dark:text-brand-detail hover:underline text-xs mt-1 inline-block font-mono break-all opacity-80">
-                        (3'V)3'{'{N1}'}5'(D)3'{'{N2}'}5'(5'J)
-                      </a>
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-gray-50/50 dark:hover:bg-[#2a2724]">
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40">Merge count</th>
-                    <td className="py-2.5 px-3 font-medium">{String(result.summary['Merge Count'] ?? "–")}</td>
-                    <th className="py-2.5 pl-3 pr-2 font-semibold text-gray-600 dark:text-[#c7beb4] bg-gray-50/80 dark:bg-[#181818]/40 border-l border-gray-200/60 dark:border-[#3b3732]">Total reads</th>
-                    <td className="py-2.5 px-3 font-medium border-l border-gray-200/60 dark:border-[#3b3732]">{String(result.summary['Total Reads Per'] ?? "–")}%</td>
-                  </tr>
-                </tbody>
-              </table>
-</div>
-          </div>
+          <SequenceResultCard key={id} id={id} result={result} />
         ))}
         
         {/* Comments and Report Actions */}
