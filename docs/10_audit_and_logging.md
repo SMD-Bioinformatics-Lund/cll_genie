@@ -69,7 +69,7 @@ Severity describes operational importance; `outcome` independently records wheth
 
 ## Recorded event families
 
-The current implementation records successful and failed login, logout, missing or invalid sessions, authorization denials, profile changes, user administration, report-rule changes, sample registration and duplicate-name skips, LymphoTrack attachment and uploads, V-QUEST queue/success/failure, comments, report creation/access/hide/restore, and permanent sample or submission deletion.
+The current implementation records successful and failed login, logout, missing or invalid sessions, authorization denials, profile changes, user administration, report-rule changes, operational task-control changes, manual ingestion queueing, sample registration and duplicate-name skips, LymphoTrack attachment and uploads, V-QUEST queue/success/failure, comments, report creation/access/hide/restore, and permanent sample or submission deletion.
 
 Resource metadata includes useful, non-sensitive measurements where available: uploaded file size, selected sequence count (never sequences), V-QUEST option names, rule match count, job ID, sample ID, submission ID, report ID, and artifact ID. These fields support activity and resource-volume monitoring without turning MongoDB into an operational log sink.
 

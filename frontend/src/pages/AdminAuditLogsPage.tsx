@@ -62,13 +62,13 @@ type AuditLogPayload = {
 };
 
 const severityStyle: Record<Severity, string> = {
-  info: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300",
+  info: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/20 dark:text-sky-100",
   warning:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300",
+    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/45 dark:bg-amber-500/20 dark:text-amber-100",
   error:
-    "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300",
+    "border-red-200 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-100",
   critical:
-    "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-900 dark:bg-fuchsia-950/50 dark:text-fuchsia-300",
+    "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800 dark:border-fuchsia-500/40 dark:bg-fuchsia-500/20 dark:text-fuchsia-100",
 };
 
 const severityIcon = {
@@ -146,7 +146,7 @@ export function AdminAuditLogsPage() {
               Audit events
             </h1>
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-gray-500 dark:text-[#c7beb4]">
             Searchable security, identity, clinical activity, and system events.
           </p>
         </div>
@@ -193,7 +193,7 @@ export function AdminAuditLogsPage() {
         )}
       </div>
 
-      <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
+      <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-[#3b3732] dark:bg-[#202020]">
         <div className="grid gap-2 md:grid-cols-[minmax(13rem,1fr)_10rem_11rem_11rem_auto]">
           <form
             className="relative"
@@ -211,7 +211,7 @@ export function AdminAuditLogsPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search event, resource, or tag"
               aria-label="Search audit events"
-              className="h-9 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 dark:border-neutral-600 dark:bg-neutral-900"
+              className="h-9 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 dark:border-[#4a433d] dark:bg-[#181818]"
             />
           </form>
           <select
@@ -221,7 +221,7 @@ export function AdminAuditLogsPage() {
               setCategory(event.target.value);
             }}
             aria-label="Filter by category"
-            className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-neutral-600 dark:bg-neutral-900"
+            className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-[#4a433d] dark:bg-[#181818]"
           >
             <option value="">All categories</option>
             {query.data?.categories.map((item) => (
@@ -235,7 +235,7 @@ export function AdminAuditLogsPage() {
               setTimeWindow(event.target.value as TimeWindow);
             }}
             aria-label="Filter by time range"
-            className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-neutral-600 dark:bg-neutral-900"
+            className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-[#4a433d] dark:bg-[#181818]"
           >
             <option value="24h">Last 24 hours</option>
             <option value="7d">Last 7 days</option>
@@ -250,7 +250,7 @@ export function AdminAuditLogsPage() {
             }}
             placeholder="Filter by username"
             aria-label="Filter by username"
-            className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-brand-primary dark:border-neutral-600 dark:bg-neutral-900"
+            className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-brand-primary dark:border-[#4a433d] dark:bg-[#181818]"
           />
           <div className="flex gap-2">
             <button
@@ -263,7 +263,7 @@ export function AdminAuditLogsPage() {
             <button
               type="button"
               onClick={clearFilters}
-              className="h-9 rounded-lg border border-gray-300 px-3 text-sm font-medium dark:border-neutral-600"
+              className="h-9 rounded-lg border border-gray-300 px-3 text-sm font-medium dark:border-[#4a433d]"
             >
               Clear
             </button>
@@ -274,7 +274,7 @@ export function AdminAuditLogsPage() {
       {query.isError && (
         <div
           role="alert"
-          className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+          className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-500/40 dark:bg-red-950/40 dark:text-red-200"
         >
           {query.error instanceof Error
             ? query.error.message
@@ -282,8 +282,8 @@ export function AdminAuditLogsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2 text-xs text-gray-500 dark:border-neutral-700 dark:text-gray-400">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#3b3732] dark:bg-[#202020]">
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2 text-xs text-gray-500 dark:border-[#3b3732] dark:text-[#c7beb4]">
           <span className="inline-flex items-center gap-1.5">
             <Database size={13} /> MongoDB audit_events
           </span>
@@ -291,7 +291,7 @@ export function AdminAuditLogsPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-900/60 dark:text-gray-400">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-[#181818]/60 dark:text-[#c7beb4]">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Time</th>
                 <th className="px-3 py-2.5 font-medium">Level</th>
@@ -301,7 +301,7 @@ export function AdminAuditLogsPage() {
                 <th className="px-4 py-2.5 font-medium">Context</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-neutral-700">
+            <tbody className="divide-y divide-gray-100 dark:divide-[#34302c]">
               {query.isLoading ? (
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-gray-500">
@@ -316,7 +316,7 @@ export function AdminAuditLogsPage() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="p-12 text-center text-gray-500 dark:text-gray-400"
+                    className="p-12 text-center text-gray-500 dark:text-[#c7beb4]"
                   >
                     <Activity className="mx-auto mb-2" size={24} />
                     No events match the current filters.
@@ -326,8 +326,8 @@ export function AdminAuditLogsPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 text-sm dark:border-neutral-700">
-          <span className="text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 text-sm dark:border-[#3b3732]">
+          <span className="text-gray-500 dark:text-[#c7beb4]">
             Page {page} of {pages}
           </span>
           <div className="flex gap-1">
@@ -336,7 +336,7 @@ export function AdminAuditLogsPage() {
               aria-label="Previous page"
               disabled={page <= 1}
               onClick={() => setPage((value) => value - 1)}
-              className="rounded-md border border-gray-300 p-1.5 disabled:opacity-40 dark:border-neutral-600"
+              className="rounded-md border border-gray-300 p-1.5 disabled:opacity-40 dark:border-[#4a433d]"
             >
               <ChevronLeft size={16} />
             </button>
@@ -345,7 +345,7 @@ export function AdminAuditLogsPage() {
               aria-label="Next page"
               disabled={page >= pages}
               onClick={() => setPage((value) => value + 1)}
-              className="rounded-md border border-gray-300 p-1.5 disabled:opacity-40 dark:border-neutral-600"
+              className="rounded-md border border-gray-300 p-1.5 disabled:opacity-40 dark:border-[#4a433d]"
             >
               <ChevronRight size={16} />
             </button>
@@ -360,7 +360,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
   const Icon = severityIcon[event.severity];
   const resource = event.resource.name || event.resource.id;
   return (
-    <tr className="align-top hover:bg-gray-50/70 dark:hover:bg-neutral-700/30">
+    <tr className="align-top hover:bg-gray-50/70 dark:hover:bg-[#2a2724]/30">
       <td className="whitespace-nowrap px-4 py-3">
         <span className="block text-xs font-medium">
           {new Date(event.occurred_at).toLocaleString()}
@@ -377,7 +377,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
         </span>
       </td>
       <td className="max-w-sm px-3 py-3">
-        <div className="font-medium text-gray-900 dark:text-gray-100">
+        <div className="font-medium text-gray-900 dark:text-[#f4efe8]">
           {event.message}
         </div>
         <div className="mt-0.5 font-mono text-[11px] text-gray-500">
@@ -387,7 +387,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
           {event.tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
-              className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-neutral-700 dark:text-gray-300"
+              className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-[#2a2724] dark:text-[#d8d0c7]"
             >
               {tag}
             </span>
@@ -435,7 +435,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
           <summary className="cursor-pointer text-brand-primary dark:text-brand-detail">
             View event details
           </summary>
-          <div className="mt-2 w-80 space-y-1 rounded-lg bg-gray-50 p-2 text-[11px] dark:bg-neutral-900">
+          <div className="mt-2 w-80 space-y-1 rounded-lg bg-gray-50 p-2 text-[11px] dark:bg-[#181818]">
             <Detail label="Request ID" value={event.source.request_id} />
             <Detail
               label="Request"
@@ -451,7 +451,7 @@ function AuditEventRow({ event }: { event: AuditEvent }) {
               value={new Date(event.expires_at).toLocaleDateString()}
             />
             {Object.keys(event.metadata).length > 0 && (
-              <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap break-all rounded bg-gray-100 p-2 dark:bg-neutral-800">
+              <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap break-all rounded bg-gray-100 p-2 dark:bg-[#202020]">
                 {JSON.stringify(event.metadata, null, 2)}
               </pre>
             )}

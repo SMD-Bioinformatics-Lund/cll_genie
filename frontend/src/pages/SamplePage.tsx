@@ -320,16 +320,16 @@ export function SamplePage() {
               <div
                 className={`p-2 ${
                   q30IsLow
-                    ? "rounded-lg border border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+                    ? "rounded-lg border border-red-300 bg-red-50 dark:border-red-500/40 dark:bg-red-950/30"
                     : ""
                 }`}
               >
                 <span className="text-[0.7rem] uppercase tracking-wider">Q30 AT Reads Percentage</span>
-                <strong className={`block text-xs font-medium ${q30IsLow ? "text-red-700 dark:text-red-300" : ""}`}>
+                <strong className={`block text-xs font-medium ${q30IsLow ? "text-red-700 dark:text-red-100" : ""}`}>
                   {q30Value === undefined || Number.isNaN(q30Value) ? "–" : `${q30Value}%`}
                 </strong>
                 {q30IsLow && (
-                  <span className="mt-1 block text-[0.68rem] font-semibold text-red-700 dark:text-red-300">
+                  <span className="mt-1 block text-[0.68rem] font-semibold text-red-700 dark:text-red-100">
                     Below default threshold 70%
                   </span>
                 )}
@@ -344,7 +344,7 @@ export function SamplePage() {
                     </span>
                     <span>
                       <span className="block text-xs font-semibold text-brand-primary dark:text-brand-detail">Upload Excel</span>
-                      <span className="block text-[10px] font-normal text-gray-400 dark:text-gray-500">.xlsx / .xlsm/ .xsm</span>
+                      <span className="block text-[10px] font-normal text-gray-400 dark:text-[#a99f94]">.xlsx / .xlsm/ .xsm</span>
                     </span>
                     <input
                       hidden
@@ -372,7 +372,7 @@ export function SamplePage() {
                     </span>
                     <span>
                       <span className="block text-xs font-semibold text-brand-primary dark:text-brand-detail">Upload QC</span>
-                      <span className="block text-[10px] font-normal text-gray-400 dark:text-gray-500">Quality control file</span>
+                      <span className="block text-[10px] font-normal text-gray-400 dark:text-[#a99f94]">Quality control file</span>
                     </span>
                     <input
                       hidden
@@ -583,7 +583,7 @@ export function SamplePage() {
         <DialogTitle>Create no-result report</DialogTitle>
         <DialogContent>
           <fieldset className="mt-2">
-            <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+            <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-[#e8dfd5]">
               Result type
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -603,7 +603,7 @@ export function SamplePage() {
                       setNegativeKind(kind);
                       setNegativeText(noResultConclusions[kind]);
                     }}
-                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${selected ? "border-brand-primary bg-brand-primary/5 text-brand-primary ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10 dark:text-brand-detail" : "border-gray-200 text-gray-700 hover:border-gray-300 dark:border-neutral-700 dark:text-gray-300 dark:hover:border-neutral-600"}`}
+                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${selected ? "border-brand-primary bg-brand-primary/5 text-brand-primary ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10 dark:text-brand-detail" : "border-gray-200 text-gray-700 hover:border-gray-300 dark:border-[#3b3732] dark:text-[#d8d0c7] dark:hover:border-[#5b5149]"}`}
                   >
                     {label}
                   </button>

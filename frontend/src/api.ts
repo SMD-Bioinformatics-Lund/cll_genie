@@ -6,6 +6,7 @@ import type {
   Sample,
   SamplesPayload,
   Session,
+  TaskControl,
 } from "./types";
 
 type ApiErrorBody = { detail?: string };
@@ -339,4 +340,28 @@ export function getSystemStatus() {
     scheduler: string;
     version: string;
   }>(`/health/system`);
+}
+
+export function getTaskControls() {
+  return apiRequest<TaskControl[]>("/api/v1/admin/task-controls");
+}
+
+export function updateTaskControl(
+  key: string,
+  enabled: boolean,
+  csrfToken: string,
+) {
+  return apiRequest<TaskControl>(
+    `/api/v1/admin/task-controls/${key}`,
+    { method: "PATCH", body: JSON.stringify({ enabled }) },
+    csrfToken,
+  );
+}
+
+export function runIngestionNow(csrfToken: string) {
+  return apiRequest<{ task_id: string; queued: boolean }>(
+    "/api/v1/admin/task-controls/automated_ingestion/run",
+    { method: "POST" },
+    csrfToken,
+  );
 }

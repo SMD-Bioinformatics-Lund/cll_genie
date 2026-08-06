@@ -138,6 +138,7 @@ Collection names are stable Python defaults and are normally not listed in `.env
 | `REPORTS_COLLECTION`    | `reports`                | Generated clinical report records and visibility state.                                                 |
 | `RULES_COLLECTION`      | `report_rules`           | Clinical report interpretation rules.                                                                   |
 | `AUDIT_EVENTS_COLLECTION` | `audit_events`         | Security and business audit events.                                                                     |
+| `OPERATIONAL_STATE_COLLECTION` | `operational_state` | Administrator-controlled runtime state, including task enablement for ingestion and IMGT/V-QUEST jobs.  |
 
 ### Authentication and sessions
 

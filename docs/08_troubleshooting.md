@@ -2,6 +2,17 @@
 
 This guide lists common runtime symptoms, diagnostic commands, and corrective actions.
 
+## Operational task controls
+
+Administrators can open **Administration > Operations** to control worker-backed tasks:
+
+| Control | Effect when disabled |
+| ------- | -------------------- |
+| Automated ingestion | Scheduled `cll_genie.ingest` tasks exit without scanning `RUN_ROOT` or attaching LymphoTrack files. Manual ingestion cannot be queued from the UI until the control is enabled. |
+| IMGT/V-QUEST analysis | New analysis submissions return HTTP 503 and no Celery job is created. Jobs already running are not killed. |
+
+The state is stored in MongoDB in the `operational_state` collection. Restarting the API, worker, scheduler, Redis, or proxy does not reset it.
+
 ## V-QUEST / IMGT Errors
 
 CLL Genie sends form-encoded requests to the external IMGT/V-QUEST service, so submissions depend on that service being reachable and retaining its expected request and response formats.

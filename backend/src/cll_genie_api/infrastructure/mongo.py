@@ -28,6 +28,9 @@ class MongoCollections:
         self.reports: Collection = application_db[settings.reports_collection]
         self.rules: Collection = application_db[settings.rules_collection]
         self.audit_events: Collection = application_db[settings.audit_events_collection]
+        self.operational_state: Collection = application_db[
+            settings.operational_state_collection
+        ]
 
     def ensure_indexes(self) -> None:
         self._create_index(self.users, "username", unique=True, name="uq_user_username")
@@ -89,6 +92,11 @@ class MongoCollections:
             "expires_at",
             expireAfterSeconds=0,
             name="ttl_audit_expiry",
+        )
+        self._create_index(
+            self.operational_state,
+            [("updated_at", -1)],
+            name="ix_operational_state_updated_at",
         )
 
     @staticmethod

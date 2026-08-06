@@ -17,15 +17,15 @@ The application reduces manual transfer between LymphoTrack and IMGT, but it doe
 ## Intended users
 
 - Laboratory and clinical staff use the worklist, analysis, comments, and reports.
-- Administrators manage users, roles, report rules, and audit events.
+- Administrators manage users, roles, report rules, audit events, and operational task controls.
 - System administrators operate Compose services, MongoDB, storage, backups, and monitoring.
 
 ## Architecture
 
 - The React frontend provides the browser interface and uses Tailwind CSS for styling.
 - The FastAPI service handles authentication, authorization, application data, and HTTP endpoints.
-- Celery workers run scheduled ingestion and IMGT/V-QUEST analysis. Redis provides the queue and result backend.
-- MongoDB stores users, sessions, samples, submissions, jobs, rules, reports, and audit events.
+- Celery workers run scheduled ingestion and IMGT/V-QUEST analysis. Redis provides the queue and result backend. Administrators can enable or disable automated ingestion and IMGT/V-QUEST job execution from the Operations page; the state is stored in MongoDB.
+- MongoDB stores users, sessions, samples, submissions, jobs, rules, reports, operational state, and audit events.
 - Uploaded and generated files are stored below `ARTIFACT_ROOT`. Automatically discovered LymphoTrack files remain in their configured external results directory.
 - Nginx serves the frontend and proxies API requests through the configured application prefix.
 

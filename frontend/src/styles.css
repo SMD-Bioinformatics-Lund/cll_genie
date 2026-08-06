@@ -33,18 +33,18 @@
   }
 
   :root[data-theme="dark"] {
-    --brand-primary: #7B4925;
-    --brand-hover: #b46e3c;
-    --brand-detail: #DF7849;
-    --brand-accent: #f98c59;
-    --surface-soft: #17252d;
-    --border-subtle: #2d3748;
-    --text-secondary: #a0aec0;
-    --surface-paper: #131e25;
+    --brand-primary: #d48658;
+    --brand-hover: #e39a70;
+    --brand-detail: #ff9a64;
+    --brand-accent: #ffb487;
+    --surface-soft: #191919;
+    --border-subtle: #3b3732;
+    --text-secondary: #c7beb4;
+    --surface-paper: #202020;
   }
 
   body {
-    @apply m-0 min-w-80 font-sans bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-gray-100;
+    @apply m-0 min-w-80 font-sans bg-gray-50 dark:bg-[#151515] text-gray-900 dark:text-[#f4efe8];
   }
 
   button,
@@ -163,7 +163,7 @@
   }
 
   .toolbar-row {
-    @apply flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-gray-200 dark:border-neutral-700 px-4 pt-4 pb-4;
+    @apply flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-gray-200 dark:border-[#3b3732] px-4 pt-4 pb-4;
   }
 
   .responsive-table {
@@ -175,20 +175,20 @@
   }
 
   .responsive-table th {
-    @apply bg-brand-primary/10 dark:bg-brand-primary/20 text-left text-[0.80rem] font-semibold tracking-wider text-brand-primary dark:text-brand-detail uppercase px-4 py-2;
+    @apply bg-brand-primary/10 dark:bg-[#2a211d] text-left text-[0.80rem] font-semibold tracking-wider text-brand-primary dark:text-[#ffb487] uppercase px-4 py-2;
   }
 
   .responsive-table th,
   .responsive-table td {
-    @apply border-b border-gray-100 dark:border-gray-700 px-4 py-2 align-middle text-[0.8rem] transition-colors duration-150;
+    @apply border-b border-gray-100 dark:border-[#34302c] px-4 py-2 align-middle text-[0.8rem] transition-colors duration-150;
   }
 
   .responsive-table tbody tr:hover {
-    @apply bg-brand-primary/5 dark:bg-brand-detail/2;
+    @apply bg-brand-primary/5 dark:bg-[#2a2724];
   }
 
   .responsive-table a {
-    @apply font-bold text-brand-primary no-underline;
+    @apply font-bold text-brand-primary dark:text-[#ffb487] no-underline;
   }
 
   .empty-cell {

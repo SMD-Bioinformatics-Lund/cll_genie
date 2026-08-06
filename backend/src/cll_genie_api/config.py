@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     reports_collection: str = "reports"
     rules_collection: str = "report_rules"
     audit_events_collection: str = "audit_events"
+    operational_state_collection: str = "operational_state"
 
     auth_providers: Annotated[list[Literal["local", "ldap"]], NoDecode] = Field(
         default_factory=lambda: ["local"]

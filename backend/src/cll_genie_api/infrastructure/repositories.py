@@ -299,3 +299,67 @@ class RuleRepository:
             {"_id": object_id(rule_id)}, {"$set": {**document, "updated_at": utcnow()}}
         )
         return result.matched_count == 1
+
+
+class OperationalStateRepository:
+    DEFAULT_CONTROLS: tuple[dict[str, str], ...] = (
+        {
+            "key": "automated_ingestion",
+            "label": "Automated ingestion",
+            "description": (
+                "Scheduled registration of completed runs and attachment of "
+                "LymphoTrack result files."
+            ),
+        },
+        {
+            "key": "vquest_analysis",
+            "label": "IMGT/V-QUEST analysis",
+            "description": "User-submitted IMGT/V-QUEST analysis jobs through the Celery worker.",
+        },
+    )
+
+    def __init__(self, collection) -> None:
+        self.collection = collection
+
+    def list_task_controls(self) -> list[dict[str, Any]]:
+        return [self.get_task_control(item["key"]) for item in self.DEFAULT_CONTROLS]
+
+    def get_task_control(self, key: str) -> dict[str, Any]:
+        definition = self._definition(key)
+        document = self.collection.find_one({"_id": key}) or {}
+        return {
+            "key": key,
+            "label": definition["label"],
+            "description": definition["description"],
+            "enabled": bool(document.get("enabled", True)),
+            "updated_at": document.get("updated_at"),
+            "updated_by": document.get("updated_by"),
+        }
+
+    def is_enabled(self, key: str) -> bool:
+        self._definition(key)
+        document = self.collection.find_one({"_id": key}, {"enabled": 1})
+        return True if document is None else bool(document.get("enabled", True))
+
+    def set_task_control(self, key: str, enabled: bool, actor: str) -> dict[str, Any]:
+        self._definition(key)
+        now = utcnow()
+        self.collection.update_one(
+            {"_id": key},
+            {
+                "$set": {
+                    "enabled": enabled,
+                    "updated_at": now,
+                    "updated_by": actor,
+                },
+                "$setOnInsert": {"created_at": now},
+            },
+            upsert=True,
+        )
+        return self.get_task_control(key)
+
+    def _definition(self, key: str) -> dict[str, str]:
+        for item in self.DEFAULT_CONTROLS:
+            if item["key"] == key:
+                return item
+        raise ValueError("Unknown operational task control")

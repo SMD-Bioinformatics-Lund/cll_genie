@@ -14,12 +14,14 @@ LYMPHOTRACK_RESULTS_ROOT/<result files> ------------+
   `-- <sample name>*.fastq_indexQ30.tsv     parse QC and attach metrics
 ```
 
-Celery Beat queues `cll_genie.ingest` every 300 seconds. The task performs these operations in order:
+Celery Beat queues `cll_genie.ingest` every 300 seconds. The task first checks the persisted `automated_ingestion` operational control. When the control is disabled, the task exits without scanning the filesystem. When enabled, it performs these operations in order:
 
 1. `register_runs()` discovers completed sequencing runs and inserts new sample documents.
 2. `attach_results()` searches for LymphoTrack workbooks and QC files for incomplete sample documents.
 
 Both the Beat scheduler and worker must be running. Beat only queues the task; the worker executes all discovery and parsing. Consequently, `RUN_ROOT` and `LYMPHOTRACK_RESULTS_ROOT` must be mounted in the worker container. `RUN_ROOT` must be writable because ingestion creates a completion marker, while the LymphoTrack result root can remain read-only.
+
+Administrators can open **Administration > Operations** to enable or disable automated ingestion. The same page can queue one immediate ingestion run. The manual run uses the same safety checks as the scheduled task and cannot be queued while automated ingestion is disabled.
 
 ## 1. Registering samples from sequencing runs
 

@@ -58,6 +58,10 @@ class SystemStatusResponse(BaseModel):
     version: str
 
 
+class TaskControlUpdateRequest(BaseModel):
+    enabled: bool
+
+
 class PreviewSequencesRequest(BaseModel):
     sheet_name: str = "Merged Read Summary"
     header_row: int = Field(default=4, ge=0, le=99)

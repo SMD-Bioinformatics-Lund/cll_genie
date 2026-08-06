@@ -33,7 +33,7 @@ export function ThemeControl({ inverse = false }: { inverse?: boolean }) {
         className={`flex size-9 items-center justify-center rounded-full transition-colors ${
           inverse
             ? "text-white/80 hover:bg-white/10 hover:text-white"
-            : "text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-neutral-700"
+            : "text-gray-500 hover:bg-gray-200 dark:text-[#c7beb4] dark:hover:bg-[#2a2724]"
         }`}
         title="Theme"
       >
@@ -41,7 +41,7 @@ export function ThemeControl({ inverse = false }: { inverse?: boolean }) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50">
+        <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-[#3b3732] dark:bg-[#202020] dark:shadow-black/40 z-50">
           <div className="py-1">
             {options.map((option) => (
               <button
@@ -52,8 +52,8 @@ export function ThemeControl({ inverse = false }: { inverse?: boolean }) {
                 }}
                 className={`w-full text-left px-4 py-2 text-sm ${
                   preference === option.value
-                    ? "bg-brand-primary/10 text-brand-primary dark:bg-brand-detail/10 dark:text-brand-detail font-semibold"
-                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    ? "bg-brand-primary/10 text-brand-primary dark:bg-[#3a2a22] dark:text-[#ffb487] font-semibold"
+                    : "text-gray-700 hover:bg-gray-100 dark:text-[#e8dfd5] dark:hover:bg-[#2a2724]"
                 }`}
               >
                 {option.label}

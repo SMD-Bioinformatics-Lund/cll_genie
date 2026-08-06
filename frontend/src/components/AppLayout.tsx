@@ -6,6 +6,7 @@ import {
   ScrollText,
   Users,
   Menu,
+  Activity,
 } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../session-context";
@@ -29,13 +30,14 @@ export function AppLayout() {
       ? [
           { to: "/admin/rules", label: "Report rules", icon: Settings },
           { to: "/admin/users", label: "Users", icon: Users },
+          { to: "/admin/operations", label: "Operations", icon: Activity },
           { to: "/admin/audit-logs", label: "Audit logs", icon: ScrollText },
         ]
       : []),
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-gray-100">
+    <div className="flex min-h-screen bg-gray-50 text-gray-900 dark:bg-[#151515] dark:text-[#f4efe8]">
       {/* Top App Bar */}
       <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-brand-primary-hover bg-brand-primary px-4 shadow-sm">
         <div className="flex items-center gap-4">
@@ -71,13 +73,13 @@ export function AppLayout() {
                 className="fixed inset-0 z-40"
                 onClick={() => setShowDropdown(false)}
               ></div>
-              <div className="absolute right-0 top-12 z-50 w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-neutral-800 dark:ring-neutral-700">
+              <div className="absolute right-0 top-12 z-50 w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-[#202020] dark:ring-[#3b3732] dark:shadow-black/40">
                 <button
                   onClick={() => {
                     setShowDropdown(false);
                     setShowSettings(true);
                   }}
-                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-neutral-700"
+                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-[#e8dfd5] dark:hover:bg-[#2a2724]"
                 >
                   <Settings size={16} className="mr-2" />
                   Settings
@@ -87,7 +89,7 @@ export function AppLayout() {
                     setShowDropdown(false);
                     signOut();
                   }}
-                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-neutral-700"
+                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-[#e8dfd5] dark:hover:bg-[#2a2724]"
                 >
                   <LogOut size={16} className="mr-2" />
                   Sign out

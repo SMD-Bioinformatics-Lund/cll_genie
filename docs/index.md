@@ -9,7 +9,7 @@ These guides describe deployment, sample ingestion, analysis, reporting, adminis
 5. [IMGT/V-QUEST analysis](05_vquest_analysis.md) — job creation, request construction, response handling, and stored results.
 6. [Reports and comments](06_reports_and_comments.md) — report artifacts, PDF downloads, comments, and visibility controls.
 7. [Report rules](07_rules_engine.md) — supported conditions, evaluation, and report text.
-8. [Troubleshooting](08_troubleshooting.md) — common failures and diagnostic commands.
+8. [Troubleshooting](08_troubleshooting.md) — common failures, operational task controls, and diagnostic commands.
 9. [User management](09_user_management.md) — user documents, login methods, roles, and account administration.
 10. [Audit events and runtime logs](10_audit_and_logging.md) — log locations, audit schema, retention, and monitoring.
 

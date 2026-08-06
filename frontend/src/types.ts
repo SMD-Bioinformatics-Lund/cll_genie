@@ -99,3 +99,12 @@ export type Report = {
   hidden: boolean;
   file_size?: number;
 };
+
+export type TaskControl = {
+  key: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+  updated_at?: string | null;
+  updated_by?: string | null;
+};

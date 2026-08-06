@@ -51,7 +51,7 @@ export function RuleBuilder({
         const selectedFact = isCustom ? "custom" : cond.fact;
 
         return (
-          <Box key={cond.id} className="flex gap-4 items-start bg-white dark:bg-neutral-800 p-4">
+          <Box key={cond.id} className="flex gap-4 items-start bg-white dark:bg-[#202020] p-4">
             <Box className="flex-1 flex gap-4">
               <TextField
                 select

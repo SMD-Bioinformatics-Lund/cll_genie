@@ -17,6 +17,10 @@ def ingest() -> dict:
     from cll_genie_api.scripts.ingest import attach_results, register_runs
 
     services = get_services()
+    if services.operational_state and not services.operational_state.is_enabled(
+        "automated_ingestion"
+    ):
+        return {"registered": 0, "updated": 0, "skipped": "automated_ingestion_disabled"}
     return {
         "registered": register_runs(audit=services.audit),
         "updated": attach_results(audit=services.audit),
@@ -29,6 +33,10 @@ def run_vquest(
 ) -> dict:
     services = get_services()
     try:
+        if services.operational_state and not services.operational_state.is_enabled(
+            "vquest_analysis"
+        ):
+            raise ValueError("IMGT/V-QUEST analysis is disabled by an administrator")
         services.jobs.transition(job_id, "RUNNING", progress=5, message="Preparing sequences")
         sample = services.samples.get(sample_id)
         if sample is None:

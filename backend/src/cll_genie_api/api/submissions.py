@@ -45,6 +45,13 @@ def submit_vquest(
     assert_role(session, ["user", "lymphotrack_admin", "admin"])
     if not payload.sequences:
         raise HTTPException(status_code=422, detail="No sequences provided")
+    if services.operational_state and not services.operational_state.is_enabled(
+        "vquest_analysis"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="IMGT/V-QUEST analysis is currently disabled by an administrator",
+        )
 
     job_id = services.jobs.create(
         "VQUEST",

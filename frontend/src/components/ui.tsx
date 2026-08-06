@@ -134,7 +134,7 @@ export function Container({
 export function Paper({ sx, className = "", ...props }: Props) {
   return (
     <div
-      className={`rounded-xl border border-gray-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800 ${className}`}
+      className={`rounded-xl border border-gray-200 bg-white shadow-sm dark:border-[#3b3732] dark:bg-[#202020] dark:shadow-black/30 ${className}`}
       style={mergeStyle({ ...props, sx })}
       {...props}
     />
@@ -178,18 +178,18 @@ export function Typography({
     overline: "text-[0.75rem] font-medium uppercase tracking-wider",
   };
   const defaultVariantColors: Record<string, string> = {
-    body1: "text-gray-800 dark:text-gray-200",
-    body2: "text-gray-700 dark:text-gray-300",
-    subtitle1: "text-gray-800 dark:text-gray-200",
-    subtitle2: "text-gray-700 dark:text-gray-300",
-    overline: "text-gray-500",
+    body1: "text-gray-800 dark:text-[#f4efe8]",
+    body2: "text-gray-700 dark:text-[#d8d0c7]",
+    subtitle1: "text-gray-800 dark:text-[#f4efe8]",
+    subtitle2: "text-gray-700 dark:text-[#d8d0c7]",
+    overline: "text-gray-500 dark:text-[#c7beb4]",
   };
   const colors: Record<string, string> = {
     primary: "text-brand-primary",
-    "primary.main": "text-brand-primary dark:text-brand-detail",
+    "primary.main": "text-brand-primary dark:text-[#ffb487]",
     "text.secondary": "text-text-secondary",
     "success.main": "text-emerald-700 dark:text-emerald-400",
-    error: "text-red-700 dark:text-red-300",
+    error: "text-red-700 dark:text-red-100",
   };
   
   const finalColor = color ? colors[color] : defaultVariantColors[variant];
@@ -226,15 +226,15 @@ export function Button({
   const palette =
     color === "error"
       ? "bg-red-700 hover:bg-red-800 border-red-700 text-white"
-      : color === "warning"
+    : color === "warning"
         ? "bg-amber-600 hover:bg-amber-700 border-amber-600 text-white"
-        : "bg-brand-primary/80 hover:bg-brand-primary border-brand-primary text-white dark:bg-brand-detail/80 dark:hover:bg-brand-detail dark:border-brand-detail dark:text-neutral-950";
+        : "bg-brand-primary/80 hover:bg-brand-primary border-brand-primary text-white dark:bg-[#d48658] dark:hover:bg-[#ff9a64] dark:border-[#ff9a64] dark:text-[#151515]";
   const look =
     variant === "contained"
       ? palette
       : variant === "outlined"
-        ? "border-brand-primary text-brand-primary hover:bg-brand-primary/40 dark:border-brand-detail dark:text-brand-detail"
-        : "border-transparent text-brand-primary hover:bg-brand-primary/40 dark:text-brand-detail";
+        ? "border-brand-primary text-brand-primary hover:bg-brand-primary/40 dark:border-[#ff9a64] dark:text-[#ffb487] dark:hover:bg-[#3a2a22]"
+        : "border-transparent text-brand-primary hover:bg-brand-primary/40 dark:text-[#ffb487] dark:hover:bg-[#3a2a22]";
   const type = Component === "button" && !props.type && !props.href ? "button" : props.type;
   return (
     <Component
@@ -261,7 +261,7 @@ export function IconButton({
   return (
     <Component
       type={Component === "button" ? "button" : undefined}
-      className={`inline-flex size-9 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-neutral-700 ${color === "error" ? "text-red-700 dark:text-red-400" : ""} ${size === "small" ? "size-8" : ""} ${className}`}
+      className={`inline-flex size-9 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 disabled:opacity-50 dark:text-[#d8d0c7] dark:hover:bg-[#2a2724] ${color === "error" ? "text-red-700 dark:text-red-400" : ""} ${size === "small" ? "size-8" : ""} ${className}`}
       style={mergeStyle({ ...props, sx })}
       {...props}
     />
@@ -276,12 +276,12 @@ export function Alert({
 }: Props) {
   const styles: Record<string, string> = {
     error:
-      "border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
+      "border-red-300 bg-red-50 text-red-800 dark:border-red-500/40 dark:bg-red-950/30 dark:text-red-200",
     warning:
-      "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+      "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/45 dark:bg-amber-950/30 dark:text-amber-100",
     success:
-      "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
-    info: "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
+      "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-100",
+    info: "border-blue-300 bg-blue-50 text-blue-800 dark:border-sky-500/40 dark:bg-sky-950/30 dark:text-sky-100",
   };
   return (
     <div
@@ -308,10 +308,10 @@ export function TextField({
   ...props
 }: ChangeProps & { error?: boolean; fullWidth?: boolean }) {
   const inputBase =
-    "w-full rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm [color-scheme:light] transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:bg-gray-100 disabled:text-gray-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 dark:[color-scheme:dark] dark:focus:border-brand-primary dark:focus:ring-brand-primary dark:disabled:bg-neutral-700";
+    "w-full rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm [color-scheme:light] transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary disabled:bg-gray-100 disabled:text-gray-500 dark:border-[#4a433d] dark:bg-[#181818] dark:text-[#f4efe8] dark:placeholder:text-[#8d8378] dark:[color-scheme:dark] dark:focus:border-[#ff9a64] dark:focus:ring-[#ff9a64] dark:disabled:bg-[#2a2724] dark:disabled:text-[#8d8378]";
 
   const textareaBase =
-    "w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 font-mono text-xs transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 resize-y";
+    "w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 font-mono text-xs transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary dark:border-[#4a433d] dark:bg-[#181818] dark:text-[#f4efe8] dark:placeholder:text-[#8d8378] dark:focus:border-[#ff9a64] dark:focus:ring-[#ff9a64] resize-y";
 
   const finalInputClass = `${inputBase} ${error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`;
 
@@ -345,7 +345,7 @@ export function TextField({
     field = (
       <div className="relative">
         {InputProps?.startAdornment && (
-          <span className="absolute inset-y-0 left-3.5 flex items-center text-gray-500">
+          <span className="absolute inset-y-0 left-3.5 flex items-center text-gray-500 dark:text-[#a99f94]">
             {InputProps.startAdornment}
           </span>
         )}
@@ -365,7 +365,7 @@ export function TextField({
 
   return (
     <label
-      className={`inline-flex flex-col text-sm font-medium text-gray-700 dark:text-gray-200 ${fullWidth ? "w-full" : ""} ${className}`}
+      className={`inline-flex flex-col text-sm font-medium text-gray-700 dark:text-[#e8dfd5] ${fullWidth ? "w-full" : ""} ${className}`}
       style={mergeStyle({ ...props, sx })}
     >
       {label && <span className="mb-1 block">{label}</span>}
@@ -416,10 +416,10 @@ function CustomSelect({
   }, []);
 
   const triggerClass =
-    "w-full flex items-center justify-between rounded-full border border-gray-300 bg-white px-4 py-2 text-sm transition-colors cursor-pointer select-none dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-200 " +
+    "w-full flex items-center justify-between rounded-full border border-gray-300 bg-white px-4 py-2 text-sm transition-colors cursor-pointer select-none dark:border-[#4a433d] dark:bg-[#181818] dark:text-[#f4efe8] " +
     (open
-      ? "border-brand-primary ring-1 ring-brand-primary dark:border-brand-primary"
-      : "hover:border-gray-400 dark:hover:border-neutral-500") +
+      ? "border-brand-primary ring-1 ring-brand-primary dark:border-[#ff9a64] dark:ring-[#ff9a64]"
+      : "hover:border-gray-400 dark:hover:border-[#5b5149]") +
     (disabled ? " opacity-50 pointer-events-none" : "") +
     " " + className;
 
@@ -432,13 +432,13 @@ function CustomSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={selected ? "text-gray-800 dark:text-gray-100" : "text-gray-400"}>
+        <span className={selected ? "text-gray-800 dark:text-[#f4efe8]" : "text-gray-400 dark:text-[#8d8378]"}>
           {selected?.label ?? "Select…"}
         </span>
         <svg
           viewBox="0 0 12 12"
           fill="none"
-          className={`size-3.5 shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`size-3.5 shrink-0 text-gray-400 dark:text-[#a99f94] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
@@ -451,7 +451,7 @@ function CustomSelect({
       {open && (
         <ul
           role="listbox"
-          className="absolute left-0 right-0 z-50 mt-1.5 max-h-64 overflow-y-auto rounded-2xl border border-gray-200 bg-white py-1.5 shadow-lg dark:border-neutral-700 dark:bg-neutral-800"
+          className="absolute left-0 right-0 z-50 mt-1.5 max-h-64 overflow-y-auto rounded-2xl border border-gray-200 bg-white py-1.5 shadow-lg dark:border-[#3b3732] dark:bg-[#202020] dark:shadow-black/40"
         >
           {options.map((opt) => {
             const isSelected = String(opt.value) === String(value);
@@ -466,8 +466,8 @@ function CustomSelect({
                 }}
                 className={`cursor-pointer px-4 py-2 text-sm transition-colors duration-100 ${
                   isSelected
-                    ? "bg-brand-primary/10 font-semibold text-brand-primary dark:bg-brand-detail/10 dark:text-brand-detail"
-                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-neutral-700"
+                    ? "bg-brand-primary/10 font-semibold text-brand-primary dark:bg-[#3a2a22] dark:text-[#ffb487]"
+                    : "text-gray-700 hover:bg-gray-100 dark:text-[#e8dfd5] dark:hover:bg-[#2a2724]"
                 }`}
               >
                 {opt.label}
@@ -487,7 +487,7 @@ export function MenuItem(props: Props) {
 export function Select({ sx, className = "", ...props }: ChangeProps) {
   return (
     <select
-      className={`rounded-full border border-gray-300 bg-white px-4 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-900 ${className}`}
+      className={`rounded-full border border-gray-300 bg-white px-4 py-2 text-sm dark:border-[#4a433d] dark:bg-[#181818] dark:text-[#f4efe8] ${className}`}
       style={mergeStyle({ ...props, sx })}
       {...props}
     />
@@ -512,7 +512,7 @@ export function Checkbox({ onChange, checked, className, ...props }: ToggleProps
               }
             : undefined
         }
-        className={`size-4 cursor-pointer appearance-none rounded border border-gray-300 bg-white transition-colors checked:border-brand-primary checked:bg-brand-primary disabled:cursor-default disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-800 dark:checked:border-brand-detail dark:checked:bg-brand-detail focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-1 ${className}`}
+        className={`size-4 cursor-pointer appearance-none rounded border border-gray-300 bg-white transition-colors checked:border-brand-primary checked:bg-brand-primary disabled:cursor-default disabled:opacity-50 dark:border-[#5b5149] dark:bg-[#181818] dark:checked:border-[#ff9a64] dark:checked:bg-[#d48658] focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-1 dark:focus:ring-[#ff9a64] dark:focus:ring-offset-[#151515] ${className}`}
         {...props}
       />
     </div>
@@ -530,7 +530,7 @@ export function Switch({ onChange, checked, className, ...props }: ToggleProps) 
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 ${
         checked
           ? "bg-brand-primary"
-          : "bg-gray-200 dark:bg-neutral-600"
+          : "bg-gray-200 dark:bg-[#4a433d]"
       } ${className}`}
       {...props}
     >
@@ -573,7 +573,7 @@ export function Tabs({
   [key: string]: any;
 }) {
   return (
-    <div className={`flex space-x-1 border-b border-gray-200 dark:border-neutral-700 ${className}`} {...props}>
+    <div className={`flex space-x-1 border-b border-gray-200 dark:border-[#3b3732] ${className}`} {...props}>
       {Children.map(children, (child: any, index: number) => {
         const childValue = child.props.value !== undefined ? child.props.value : index;
         return cloneElement(child, {
@@ -600,8 +600,8 @@ export function Tab({
       onClick={onClick}
       className={`px-4 py-2 text-sm font-medium transition-colors duration-200 focus:outline-none ${
         selected
-          ? "border-b-2 border-brand-primary text-brand-primary dark:border-brand-primary dark:text-brand-primary"
-          : "border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-neutral-600"
+          ? "border-b-2 border-brand-primary text-brand-primary dark:border-[#ff9a64] dark:text-[#ffb487]"
+          : "border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-[#a99f94] dark:hover:text-[#f4efe8] dark:hover:border-[#5b5149]"
       }`}
     >
       {label}
@@ -629,13 +629,13 @@ export function Dialog({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4"
     >
       <div
-        className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative w-full transform overflow-hidden rounded-xl bg-white shadow-xl transition-all dark:bg-neutral-800 ${widths[maxWidth] ?? "max-w-lg"} ${fullWidth ? "w-full" : ""}`}
+        className={`relative w-full transform overflow-hidden rounded-xl bg-white shadow-xl transition-all dark:border dark:border-[#3b3732] dark:bg-[#202020] dark:text-[#f4efe8] dark:shadow-black/50 ${widths[maxWidth] ?? "max-w-lg"} ${fullWidth ? "w-full" : ""}`}
       >
         {children}
       </div>
@@ -645,7 +645,7 @@ export function Dialog({
 export function DialogTitle({ className = "", ...props }: Props) {
   return (
     <h2
-      className={`border-b border-gray-200 px-5 py-4 text-lg font-bold dark:border-neutral-700 ${className}`}
+      className={`border-b border-gray-200 px-5 py-4 text-lg font-bold dark:border-[#3b3732] ${className}`}
       {...props}
     />
   );
@@ -662,7 +662,7 @@ export function DialogContent({ className = "", sx, ...props }: Props) {
 export function DialogActions({ className = "", ...props }: Props) {
   return (
     <div
-      className={`flex justify-end gap-2 border-t border-gray-200 px-5 py-4 dark:border-neutral-700 ${className}`}
+      className={`flex justify-end gap-2 border-t border-gray-200 px-5 py-4 dark:border-[#3b3732] ${className}`}
       {...props}
     />
   );
@@ -678,13 +678,13 @@ export function Chip({
 }: Props) {
   const colors: Record<string, string> = {
     success:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-    error: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-100 dark:border-emerald-500/30",
+    error: "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-100 dark:border-red-500/30",
     warning:
-      "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+      "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-100 dark:border-amber-500/30",
     primary:
-      "bg-brand-primary/10 text-brand-primary dark:bg-brand-detail/15 dark:text-brand-detail",
-    default: "bg-gray-100 text-gray-700 dark:bg-neutral-700 dark:text-gray-200",
+      "bg-brand-primary/10 text-brand-primary dark:bg-[#3a2a22] dark:text-[#ffb487] dark:border-[#684431]",
+    default: "bg-gray-100 text-gray-700 dark:bg-[#2a2724] dark:text-[#e8dfd5] dark:border-[#4a433d]",
   };
   return (
     <span
@@ -704,7 +704,7 @@ export function CircularProgress({
   return (
     <span
       role="progressbar"
-      className={`inline-block animate-spin rounded-full border-2 border-gray-300 border-t-brand-primary dark:border-neutral-600 dark:border-t-brand-detail ${className}`}
+      className={`inline-block animate-spin rounded-full border-2 border-gray-300 border-t-brand-primary dark:border-[#4a433d] dark:border-t-[#ff9a64] ${className}`}
       style={{ width: size, height: size }}
       {...props}
     />
@@ -716,16 +716,16 @@ export function LinearProgress({ className = "", value, ...props }: Props) {
     <div
       role="progressbar"
       aria-valuenow={isDeterminate ? value : undefined}
-      className={`h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-neutral-700 ${className}`}
+      className={`h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-[#34302c] ${className}`}
       {...props}
     >
       {isDeterminate ? (
         <div
-          className="h-full rounded-full bg-brand-primary dark:bg-brand-detail transition-all duration-500 ease-out"
+          className="h-full rounded-full bg-brand-primary dark:bg-[#ff9a64] transition-all duration-500 ease-out"
           style={{ width: `${value}%` }}
         />
       ) : (
-        <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-primary dark:bg-brand-detail" />
+        <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-primary dark:bg-[#ff9a64]" />
       )}
     </div>
   );
@@ -750,7 +750,7 @@ export function Pagination({
           key={item}
           aria-current={item === page ? "page" : undefined}
           onClick={(event) => onChange?.(event, item)}
-          className={`flex items-center justify-center size-8 rounded-full text-sm transition-colors duration-200 ${item === page ? "bg-brand-primary/10 text-brand-primary font-bold dark:bg-brand-detail/15 dark:text-brand-detail" : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-neutral-700"}`}
+          className={`flex items-center justify-center size-8 rounded-full text-sm transition-colors duration-200 ${item === page ? "bg-brand-primary/10 text-brand-primary font-bold dark:bg-[#3a2a22] dark:text-[#ffb487]" : "text-gray-600 hover:bg-gray-100 dark:text-[#d8d0c7] dark:hover:bg-[#2a2724]"}`}
         >
           {item}
         </button>
@@ -770,9 +770,9 @@ export function Stepper({ activeStep = 0, className = "", ...props }: Props) {
           <>
             {cloneElement(child as ReactElement<Props>, { stepIndex: index, key: index })}
             {index < total - 1 && (
-              <div className="relative mx-2 flex-1 h-[2px] bg-gray-200 dark:bg-neutral-700 overflow-hidden rounded-full">
+              <div className="relative mx-2 flex-1 h-[2px] bg-gray-200 dark:bg-[#34302c] overflow-hidden rounded-full">
                 <div
-                  className="absolute inset-y-0 left-0 bg-brand-primary dark:bg-brand-detail transition-all duration-500 ease-out rounded-full"
+                  className="absolute inset-y-0 left-0 bg-brand-primary dark:bg-[#ff9a64] transition-all duration-500 ease-out rounded-full"
                   style={{ width: index < activeStep ? "100%" : "0%" }}
                 />
               </div>
@@ -792,20 +792,20 @@ export function Step({ stepIndex = 0, className = "", ...props }: Props) {
       role="listitem"
       className={`flex shrink-0 items-center gap-2.5 ${
         isCurrent
-          ? "text-brand-primary dark:text-brand-detail"
+          ? "text-brand-primary dark:text-[#ffb487]"
           : isCompleted
-          ? "text-brand-primary/70 dark:text-brand-detail/70"
-          : "text-gray-400 dark:text-neutral-500"
+          ? "text-brand-primary/70 dark:text-[#d48658]"
+          : "text-gray-400 dark:text-[#8d8378]"
       } ${className}`}
       {...props}
     >
       <span
         className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
           isCompleted
-            ? "bg-brand-primary text-white dark:bg-brand-detail dark:text-neutral-950"
+            ? "bg-brand-primary text-white dark:bg-[#d48658] dark:text-[#151515]"
             : isCurrent
-            ? "border-2 border-brand-primary text-brand-primary dark:border-brand-detail dark:text-brand-detail"
-            : "border-2 border-gray-300 text-gray-400 dark:border-neutral-600"
+            ? "border-2 border-brand-primary text-brand-primary dark:border-[#ff9a64] dark:text-[#ffb487]"
+            : "border-2 border-gray-300 text-gray-400 dark:border-[#5b5149] dark:text-[#8d8378]"
         }`}
       >
         {isCompleted ? (

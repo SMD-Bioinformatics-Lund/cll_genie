@@ -15,7 +15,12 @@ from cll_genie_api.api.dependencies import (
     record_audit,
     require_csrf,
 )
-from cll_genie_api.api.schemas import RuleRequest, UserCreateRequest, UserUpdateRequest
+from cll_genie_api.api.schemas import (
+    RuleRequest,
+    TaskControlUpdateRequest,
+    UserCreateRequest,
+    UserUpdateRequest,
+)
 from cll_genie_api.domain.identity import Session
 from cll_genie_api.reporting.rules import RuleValidationError, evaluate
 
@@ -193,6 +198,78 @@ def simulate_rule(
     except (RuleValidationError, KeyError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"matched": matched, "text": text, "facts": facts}
+
+
+@router.get("/task-controls")
+def list_task_controls(
+    session: Annotated[Session, Depends(get_current_session)],
+    services: Annotated[Services, Depends(get_services)],
+):
+    assert_role(session, ["admin"])
+    return serialize(services.operational_state.list_task_controls())
+
+
+@router.patch("/task-controls/{key}")
+def update_task_control(
+    key: str,
+    payload: TaskControlUpdateRequest,
+    session: Annotated[Session, Depends(require_csrf)],
+    services: Annotated[Services, Depends(get_services)],
+):
+    assert_role(session, ["admin"])
+    try:
+        control = services.operational_state.set_task_control(
+            key, payload.enabled, session.user.username
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    record_audit(
+        services,
+        "operations.task_control.updated",
+        f"{control['label']} was {'enabled' if payload.enabled else 'disabled'}",
+        severity="warning",
+        category="operations",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="task_control",
+        resource_id=key,
+        resource_name=control["label"],
+        tags=["operations", "celery", "configuration-change"],
+        metadata={"enabled": payload.enabled},
+    )
+    return serialize(control)
+
+
+@router.post("/task-controls/automated_ingestion/run")
+def run_ingestion_now(
+    session: Annotated[Session, Depends(require_csrf)],
+    services: Annotated[Services, Depends(get_services)],
+):
+    assert_role(session, ["admin"])
+    if services.operational_state and not services.operational_state.is_enabled(
+        "automated_ingestion"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Automated ingestion is disabled. Enable it before queueing a manual run.",
+        )
+    from cll_genie_api.tasks import ingest
+
+    async_result = ingest.delay()
+    record_audit(
+        services,
+        "operations.ingestion.queued",
+        "Automated ingestion was queued manually",
+        category="operations",
+        actor=session.user,
+        provider=session.provider,
+        resource_type="celery_task",
+        resource_id=str(async_result.id),
+        resource_name="cll_genie.ingest",
+        tags=["operations", "celery", "ingestion"],
+        metadata={"task": "cll_genie.ingest"},
+    )
+    return {"task_id": str(async_result.id), "queued": True}
 
 
 @router.get("/users")

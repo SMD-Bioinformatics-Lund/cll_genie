@@ -323,7 +323,7 @@ export function AdminUsersPage() {
                   </td>
                   <td>
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${user.enabled !== false ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-gray-100 text-gray-600 dark:bg-neutral-700 dark:text-gray-300"}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${user.enabled !== false ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" : "bg-gray-100 text-gray-600 dark:bg-[#2a2724] dark:text-[#d8d0c7]"}`}
                     >
                       <span
                         className={`size-1.5 rounded-full ${user.enabled !== false ? "bg-emerald-500" : "bg-gray-400"}`}
@@ -367,7 +367,7 @@ export function AdminUsersPage() {
             <span className="block text-base font-semibold">
               {editingUser ? `Edit ${editingUser.username}` : "Add user"}
             </span>
-            <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">
+            <span className="block text-xs font-normal text-gray-500 dark:text-[#c7beb4]">
               Configure identity, profile information, and application access.
             </span>
           </span>
@@ -462,15 +462,15 @@ export function AdminUsersPage() {
                     key={role.id}
                     onClick={() => toggleRole(role.id)}
                     aria-pressed={selected}
-                    className={`relative rounded-xl border p-3 text-left transition ${selected ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10" : "border-gray-200 hover:border-gray-300 dark:border-neutral-700 dark:hover:border-neutral-600"}`}
+                    className={`relative rounded-xl border p-3 text-left transition ${selected ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10" : "border-gray-200 hover:border-gray-300 dark:border-[#3b3732] dark:hover:border-[#5b5149]"}`}
                   >
                     <span
-                      className={`absolute right-3 top-3 grid size-5 place-items-center rounded border ${selected ? "border-brand-primary bg-brand-primary text-white dark:border-brand-detail dark:bg-brand-detail dark:text-neutral-950" : "border-gray-300 dark:border-neutral-600"}`}
+                      className={`absolute right-3 top-3 grid size-5 place-items-center rounded border ${selected ? "border-brand-primary bg-brand-primary text-white dark:border-brand-detail dark:bg-brand-detail dark:text-neutral-950" : "border-gray-300 dark:border-[#4a433d]"}`}
                     >
                       {selected && <Check size={13} strokeWidth={3} />}
                     </span>
                     <RoleBadge role={role.id} />
-                    <span className="mt-2 block pr-5 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                    <span className="mt-2 block pr-5 text-xs leading-5 text-gray-500 dark:text-[#c7beb4]">
                       {role.description}
                     </span>
                   </button>
@@ -529,10 +529,10 @@ export function AdminUsersPage() {
             </FormSection>
           )}
 
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-neutral-700 dark:bg-neutral-900/50">
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-[#3b3732] dark:bg-[#181818]/50">
             <div>
               <div className="text-sm font-semibold">Account enabled</div>
-              <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              <div className="mt-0.5 text-xs text-gray-500 dark:text-[#c7beb4]">
                 Disabled users cannot authenticate with either identity source.
               </div>
             </div>
@@ -614,16 +614,16 @@ function IdentityOption({
       type="button"
       onClick={() => onSelect(provider)}
       aria-pressed={selected}
-      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${selected ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10" : "border-gray-200 hover:border-gray-300 dark:border-neutral-700"}`}
+      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${selected ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30 dark:border-brand-detail dark:bg-brand-detail/10" : "border-gray-200 hover:border-gray-300 dark:border-[#3b3732]"}`}
     >
       <span
-        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selected ? "border-brand-primary bg-brand-primary text-white dark:border-brand-detail dark:bg-brand-detail dark:text-neutral-950" : "border-gray-300 dark:border-neutral-600"}`}
+        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selected ? "border-brand-primary bg-brand-primary text-white dark:border-brand-detail dark:bg-brand-detail dark:text-neutral-950" : "border-gray-300 dark:border-[#4a433d]"}`}
       >
         {selected && <Check size={13} strokeWidth={3} />}
       </span>
       <span>
         <IdentityBadge provider={provider} />
-        <span className="mt-2 block text-xs leading-5 text-gray-500 dark:text-gray-400">
+        <span className="mt-2 block text-xs leading-5 text-gray-500 dark:text-[#c7beb4]">
           {ldap
             ? "Authenticate using organization credentials and directory email."
             : "Authenticate using a password stored in the CLL Genie user profile."}
@@ -653,11 +653,11 @@ function FormSection({
           </span>
         )}
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-[#f4efe8]">
             {title}
           </h3>
           {description && (
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-[#c7beb4]">
               {description}
             </p>
           )}

@@ -24,7 +24,12 @@ import { useSession } from "../session-context";
 import { timeAgo } from "../dateUtils";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { listSamples, applicationUrl, getSystemStatus } from "../api";
+import {
+  listSamples,
+  applicationUrl,
+  getSystemStatus,
+  getTaskControls,
+} from "../api";
 
 export function WorklistPage() {
   const { session } = useSession();
@@ -50,6 +55,12 @@ export function WorklistPage() {
   const systemStatusQuery = useQuery({
     queryKey: ["system_status"],
     queryFn: () => getSystemStatus(),
+    refetchInterval: 60000,
+  });
+  const taskControlsQuery = useQuery({
+    queryKey: ["admin-task-controls"],
+    queryFn: getTaskControls,
+    enabled: session.user.is_admin,
     refetchInterval: 60000,
   });
 
@@ -85,7 +96,7 @@ export function WorklistPage() {
       </Typography>
 
       <Box className="flex gap-6 mb-8">
-        <Paper className="p-6 flex-1 bg-white dark:bg-neutral-800">
+        <Paper className="p-6 flex-1 bg-white dark:bg-[#202020]">
           <Typography variant="overline" color="text.secondary">
             Open Samples
           </Typography>
@@ -93,7 +104,7 @@ export function WorklistPage() {
             {openCountQuery.data?.total ?? "..."}
           </Typography>
         </Paper>
-        <Paper className="p-6 flex-1 bg-white dark:bg-neutral-800">
+        <Paper className="p-6 flex-1 bg-white dark:bg-[#202020]">
           <Typography variant="overline" color="text.secondary">
             Finished Samples
           </Typography>
@@ -102,7 +113,7 @@ export function WorklistPage() {
           </Typography>
         </Paper>
         <Paper
-          className="p-6 flex-1 bg-white dark:bg-neutral-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
+          className="p-6 flex-1 bg-white dark:bg-[#202020] cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2a2724] transition-colors"
           onClick={() => setStatusDialogOpen(true)}
         >
           <Typography variant="overline" color="text.secondary">
@@ -152,7 +163,7 @@ export function WorklistPage() {
               return (
                 <Box
                   key={key}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-900 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#181818] rounded-lg"
                 >
                   <Typography fontWeight={600}>{label}</Typography>
                   <Box className="flex items-center gap-2">
@@ -170,6 +181,41 @@ export function WorklistPage() {
                 </Box>
               );
             })}
+            {session.user.is_admin && (
+              <Box className="mt-2 border-t border-gray-200 pt-4 dark:border-[#3b3732]">
+                <Typography variant="overline" color="text.secondary">
+                  Admin-controlled task state
+                </Typography>
+                <Box className="mt-3 flex flex-col gap-3">
+                  {(taskControlsQuery.data ?? []).map((control) => (
+                    <Box
+                      key={control.key}
+                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#181818] rounded-lg"
+                    >
+                      <div>
+                        <Typography fontWeight={600}>{control.label}</Typography>
+                        <Typography color="text.secondary" className="text-xs">
+                          {control.updated_at
+                            ? `Changed ${timeAgo(control.updated_at)} by ${control.updated_by || "unknown"}`
+                            : "Default state"}
+                        </Typography>
+                      </div>
+                      <Box className="flex items-center gap-2">
+                        <Box
+                          className={`w-[10px] h-[10px] rounded-full ${control.enabled ? "bg-emerald-500" : "bg-amber-500"}`}
+                        />
+                        <Typography color="text.secondary">
+                          {control.enabled ? "Enabled" : "Disabled"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                  {taskControlsQuery.isLoading && (
+                    <Typography color="text.secondary">Loading task state…</Typography>
+                  )}
+                </Box>
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
@@ -320,7 +366,7 @@ export function WorklistPage() {
                           {sample.latest_report_id}
                         </a>
                       ) : (
-                        <span className="text-gray-400 text-sm">None</span>
+                        <span className="text-gray-400 dark:text-[#a99f94] text-sm">None</span>
                       )}
                     </td>
                   )}

@@ -12,7 +12,7 @@ POST /cll_genie/api/v1/samples/{sample_id}/submit-vquest
 
 The request contains between one and 50 rows selected from the LymphoTrack preview. Each row contains the sequence identifier, nucleotide sequence, read measurements, and productivity fields required by the worker. A separate `options` object contains the selected IMGT/V-QUEST settings.
 
-All three roles may submit an analysis: `user`, `lymphotrack_admin`, and `admin`. After CSRF validation, the endpoint:
+All three roles may submit an analysis: `user`, `lymphotrack_admin`, and `admin`. The endpoint also checks the persisted `vquest_analysis` operational control. If an administrator has disabled IMGT/V-QUEST analysis, new submissions are rejected with HTTP 503 before a job is created. After CSRF validation, the enabled endpoint:
 
 1. inserts an `analysis_jobs` document with status `QUEUED`;
 2. stores only `sequence_count` and `options` in that job payload;

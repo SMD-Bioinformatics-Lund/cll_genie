@@ -6,19 +6,19 @@ const roleStyles = {
     label: "Admin",
     icon: Crown,
     className:
-      "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
+      "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/45 dark:bg-violet-500/20 dark:text-violet-100",
   },
   lymphotrack_admin: {
     label: "LymphoTrack admin",
     icon: ShieldCheck,
     className:
-      "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+      "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-400/45 dark:bg-amber-500/20 dark:text-amber-100",
   },
   user: {
     label: "User",
     icon: Microscope,
     className:
-      "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+      "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/45 dark:bg-sky-500/20 dark:text-sky-100",
   },
 } as const;
 
@@ -26,7 +26,7 @@ export function RoleBadge({ role }: { role: string }) {
   const definition = roleStyles[role as ApplicationRole];
   if (!definition) {
     return (
-      <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 dark:border-neutral-600 dark:bg-neutral-800 dark:text-gray-300">
+      <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 dark:border-[#4a433d] dark:bg-[#2a2724] dark:text-[#d8d0c7]">
         {role.replaceAll("_", " ")}
       </span>
     );

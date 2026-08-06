@@ -38,6 +38,11 @@ const AdminAuditLogsPage = lazy(() =>
     default: m.AdminAuditLogsPage,
   })),
 );
+const AdminOperationsPage = lazy(() =>
+  import("./pages/AdminOperationsPage").then((m) => ({
+    default: m.AdminOperationsPage,
+  })),
+);
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -120,6 +125,16 @@ export default function App() {
                   element={
                     session.user.is_admin ? (
                       <AdminAuditLogsPage />
+                    ) : (
+                      <Navigate to="/" />
+                    )
+                  }
+                />
+                <Route
+                  path="admin/operations"
+                  element={
+                    session.user.is_admin ? (
+                      <AdminOperationsPage />
                     ) : (
                       <Navigate to="/" />
                     )

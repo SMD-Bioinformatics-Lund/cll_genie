@@ -17,6 +17,7 @@ from cll_genie_api.infrastructure.authentication import (
 from cll_genie_api.infrastructure.mongo import MongoCollections, get_collections
 from cll_genie_api.infrastructure.repositories import (
     JobRepository,
+    OperationalStateRepository,
     ReportRepository,
     RuleRepository,
     SampleRepository,
@@ -41,6 +42,7 @@ class Services:
     rules: RuleRepository | None = None
     artifacts: LocalArtifactStore | None = None
     audit: AuditService | None = None
+    operational_state: OperationalStateRepository | None = None
 
 
 def record_audit(services: Services, event_type: str, message: str, **details: Any) -> str | None:
@@ -74,6 +76,7 @@ def get_services() -> Services:
         reports=ReportRepository(collections.reports),
         rules=RuleRepository(collections.rules),
         artifacts=LocalArtifactStore(settings.artifact_root, collections.artifacts),
+        operational_state=OperationalStateRepository(collections.operational_state),
         audit=AuditService(
             collections.audit_events,
             retention_days=settings.audit_retention_days,

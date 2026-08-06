@@ -217,7 +217,7 @@ export function AnalysisPage() {
                 </div>
               </div>
               <LinearProgress className="mt-1" />
-              <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-3 text-xs text-gray-500 dark:text-[#c7beb4]">
                 Reading sequences from <strong>{filters.sheet_name}</strong>, applying filters.
               </p>
             </div>
@@ -318,7 +318,7 @@ export function AnalysisPage() {
       {uiStep === 2 && (
         <Paper className="data-panel overflow-hidden">
           {/* Header */}
-          <div className="border-b border-gray-100 bg-linear-to-r from-brand-primary/5 to-transparent px-6 py-5 dark:border-neutral-700 dark:from-brand-detail/5">
+          <div className="border-b border-gray-100 bg-linear-to-r from-brand-primary/5 to-transparent px-6 py-5 dark:border-[#3b3732] dark:from-brand-detail/5">
             <Typography variant="h5" className="font-bold">IMGT/V-QUEST configuration</Typography>
             <Typography color="text.secondary" className="mt-1 text-sm">
               Configure parameters to submit <strong>{selected.length}</strong> sequence{selected.length !== 1 ? "s" : ""} to IMGT/V-QUEST.
@@ -405,7 +405,7 @@ export function AnalysisPage() {
               <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-brand-primary dark:text-brand-detail">
                 Nucleotide sequences (FASTA)
               </p>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 dark:border-neutral-700 dark:bg-neutral-900/50">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 dark:border-[#3b3732] dark:bg-[#181818]/50">
                 <TextField
                   multiline
                   fullWidth
@@ -417,7 +417,7 @@ export function AnalysisPage() {
               </div>
             </section>
 
-            <div className="h-px bg-gray-100 dark:bg-neutral-700" />
+            <div className="h-px bg-gray-100 dark:bg-[#2a2724]" />
 
             {/* ── Section 3: Advanced parameters ── */}
             <section>
@@ -505,7 +505,7 @@ export function AnalysisPage() {
               </div>
             </section>
 
-            <div className="h-px bg-gray-100 dark:bg-neutral-700" />
+            <div className="h-px bg-gray-100 dark:bg-[#2a2724]" />
 
             {/* ── Section 5: Download results ── */}
             <section>
@@ -536,10 +536,10 @@ export function AnalysisPage() {
                       key={item.key}
                       className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-colors duration-150 ${
                         isLocked
-                          ? "cursor-default border-gray-100 bg-gray-50 dark:border-neutral-700 dark:bg-neutral-800/50"
+                          ? "cursor-default border-gray-100 bg-gray-50 dark:border-[#3b3732] dark:bg-[#202020]/50"
                           : isChecked
                           ? "border-brand-primary/30 bg-brand-primary/5 dark:border-brand-detail/30 dark:bg-brand-detail/5"
-                          : "border-gray-200 bg-white hover:border-brand-primary/30 hover:bg-brand-primary/5 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:border-brand-detail/30"
+                          : "border-gray-200 bg-white hover:border-brand-primary/30 hover:bg-brand-primary/5 dark:border-[#3b3732] dark:bg-[#202020] dark:hover:border-brand-detail/30"
                       }`}
                     >
                       <Checkbox
@@ -547,7 +547,7 @@ export function AnalysisPage() {
                         disabled={isLocked}
                         onChange={(e) => setOptions({ ...options, [item.key]: e.target.checked })}
                       />
-                      <span className={`text-xs font-medium leading-tight ${isLocked ? "text-gray-400 dark:text-neutral-500" : "text-gray-700 dark:text-gray-200"}`}>
+                      <span className={`text-xs font-medium leading-tight ${isLocked ? "text-gray-400 dark:text-neutral-500" : "text-gray-700 dark:text-[#e8dfd5]"}`}>
                         {item.label}
                         {isLocked && <span className="ml-1 text-[10px] text-gray-400">(required)</span>}
                       </span>
@@ -560,7 +560,7 @@ export function AnalysisPage() {
           </div>
 
           {/* ── Footer navigation ── */}
-          <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-6 py-4 dark:border-neutral-700 dark:bg-neutral-800/30">
+          <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-6 py-4 dark:border-[#3b3732] dark:bg-[#202020]/30">
             <Button variant="outlined" onClick={() => setUiStep(1)}>
               ← Back to Selection
             </Button>
@@ -575,7 +575,7 @@ export function AnalysisPage() {
           </div>
 
           {analysisJob.data && (
-            <div className="border-t border-gray-100 px-6 pb-6 pt-4 dark:border-neutral-700">
+            <div className="border-t border-gray-100 px-6 pb-6 pt-4 dark:border-[#3b3732]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-brand-primary dark:bg-brand-detail animate-pulse" />
