@@ -42,7 +42,7 @@ def test_shared_report_preserves_findings_and_escapes_comments(count):
 
     document = ReportLoader().loads(json.dumps(payload))
     html = ReportRenderer().render_html(document)
-    assert 'name="smd-reports:package_version" content="0.3.0"' in html
+    assert 'name="smd-reports:package_version" content="0.4.0"' in html
     assert "&lt;PATIENT_NAME&gt;" in html
     assert "Åäö" in html and "&lt;script&gt;" in html and "<script>" not in html
     assert "SYNTHETIC-REPORT" in html
