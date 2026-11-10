@@ -1,20 +1,17 @@
-from datetime import date
+import re
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from cll_genie_api.reporting.clinical import report_facts
+from cll_genie_api.reporting.smd_input import render_document
 
 
 class ReportRenderer:
     def __init__(self) -> None:
-        template_root = Path(__file__).parent / "templates"
         self.environment = Environment(
-            loader=FileSystemLoader(template_root),
-            autoescape=select_autoescape(
-                enabled_extensions=("html", "xml", "j2"),
-                default_for_string=True,
-            ),
+            loader=FileSystemLoader(Path(__file__).parent / "templates"),
+            autoescape=select_autoescape(default=True),
         )
 
     def render_positive(
@@ -33,24 +30,32 @@ class ReportRenderer:
         base_url: str | None = None,
     ) -> str:
         facts = report_facts(submission)
-        mutation_statuses = {
-            item["sequence_id"]: item["mutation_status"] for item in facts["sequences"]
+        results = {
+            seq: {**finding.get("summary", {}), **finding.get("junction", {})}
+            for seq, finding in submission.get("vquest_results", {}).items()
         }
-        return self.environment.get_template("positive.html.j2").render(
-            sample=sample,
-            submission_id=submission_id,
-            submission=submission,
+        html = render_document(
+            sample_id=sample["name"],
+            report_id=report_id,
             summary=summary,
             author=author,
-            report_id=report_id,
             app_version=app_version,
             analysis_run_at=analysis_run_at,
-            mutation_statuses=mutation_statuses,
-            preview=preview,
-            csrf_token=csrf_token,
-            base_url=base_url or "",
-            report_date=date.today().isoformat(),
+            submission_id=submission_id,
+            results=results,
+            statuses={item["sequence_id"]: item["mutation_status"] for item in facts["sequences"]},
         )
+        if preview:
+            controls = self.environment.get_template("preview.html.j2").render(
+                save_url=(
+                    f"{base_url or ''}/api/v1/samples/{sample['_id']}"
+                    f"/submissions/{submission_id}/reports"
+                ),
+                summary=summary,
+                csrf_token=csrf_token,
+            )
+            html = re.sub(r"(<body\b[^>]*>)", lambda match: match[0] + controls, html, count=1)
+        return html
 
     def render_negative(
         self,
@@ -62,12 +67,11 @@ class ReportRenderer:
         app_version: str = "",
         analysis_run_at: str = "",
     ) -> str:
-        return self.environment.get_template("negative.html.j2").render(
-            sample=sample,
+        return render_document(
+            sample_id=sample["name"],
+            report_id=report_id,
             summary=summary,
             author=author,
-            report_id=report_id,
             app_version=app_version,
             analysis_run_at=analysis_run_at,
-            report_date=date.today().isoformat(),
         )

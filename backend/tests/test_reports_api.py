@@ -64,8 +64,7 @@ def client() -> TestClient:
 
 
 def test_list_reports_requires_auth():
-    app = create_app()
-    test_client = TestClient(app)
+    test_client = client()
     response = test_client.get("/cll_genie/api/v1/samples/valid_id/reports")
     assert response.status_code == 401
 

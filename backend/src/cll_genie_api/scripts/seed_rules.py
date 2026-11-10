@@ -116,14 +116,14 @@ RULES = [
         50,
         "clinical-mutation",
         condition("combined_mutation_status", "eq", "U-CLL"),
-        "IGHV-mutationsstatus, i detta fall [U-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL.",
+        "IGHV-mutationsstatus, i detta fall U-CLL, är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL.",
     ),
     (
         "clinical.m",
         51,
         "clinical-mutation",
         condition("combined_mutation_status", "eq", "M-CLL"),
-        "IGHV-mutationsstatus, i detta fall [M-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL.",
+        "IGHV-mutationsstatus, i detta fall M-CLL, är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL.",
     ),
     (
         "clinical.borderline",
