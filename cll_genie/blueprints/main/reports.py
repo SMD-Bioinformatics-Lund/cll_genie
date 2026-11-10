@@ -358,17 +358,17 @@ class ReportController:
 
                 # Clinical Comments
                 if "(U-CLL)" in summary_string:
-                    summary_string += "IGHV-mutationsstatus, i detta fall [U-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
+                    summary_string += "IGHV-mutationsstatus, i detta fall U-CLL, är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2026, ERIC Guidelines 2022). \n\n"
                 elif "(M-CLL)" in summary_string:
-                    summary_string += "IGHV-mutationsstatus, i detta fall [M-CLL], är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
+                    summary_string += "IGHV-mutationsstatus, i detta fall M-CLL, är en prognostisk (riskstratifierande) markör samt vägleder behandlingsval för KLL (Nationellt Vårdprogram 2026, ERIC Guidelines 2022). \n\n"
                 elif "borderline" in summary_string:
                     summary_string += "5)	IGHV-mutationsstatus med borderlinetillhörighet bör beaktas med försiktighet (ERIC Guidelines 2022). \n\n"
 
                 # STILL NEED TO BE MODIFIED
                 if subset_id == "#2":
-                    summary_string += "Subset #2 utgör en prognostisk markör som är oberoende av mutationsstatus (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
+                    summary_string += "Subset #2 utgör en prognostisk markör som är oberoende av mutationsstatus (Nationellt Vårdprogram 2026, ERIC Guidelines 2022). \n\n"
                 elif subset_id == "#8":
-                    summary_string += "Subset #8 är en prognostisk markör och har beskrivits vara associerad med en ökad risk att utveckla Richtertransformation (Nationellt Vårdprogram 2024, ERIC Guidelines 2022). \n\n"
+                    summary_string += "Subset #8 är en prognostisk markör och har beskrivits vara associerad med en ökad risk att utveckla Richtertransformation (Nationellt Vårdprogram 2026, ERIC Guidelines 2022). \n\n"
         else:
             summary_string = None
 

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## Unreleased — shared reporting
+
+- Use smd-reports 0.3.0 for newly generated CLL Genie HTML reports and previews.
+- Align PDF rendering dependencies with the shared report package.
+- Preserve existing saved reports and report storage contracts.
+- Remove brackets around U-CLL/M-CLL in generated summaries and update Nationellt Vårdprogram citations to 2026.
+
+
 ## v1.1.1
 - Added a visible V-QUEST molecule type selector, defaulting to Unknown, so submissions include the current IMGT-required moleculeType parameter. The sequence textarea now auto-expands to fit its prefilled FASTA content.
 
