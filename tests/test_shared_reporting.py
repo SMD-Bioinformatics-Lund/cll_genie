@@ -42,7 +42,7 @@ def test_shared_report_preserves_findings_and_escapes_comments(count):
 
     document = ReportLoader().loads(json.dumps(payload))
     html = ReportRenderer().render_html(document)
-    assert 'name="smd-reports:package_version" content="0.4.0"' in html
+    assert 'name="smd-reports:package_version" content="0.5.3"' in html
     assert "&lt;PATIENT_NAME&gt;" in html
     assert "Åäö" in html and "&lt;script&gt;" in html and "<script>" not in html
     assert "SYNTHETIC-REPORT" in html
@@ -52,6 +52,16 @@ def test_shared_report_preserves_findings_and_escapes_comments(count):
         assert "synthetic insertion" in html
         detail = next(section for section in payload["sections"] if section["key"] == "sequence-0")
         assert ["Merge Count", "0"] in detail["rows"]
+        assert detail["caption"] == "Seq0 (U-CLL)"
+        assert "<figcaption" in html
+    references = next(section for section in payload["sections"] if section["key"] == "references")
+    assert references["style"] == "reference" and references["show_header"] is False
+    assert [row[0] for row in references["rows"]] == ["[1]", "[2]", "[3]"]
+    assert "Nucleic Acids Res. 2008" in html
+    description = next(
+        section for section in payload["sections"] if section["key"] == "description"
+    )
+    assert "Nationellt vårdprogram" not in description["text"]
     pdf = ReportRenderer().render_pdf(document)
     assert pdf.startswith(b"%PDF-")
 

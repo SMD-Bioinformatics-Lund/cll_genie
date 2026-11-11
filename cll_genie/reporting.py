@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from smd_reports import ReportLoader, ReportRenderer
 
 METHOD = Path(__file__).with_name("report_method.txt").read_text(encoding="utf-8")
+REFERENCES = Path(__file__).with_name("report_references.json").read_text(encoding="utf-8")
 
 
 def value(item):
@@ -97,10 +98,8 @@ def build_document(
             dict(
                 kind="table",
                 key=f"sequence-{index}",
-                heading=(
-                    f"Detaljerade analysresultat – {seq_id.split('_')[0]} "
-                    f"({statuses.get(seq_id, '-')})"
-                ),
+                heading="Detaljerade analysresultat" if index == 0 else "",
+                caption=f"{seq_id.split('_')[0]} ({statuses.get(seq_id, '-')})",
                 page_break_before=index == 0,
                 columns={"sv": ["Fält", "Resultat"]},
                 rows=[[key, value(item)] for key, item in finding.items()],
@@ -113,6 +112,18 @@ def build_document(
             heading="Analysbeskrivning",
             text=METHOD,
             format="plain",
+        )
+    )
+    sections.append(
+        dict(
+            kind="table",
+            key="references",
+            heading="Referenser",
+            style="reference",
+            show_header=False,
+            columns={"sv": ["Nummer", "Referens"]},
+            rows=json.loads(REFERENCES),
+            column_options={"0": {"width": 1}, "1": {"width": 14}},
         )
     )
     return dict(

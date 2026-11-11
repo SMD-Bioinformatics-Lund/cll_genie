@@ -31,4 +31,4 @@ weasyprint==70.0
 Werkzeug==2.2.2
 WTForms==3.0.1
 email_validator==2.1.0
-smd-reports[pdf]==0.4.0
+smd-reports[pdf]==0.5.3
