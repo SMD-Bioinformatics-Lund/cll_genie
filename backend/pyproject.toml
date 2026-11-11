@@ -14,7 +14,7 @@ dependencies = [
   "openpyxl==3.1.5",
   "httpx==0.28.1",
   "Jinja2==3.1.6",
-  "smd-reports[pdf]==0.4.0",
+  "smd-reports[pdf]==0.5.3",
   "python-multipart==0.0.20",
   "celery[redis]==5.5.2",
   "weasyprint==70.0",

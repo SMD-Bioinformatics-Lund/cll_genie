@@ -2,7 +2,8 @@
 
 ## Unreleased — shared reporting
 
-- Use smd-reports 0.4.0 for newly generated CLL Genie HTML reports and previews.
+- Use smd-reports 0.5.3 for newly generated CLL Genie HTML reports and previews.
+- Add shared sequence-table captions and a dedicated bordered reference table.
 - Align PDF rendering dependencies with the shared report package.
 - Preserve existing saved reports and report storage contracts.
 - Remove brackets around U-CLL/M-CLL in newly seeded report rules; existing configured rules are unchanged.
