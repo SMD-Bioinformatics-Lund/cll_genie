@@ -154,7 +154,7 @@ def build_document(
             kind="description",
             key="description",
             heading="Analysbeskrivning",
-            text=METHOD,
+            text=" ".join(METHOD.split()),
             format="plain",
         )
     )
@@ -163,7 +163,7 @@ def build_document(
             kind="references",
             key="references",
             heading="Referenser",
-            text="\n\n".join(f"{number} {text}" for number, text in REFERENCES),
+            text="\n".join(f"{number} {text}" for number, text in REFERENCES),
             format="plain",
         )
     )

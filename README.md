@@ -155,8 +155,8 @@ optional `REPORT_CENTER_ORGANIZATION`, `REPORT_CENTER_DEPARTMENT`, and
 
 Sequence details use the grouped grid in `cll_genie/report_details.json`, including
 functionality, V/J/D findings, identity values, and junction information. Optional
-indel/comment rows appear when populated. Analysis descriptions retain paragraph
-breaks; references render as a numbered text list.
+indel/comment rows appear when populated. Analysis descriptions render as a continuous paragraph; references use a compact
+numbered list without blank lines.
 
 ### Older Docker hosts
 
