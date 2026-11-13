@@ -160,6 +160,8 @@ numbered list without blank lines.
 
 ### Accreditation artwork
 
+The IGHV mutation analysis is accredited by **Swedac**.
+
 Set `ACCREDITATION_LOGO_PATH` in `.env` or `.env_dev` to the accreditation logo's
 host path. Both installers run `scripts/prepare-report-logo.py` before building.
 It copies the artwork to `cll_genie/static/images/reporting/accreditation/<filename>`;
