@@ -171,7 +171,9 @@ def build_document(
     report_branding["accredited"] = True
     # The report logo includes the application wordmark and subtitle.
     if report_branding.get("application_logo"):
-        report_branding.update(application_name="", application_suffix="")
+        report_branding.update(
+            application_name="", application_suffix="", application_logo_width_mm=30
+        )
     return dict(
         application="cll_genie",
         language="sv",
@@ -191,15 +193,4 @@ def build_document(
 
 def render_document(**kwargs):
     document = ReportLoader().loads(json.dumps(build_document(**kwargs), ensure_ascii=False))
-    html = ReportRenderer().render_html(document)
-    # The sample is included in the title and remains in the patient metadata.
-    style = (
-        ".report-document-heading .report-sample-reference{display:none}"
-        ".grid-table th.report_variant_header{text-align:left}"
-    )
-    if document.branding.application_logo:
-        style += (
-            ".report-product-brand .report-application-logo"
-            "{width:46mm;max-width:100%;height:auto}"
-        )
-    return html.replace("</head>", f"<style>{style}</style></head>", 1)
+    return ReportRenderer().render_html(document)
