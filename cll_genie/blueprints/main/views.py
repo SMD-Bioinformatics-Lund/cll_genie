@@ -28,6 +28,7 @@ import shutil
 from bson import ObjectId
 from datetime import datetime
 
+
 @main_bp.route("/")
 def cll_genie():
     """
@@ -76,9 +77,7 @@ def download_excel(id):
         Response: The Excel file as an attachment, or an error page if the file cannot be found or accessed.
     """
     sample_id = SampleListController.sample_handler.get_sample_name(id)
-    excel_file = os.path.abspath(
-        SampleListController.sample_handler.get_lymphotrack_excel(id)
-    )
+    excel_file = os.path.abspath(SampleListController.sample_handler.get_lymphotrack_excel(id))
     try:
         return send_file(excel_file, as_attachment=True)
     except Exception as e:
@@ -109,9 +108,7 @@ def download_qc_file(id):
         Response: The QC file as an attachment, or an error page if the file cannot be found or accessed.
     """
     sample_id = SampleListController.sample_handler.get_sample_name(id)
-    qc_file = os.path.abspath(
-        SampleListController.sample_handler.get_lymphotrack_qc(id)
-    )
+    qc_file = os.path.abspath(SampleListController.sample_handler.get_lymphotrack_qc(id))
     try:
         return send_file(qc_file, as_attachment=True)
     except Exception as e:
@@ -144,17 +141,19 @@ def download_results(filetype: str, id: str):
     """
     sample_id = SampleListController.sample_handler.get_sample_name(id)
     submission_id = request.args.get("sub_id")
-    submission_results = ResultsController.results_handler.get_submission_results(
-        id, submission_id
-    )
+    submission_results = ResultsController.results_handler.get_submission_results(id, submission_id)
 
     if filetype == "zip":
         attachment_file = os.path.abspath(submission_results["results_zip_file"])
-        attachment_filename_to_download = f"{os.path.basename(attachment_file).replace('.zip', '')}_{submission_id}.zip"
+        attachment_filename_to_download = (
+            f"{os.path.basename(attachment_file).replace('.zip', '')}_{submission_id}.zip"
+        )
 
     elif filetype == "text":
         attachment_file = os.path.abspath(submission_results["detailed_text_file"])
-        attachment_filename_to_download = f"{os.path.basename(attachment_file).replace('.txt', '')}_{submission_id}.txt"
+        attachment_filename_to_download = (
+            f"{os.path.basename(attachment_file).replace('.txt', '')}_{submission_id}.txt"
+        )
 
     try:
         response = make_response(send_file(attachment_file))
@@ -201,17 +200,11 @@ def sample(sample_id: str):
     results = ResultsController.results_handler.get_results(_id)
     if results is not None:
         results_submissions = results.get("results", {})
-        report_counts_per_submission = (
-            ReportController.get_report_counts_per_submission(
-                _id, results=results_submissions
-            )
+        report_counts_per_submission = ReportController.get_report_counts_per_submission(
+            _id, results=results_submissions
         )
 
-    if (
-        sample["total_bases"] == ""
-        or sample["q30_bases"] == ""
-        or sample["q30_per"] == ""
-    ):
+    if sample["total_bases"] == "" or sample["q30_bases"] == "" or sample["q30_per"] == "":
         try:
             qc_values = load_qc(sample_id, sample["lymphotrack_qc_path"])
             sample["total_bases"] = int(qc_values["totalCount"])
@@ -224,9 +217,7 @@ def sample(sample_id: str):
             SampleListController.sample_handler.update_document(
                 _id, "q30_bases", sample["q30_bases"]
             )
-            SampleListController.sample_handler.update_document(
-                _id, "q30_per", sample["q30_per"]
-            )
+            SampleListController.sample_handler.update_document(_id, "q30_per", sample["q30_per"])
             cll_app.logger.info(f"QC data updated for the sample: {sample_id}")
         except:
             cll_app.logger.error(f"QC values not loaded for the sample: {sample_id}")
@@ -466,9 +457,7 @@ def vquest_results(sample_id: str):
     """
     results_dir = cll_app.config["ANALYSIS_OUTDIR"]
     _id = request.args.get("_id")
-    sub_num = (
-        request.args.get("sub_num") if request.args.get("sub_num") is not None else -1
-    )
+    sub_num = request.args.get("sub_num") if request.args.get("sub_num") is not None else -1
     selected_sequence_stats = None
     submission_id = ResultsController.get_submission_id(_id, num=sub_num)
 
@@ -479,9 +468,7 @@ def vquest_results(sample_id: str):
 
         selected_sequence_stats = vquest_payload["selected_seqs_merging_rate"]
         _selected_sequences_merging_rate = (
-            selected_sequence_stats.split("|")
-            if selected_sequence_stats is not None
-            else None
+            selected_sequence_stats.split("|") if selected_sequence_stats is not None else None
         )
         selected_sequences_merging_rate = {
             elem.split(";")[0]: elem.split(";")[1:]
@@ -502,20 +489,15 @@ def vquest_results(sample_id: str):
         # merged vquest results to insert into the database
         if not errors and vquest_results_raw is not None:
             for seq_id in vquest_results_raw[sample_id].keys():
-                if (
-                    seq_id != "parameters"
-                    and selected_sequences_merging_rate is not None
-                ):
-                    vquest_results_raw[sample_id][seq_id]["summary"]["Merge Count"] = (
-                        int(selected_sequences_merging_rate[seq_id][0])
+                if seq_id != "parameters" and selected_sequences_merging_rate is not None:
+                    vquest_results_raw[sample_id][seq_id]["summary"]["Merge Count"] = int(
+                        selected_sequences_merging_rate[seq_id][0]
                     )
-                    vquest_results_raw[sample_id][seq_id]["summary"][
-                        "Total Reads Per"
-                    ] = round(float(selected_sequences_merging_rate[seq_id][1]), 2)
+                    vquest_results_raw[sample_id][seq_id]["summary"]["Total Reads Per"] = round(
+                        float(selected_sequences_merging_rate[seq_id][1]), 2
+                    )
                     vquest_results_raw[sample_id][seq_id]["summary"]["Inframe"] = (
-                        True
-                        if selected_sequences_merging_rate[seq_id][2] == "Y"
-                        else False
+                        True if selected_sequences_merging_rate[seq_id][2] == "Y" else False
                     )
                     vquest_results_raw[sample_id][seq_id]["summary"]["Stop Codon"] = (
                         False
@@ -531,9 +513,7 @@ def vquest_results(sample_id: str):
             ):
                 SampleListController.sample_handler.update_document(_id, "vquest", True)
         else:
-            return render_template(
-                "errors.html", errors=errors, sample_id=sample_id, _id=_id
-            )
+            return render_template("errors.html", errors=errors, sample_id=sample_id, _id=_id)
 
     # Get the results back to display in results page.
     if SampleListController.sample_handler.get_vquest_status(_id):
@@ -572,9 +552,7 @@ def comment_dict(summary: str) -> dict:
     return new_comment
 
 
-@main_bp.route(
-    "/save_comment/<string:sample_id>/<string:submission_id>", methods=["POST"]
-)
+@main_bp.route("/save_comment/<string:sample_id>/<string:submission_id>", methods=["POST"])
 @login_required
 def save_comment(sample_id: str, submission_id: str):
     _id = request.args.get("_id")
@@ -694,9 +672,9 @@ def cll_report(sample_id: str):
     _id = request.args.get("_id")
     results_comments = ""
     _type = request.args.get("_type") or None
-    submission_id = request.args.get(
-        "submission_id"
-    ) or ResultsController.get_submission_id(_id, num=-1)
+    submission_id = request.args.get("submission_id") or ResultsController.get_submission_id(
+        _id, num=-1
+    )
 
     sample = ReportController.sample_handler.get_sample(_id)
 
@@ -709,18 +687,14 @@ def cll_report(sample_id: str):
     # get results if already exits in the database
 
     if ReportController.sample_handler.get_vquest_status(_id):
-        results_parameters = ReportController.get_parameters_for_report(
-            _id, submission_id
-        )
+        results_parameters = ReportController.get_parameters_for_report(_id, submission_id)
         results_summary = ReportController.get_summary_for_report(_id, submission_id)
         results_comments = ReportController.get_comments_for_report(_id, submission_id)
 
         if results_parameters is None or results_summary is None:
             ReportController.sample_handler.update_document(_id, "vquest", False)
             flash(f"No Results in the database for the sample {sample_id}", "error")
-            cll_app.logger.error(
-                f"No Results in the database for the sample {sample_id}"
-            )
+            cll_app.logger.error(f"No Results in the database for the sample {sample_id}")
             return render_template(
                 "errors.html",
                 errors=[
@@ -737,9 +711,7 @@ def cll_report(sample_id: str):
         html_file_name = os.path.basename(html_file_path)
         report_id = html_file_name.replace(".html", "")
 
-        report_docs = ReportController.sample_handler.get_cll_reports(
-            _id
-        )  # for sample collections
+        report_docs = ReportController.sample_handler.get_cll_reports(_id)  # for sample collections
 
         report_date = datetime.now()
 
@@ -782,9 +754,7 @@ def cll_report(sample_id: str):
                 report_docs[report_id]["time_hidden"] = None
                 report_docs[report_id]["summary"] = report_summary
                 ReportController.sample_handler.update_document(_id, "report", True)
-                ReportController.sample_handler.update_document(
-                    _id, "cll_reports", report_docs
-                )
+                ReportController.sample_handler.update_document(_id, "cll_reports", report_docs)
 
                 if len(report_summary) > 0:
                     new_comment = comment_dict(report_summary)
@@ -813,9 +783,7 @@ def cll_report(sample_id: str):
         except Exception as e:
             flash(f"Report cannot be created", "error")
             cll_app.logger.error(f"Report cannot be created due to error: {str(e)}")
-            return render_template(
-                "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
-            )
+            return render_template("errors.html", errors=[str(e)], sample_id=sample_id, _id=_id)
 
     else:
         flash(
@@ -893,9 +861,7 @@ def negative_report(sample_id: str):
         except Exception as e:
             flash(f"Report cannot be created", "error")
             cll_app.logger.error(f"Report cannot be created due to error: {str(e)}")
-            return render_template(
-                "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
-            )
+            return render_template("errors.html", errors=[str(e)], sample_id=sample_id, _id=_id)
     else:
         flash(f"Report already exits", "info")
         report_doc = ReportController.sample_handler.get_negative_report(_id)
@@ -906,9 +872,7 @@ def negative_report(sample_id: str):
             flash(f"Report does not exist in the given path", "info")
             return render_template(
                 "errors.html",
-                errors=[
-                    f"Report does not exist in the given path: {report_doc['path']}"
-                ],
+                errors=[f"Report does not exist in the given path: {report_doc['path']}"],
                 sample_id=sample_id,
                 _id=_id,
             )
@@ -969,9 +933,7 @@ def toggle_report_status(db_id: str):
         else:
             return None
 
-    set_report = request.args.get(
-        "set_analyzed", default=None, type=check_report_status_arg
-    )
+    set_report = request.args.get("set_analyzed", default=None, type=check_report_status_arg)
 
     cll_app.logger.info(f"Setting report ({db_id}) to {set_report}")
     flash(f"Setting report ({db_id}) to {set_report}", "info")
@@ -997,9 +959,7 @@ def update_report(id: str, report_id: str):
     user_name = current_user.get_fullname()
 
     if current_user.super_user_mode():
-        if SampleListController.sample_handler.update_report(
-            id, report_id, query_type, user_name
-        ):
+        if SampleListController.sample_handler.update_report(id, report_id, query_type, user_name):
             ReportController.update_report_status(id)
             flash(f"Report updated for the id {report_id}", "success")
         else:
@@ -1007,9 +967,7 @@ def update_report(id: str, report_id: str):
                 f"There was some error updating the report for the id {report_id}",
                 "error",
             )
-            cll_app.logger.error(
-                f"There was some error updating the report for the id {report_id}"
-            )
+            cll_app.logger.error(f"There was some error updating the report for the id {report_id}")
 
     else:
         cll_app.logger.warning(
@@ -1020,9 +978,7 @@ def update_report(id: str, report_id: str):
             "warning",
         )
 
-    return redirect(
-        url_for("main_bp.sample", sample_id=sample_id, _id=id) + "#available_reports"
-    )
+    return redirect(url_for("main_bp.sample", sample_id=sample_id, _id=id) + "#available_reports")
 
 
 @main_bp.route("/delete_negative_report/<string:sample_id>")
@@ -1057,9 +1013,7 @@ def delete_negative_report(sample_id: str):
 
         else:
             # need more work on this
-            cll_app.logger.error(
-                f"No result report deletion failed for the sample id {sample_id}"
-            )
+            cll_app.logger.error(f"No result report deletion failed for the sample id {sample_id}")
             flash(
                 f"No result report deleted failed for the sample id {sample_id}",
                 "error",

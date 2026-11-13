@@ -39,12 +39,8 @@ class VQuest:
         """
         self.sample_id = sample_id
         self.payload = config
-        self.output_dir = Path(
-            os.path.join(output_dir, sample_id, submission_id, "vquest")
-        )
-        self.vquest_results_file = os.path.join(
-            self.output_dir, f"{self.sample_id}.zip"
-        )
+        self.output_dir = Path(os.path.join(output_dir, sample_id, submission_id, "vquest"))
+        self.vquest_results_file = os.path.join(self.output_dir, f"{self.sample_id}.zip")
         self.remove_files(self.vquest_results_file)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -114,9 +110,7 @@ class VQuest:
                         charset = part.split("charset=")[-1].strip()
                         break
 
-                default_encoding = (
-                    "utf-8"  # You can change this to your desired default encoding
-                )
+                default_encoding = "utf-8"  # You can change this to your desired default encoding
                 html = None
                 try:
                     html = response.content.decode(charset)
@@ -137,9 +131,7 @@ class VQuest:
                 except:
                     pass
         except requests.exceptions.ConnectionError as e:
-            errors.append(
-                "Request failed with error 'Failed to establish a new connection'"
-            )
+            errors.append("Request failed with error 'Failed to establish a new connection'")
 
         if errors:
             for error in errors:
@@ -228,9 +220,7 @@ class VQuest:
         summary_raw_df = pd.read_csv(
             os.path.join(self.output_dir, "1_Summary.txt"), sep="\t", header=0
         )
-        summary_raw_df = summary_raw_df.loc[
-            :, ~summary_raw_df.columns.str.contains("^Unnamed")
-        ]
+        summary_raw_df = summary_raw_df.loc[:, ~summary_raw_df.columns.str.contains("^Unnamed")]
         summary_raw_df.fillna("", inplace=True)
         summary_raw_dict = (
             summary_raw_df.groupby("Sequence ID")
@@ -243,9 +233,7 @@ class VQuest:
         junction_raw_df = pd.read_csv(
             os.path.join(self.output_dir, "6_Junction.txt"), sep="\t", header=0
         )
-        junction_raw_df = junction_raw_df.loc[
-            :, ~junction_raw_df.columns.str.contains("^Unnamed")
-        ]
+        junction_raw_df = junction_raw_df.loc[:, ~junction_raw_df.columns.str.contains("^Unnamed")]
         junction_raw_df.fillna("", inplace=True)
         junction_raw_dict = (
             junction_raw_df.groupby("Sequence ID")

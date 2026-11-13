@@ -23,6 +23,7 @@ venv_311/
 ENV/
 env.bak/
 .env_copy
+.env_dev
 
 # Distribution / packaging
 .Python
@@ -76,3 +77,4 @@ dmypy.json
 
 # Others
 info/
+payload.txt
