@@ -15,8 +15,10 @@ Attributes:
 Behavior:
     - Sets the application version if not already configured.
     - Configures Gunicorn logging when the module is not run as the main program.
-    - Runs the application on host `0.0.0.0` and port `8000` when executed directly.
+    - Runs the application on host `0.0.0.0` and the configured `PORT_NBR` when executed directly.
 """
+
+import os
 
 from cll_genie import create_app
 from version import __version__
@@ -35,4 +37,4 @@ if __name__ != "__main__":
     cll_genie_app.logger.setLevel(gunicorn_logger.level)
 
 if __name__ == "__main__":
-    cll_genie_app.run(host="0.0.0.0", port=8000)
+    cll_genie_app.run(host="0.0.0.0", port=int(os.environ["PORT_NBR"]))

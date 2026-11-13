@@ -33,7 +33,7 @@ def test_shared_report_preserves_findings_and_escapes_comments(count):
         report_id="SYNTHETIC-REPORT",
         author="Test Analyst",
         app_version="TEST",
-        analysis_run_at="CMD",
+        analysis_run_at="Sektion för molekylär diagnostik (SMD)",
         summary="Åäö <script>alert(1)</script>",
         results=results,
         statuses={key: "U-CLL" for key in results},

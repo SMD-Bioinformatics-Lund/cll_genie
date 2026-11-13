@@ -63,7 +63,7 @@ class Config:
     )
 
     # PDF Report related settings and variables
-    PDF_ANALYSIS_RUN_AT = "Centrum för molekylär diagnostik (CMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
+    PDF_ANALYSIS_RUN_AT = "Sektion för molekylär diagnostik (SMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
 
     # LOGO
     LOGO_PATH = os.path.join(
@@ -127,7 +127,8 @@ class DevelopmentConfig(Config):
     """
 
     DEBUG = True
-    SECRET_KEY = "secretkeynotsodisguised"
+    SECRET_KEY = Config.SECRET_KEY
+    SESSION_COOKIE_NAME = "cll_genie_dev"
     LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_dev.log")
     LOG_LEVEL = "DEBUG"
 

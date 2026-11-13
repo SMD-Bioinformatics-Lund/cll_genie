@@ -1,11 +1,23 @@
 # CHANGELOG
 
-## Unreleased — shared reporting
+## v1.2.0 — 2026-11-13
+
+### Installation and development
+
+- Require deployment settings from each environment file, including port, URL prefix, container name, database, paths, and DNS.
+- Update Docker builds to Python 3.11 on Debian Bookworm and include the PDF font runtime.
+- Add a dedicated development installer with isolated defaults and source reloading.
+- Validate deployment configuration and restore the previous container on startup failure.
+- Read the runtime version from version.py and pass the configured secret correctly.
+- Stop logging development configuration secrets and separate dev session cookies.
+
+### Reporting
 
 - Use smd-reports 0.5.3 for newly generated CLL Genie HTML reports and previews.
 - Add shared sequence-table captions and a dedicated bordered reference table.
 - Align PDF rendering dependencies with the shared report package.
 - Preserve existing saved reports and report storage contracts.
+- Rename the analysis center to Sektion för molekylär diagnostik (SMD).
 - Remove brackets around U-CLL/M-CLL in generated summaries and update Nationellt Vårdprogram citations to 2026.
 
 
