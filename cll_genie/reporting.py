@@ -95,7 +95,7 @@ def build_document(
         dict(
             kind="summary",
             key="summary",
-            heading="Slutsats",
+            heading="Slutsats Frågeställning - IGHV mutationsanalys",
             text=summary or "Slutsats saknas!",
             format="plain",
         )
