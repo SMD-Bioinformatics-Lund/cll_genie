@@ -1,44 +1,25 @@
-# CHANGELOG
+# Changelog
 
 ## v1.2.0 — 2026-11-13
 
-### Installation and development
-
-- Require deployment settings from each environment file, including port, URL prefix, container name, database, paths, and DNS.
-- Use Python 3.11 on Debian Bullseye with signed archived repositories for older Docker hosts; include the PDF font runtime.
-- Add installer progress messages, deployment summaries, and rollback diagnostics.
-- Detect the public hostname for deployment URLs, with an optional PUBLIC_BASE_URL override.
-- Add a dedicated development installer with isolated defaults and source reloading.
-- Validate deployment configuration and restore the previous container on startup failure.
-- Read the runtime version from version.py and pass the configured secret correctly.
-- Stop logging development configuration secrets and separate dev session cookies.
-
-### Reporting
-
-- Add a Download HTML action to the report preview page without finalizing the report.
-
-- Use an outlined SVG application logo in positive and negative report headers.
-
-- Use smd-reports 0.5.3 for newly generated CLL Genie HTML reports and previews.
-- Preserve grouped sequence details, paragraph-based analysis descriptions, and numbered references.
-- Include the SMD organization, department, and address in the report header.
-- Align PDF rendering dependencies with the shared report package.
-- Preserve existing saved reports and report storage contracts.
-- Rename the analysis center to Sektion för molekylär diagnostik (SMD).
-- Remove brackets around U-CLL/M-CLL in generated summaries and update Nationellt Vårdprogram citations to 2026.
-
+- Adopt `smd-reports 0.5.3` with an SVG logo, SMD contact information, grouped results, and numbered references. Existing saved reports remain readable.
+- Add HTML downloads from report previews without finalizing reports.
+- Update Swedish report headings, remove brackets around M-CLL/U-CLL, and cite Nationellt Vårdprogram 2026.
+- Add self-contained production/dev installers with environment-based configuration, source reloading, startup checks, and rollback.
+- Improve deployment logs and automatically detect public URLs, with `PUBLIC_BASE_URL` overrides.
+- Fix secret handling and isolate development session cookies.
+- Support older Docker hosts with Python 3.11, signed Debian Bullseye archives, and PDF dependencies.
 
 ## v1.1.1
-- Added a visible V-QUEST molecule type selector, defaulting to Unknown, so submissions include the current IMGT-required moleculeType parameter. The sequence textarea now auto-expands to fit its prefilled FASTA content.
 
+- Add V-QUEST molecule-type selection (default: Unknown) and an auto-expanding sequence input.
 
 ## v1.1.0
-- Control samples can now be loaded into the database
-- Control samples are suffixed with run_number to avoid conficts between the runs, since the names are same across different runs7
-- Control sample naming format `POS-SHM-R0000`, `NEG-SHM-R0000`, `IGHSHM-SHM-R0000`
-- Fix IGHV mutation status in CLL Genie svarstext to display only the correct status (M-CLL or U-CLL)
-- Preview reports will now be opened in a new tab
-- Added run number and is control columns in the samples table
+
+- Import controls with run-number suffixes, such as `POS-SHM-R0000`, and display control/run metadata.
+- Correct IGHV mutation-status wording to show the applicable M-CLL or U-CLL status.
+- Open report previews in a new tab.
 
 ## v1.0.0
-- Initial release of the project.
+
+- Initial release.
