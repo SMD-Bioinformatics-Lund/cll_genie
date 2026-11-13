@@ -165,13 +165,13 @@
       "cells": [
         {
           "column": 14,
-          "span": 4,
+          "span": 3,
           "mode": "pair",
-          "label_span": 3
+          "label_span": 2
         },
         {
           "column": 15,
-          "span": 1,
+          "span": 2,
           "mode": "inline"
         }
       ]
