@@ -60,13 +60,15 @@
       "highlight": true
     },
     "5": {
-      "highlight": true
+      "highlight": true,
+      "full_width": true
     },
     "6": {
       "highlight": true
     },
     "7": {
-      "highlight": true
+      "highlight": true,
+      "full_width": true
     },
     "10": {
       "highlight": true
