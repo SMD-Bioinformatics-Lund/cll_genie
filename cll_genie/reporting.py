@@ -196,6 +196,8 @@ def render_document(**kwargs):
     style = (
         ".report-document-heading .report-sample-reference{display:none}"
         ".grid-table th.report_variant_header{text-align:left}"
+        ".report-description .justified-text.plain"
+        "{white-space:normal;text-align:justify;text-align-last:left}"
     )
     if document.branding.application_logo:
         style += (
