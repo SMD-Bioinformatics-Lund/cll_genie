@@ -728,7 +728,10 @@ def cll_report(sample_id: str):
                     author=current_user.get_fullname(), app_version=cll_app.config["APP_VERSION"],
                     analysis_run_at=cll_app.config["PDF_ANALYSIS_RUN_AT"],
                     results=results_summary, statuses=mutation_status, submission_id=submission_id,
-                    branding={"center_logo": cll_app.config["LOGO_PATH"],
+                    branding={"organization": cll_app.config["REPORT_CENTER_ORGANIZATION"],
+                              "department": cll_app.config["REPORT_CENTER_DEPARTMENT"],
+                              "address": cll_app.config["REPORT_CENTER_ADDRESS"],
+                              "center_logo": cll_app.config["LOGO_PATH"],
                               "application_logo": cll_app.config["REPORT_LOGO_PATH"]},
                 )
                 if preview:
@@ -833,7 +836,10 @@ def negative_report(sample_id: str):
                 sample_id=sample_id, report_id=report_id, summary=report_summary,
                 author=current_user.get_fullname(), app_version=cll_app.config["APP_VERSION"],
                 analysis_run_at=cll_app.config["PDF_ANALYSIS_RUN_AT"],
-                branding={"center_logo": cll_app.config["LOGO_PATH"],
+                branding={"organization": cll_app.config["REPORT_CENTER_ORGANIZATION"],
+                              "department": cll_app.config["REPORT_CENTER_DEPARTMENT"],
+                              "address": cll_app.config["REPORT_CENTER_ADDRESS"],
+                              "center_logo": cll_app.config["LOGO_PATH"],
                           "application_logo": cll_app.config["REPORT_LOGO_PATH"]},
             )
 

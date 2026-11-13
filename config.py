@@ -65,6 +65,16 @@ class Config:
     # PDF Report related settings and variables
     PDF_ANALYSIS_RUN_AT = "Sektion för molekylär diagnostik (SMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
 
+    REPORT_CENTER_ORGANIZATION = os.getenv(
+        "REPORT_CENTER_ORGANIZATION", "Sektion för molekylär diagnostik (SMD)"
+    )
+    REPORT_CENTER_DEPARTMENT = os.getenv(
+        "REPORT_CENTER_DEPARTMENT", "Klinisk genetik och patologi"
+    )
+    REPORT_CENTER_ADDRESS = os.getenv(
+        "REPORT_CENTER_ADDRESS", "Sölvegatan 23B, Lund, Region Skåne"
+    )
+
     # LOGO
     LOGO_PATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),

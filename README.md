@@ -149,6 +149,14 @@ Report headers use `cll_genie/static/images/cll-genie-logo.svg`, configured by
 `REPORT_LOGO_PATH`. The SVG includes the wordmark and subtitle as vector paths,
 so saved HTML and PDFs do not require additional logo fonts. The application logo
 appears alongside the Region Skåne center logo for both positive and negative reports.
+The center contact block includes the organization, department, and address, with
+optional `REPORT_CENTER_ORGANIZATION`, `REPORT_CENTER_DEPARTMENT`, and
+`REPORT_CENTER_ADDRESS` environment overrides.
+
+Sequence details use the grouped grid in `cll_genie/report_details.json`, including
+functionality, V/J/D findings, identity values, and junction information. Optional
+indel/comment rows appear when populated. Analysis descriptions retain paragraph
+breaks; references render as a numbered text list.
 
 ### Older Docker hosts
 

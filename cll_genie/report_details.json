@@ -1,0 +1,234 @@
+{
+  "kind": "grid",
+  "columns": {
+    "en": [
+      "Seq ID",
+      "Length",
+      "IGHV mutation status",
+      "CLL subset",
+      "Sequence analysis category",
+      "Indel summary",
+      "V-Domain functionality after removal of Indels",
+      "Comment",
+      "V-GENE and allele",
+      "Score",
+      "Identity",
+      "J-GENE and allele",
+      "Score",
+      "Identity",
+      "D-GENE and allele by IMGT/JunctionAnalysis",
+      "D-REGION reading frame",
+      "FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION",
+      "CDR-IMGT lengths",
+      "AA JUNCTION",
+      "JUNCTION length (in nt) and decryption",
+      "Junction legend",
+      "Merge count",
+      "Total reads"
+    ],
+    "sv": [
+      "Seq ID",
+      "Sekvenslängd",
+      "IGHV-mutationsstatus",
+      "CLL subset",
+      "Sekvensanalyskategori",
+      "Indel summary",
+      "V-Domain functionality after removal of Indels",
+      "Kommentar",
+      "V-GENE and allele",
+      "Score",
+      "Identity",
+      "J-GENE and allele",
+      "Score",
+      "Identity",
+      "D-GENE and allele by IMGT/JunctionAnalysis",
+      "D-REGION reading frame",
+      "FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION",
+      "CDR-IMGT lengths",
+      "AA JUNCTION",
+      "JUNCTION length (in nt) and decryption",
+      "Junction legend",
+      "Merge count",
+      "Totala läsningar"
+    ]
+  },
+  "column_options": {
+    "3": {
+      "highlight": true
+    },
+    "4": {
+      "highlight": true
+    },
+    "5": {
+      "highlight": true
+    },
+    "6": {
+      "highlight": true
+    },
+    "7": {
+      "highlight": true
+    },
+    "10": {
+      "highlight": true
+    }
+  },
+  "grid_columns": 5,
+  "layout": [
+    {
+      "cells": [
+        {
+          "column": 0,
+          "span": 2,
+          "mode": "pair"
+        },
+        {
+          "column": 3,
+          "span": 2,
+          "mode": "pair"
+        },
+        {
+          "column": 4,
+          "span": 1,
+          "mode": "inline"
+        }
+      ]
+    },
+    {
+      "cells": [
+        {
+          "column": 5,
+          "span": 5,
+          "mode": "pair"
+        }
+      ],
+      "hide_if_empty": true
+    },
+    {
+      "cells": [
+        {
+          "column": 6,
+          "span": 5,
+          "mode": "pair",
+          "label_span": 2
+        }
+      ]
+    },
+    {
+      "cells": [
+        {
+          "column": 7,
+          "span": 5,
+          "mode": "pair"
+        }
+      ],
+      "hide_if_empty": true
+    },
+    {
+      "cells": [
+        {
+          "column": 8,
+          "span": 2,
+          "mode": "pair"
+        },
+        {
+          "column": 9,
+          "span": 1,
+          "mode": "inline"
+        },
+        {
+          "column": 10,
+          "span": 2,
+          "mode": "inline"
+        }
+      ]
+    },
+    {
+      "cells": [
+        {
+          "column": 11,
+          "span": 2,
+          "mode": "pair"
+        },
+        {
+          "column": 12,
+          "span": 1,
+          "mode": "inline"
+        },
+        {
+          "column": 13,
+          "span": 2,
+          "mode": "inline"
+        }
+      ]
+    },
+    {
+      "cells": [
+        {
+          "column": 14,
+          "span": 4,
+          "mode": "pair",
+          "label_span": 3
+        },
+        {
+          "column": 15,
+          "span": 1,
+          "mode": "inline"
+        }
+      ]
+    },
+    {
+      "cells": [
+        {
+          "column": 16,
+          "span": 2,
+          "mode": "label"
+        },
+        {
+          "column": 16,
+          "span": 1,
+          "mode": "value"
+        },
+        {
+          "column": 17,
+          "span": 1,
+          "mode": "value"
+        },
+        {
+          "column": 18,
+          "span": 1,
+          "mode": "value"
+        }
+      ]
+    },
+    {
+      "cells": [
+        {
+          "column": 19,
+          "span": 4,
+          "mode": "pair",
+          "label_span": 2
+        },
+        {
+          "column": 20,
+          "span": 1,
+          "mode": "value"
+        }
+      ]
+    },
+    {
+      "cells": [
+        {
+          "column": 21,
+          "span": 2,
+          "mode": "pair"
+        },
+        {
+          "column": 22,
+          "span": 3,
+          "mode": "pair"
+        }
+      ]
+    }
+  ],
+  "record_heading": "{0} - {1} nt ({2})"
+}

@@ -1,18 +1,25 @@
 """Map evaluated CLL Genie findings to the public smd-reports document format."""
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from datetime import datetime, timezone
 
 from smd_reports import ReportLoader, ReportRenderer
 
 METHOD = Path(__file__).with_name("report_method.txt").read_text(encoding="utf-8")
-REFERENCES = Path(__file__).with_name("report_references.json").read_text(encoding="utf-8")
+REFERENCES = json.loads(Path(__file__).with_name("report_references.json").read_text(encoding="utf-8"))
+DETAIL_LAYOUT = json.loads(Path(__file__).with_name("report_details.json").read_text(encoding="utf-8"))
 
 
 def value(item):
     """Keep zero and false values, and display absent findings consistently."""
     return "-" if item is None or item == "" else str(item)
+
+
+def bracketed(item):
+    text = value(item)
+    return f"[{text.strip('[]')}]" if text != "-" else text
 
 
 def build_document(
@@ -94,17 +101,55 @@ def build_document(
         )
     )
     for index, (seq_id, finding) in enumerate(results.items()):
-        sections.append(
-            dict(
-                kind="table",
-                key=f"sequence-{index}",
-                heading="Detaljerade analysresultat" if index == 0 else "",
-                caption=f"{seq_id.split('_')[0]} ({statuses.get(seq_id, '-')})",
-                page_break_before=index == 0,
-                columns={"sv": ["Fält", "Resultat"]},
-                rows=[[key, value(item)] for key, item in finding.items()],
-            )
+        detail = deepcopy(DETAIL_LAYOUT)
+        indel = finding.get("V-REGION identity % (with ins/del events)") is not None
+        if not indel:
+            for labels in detail["columns"].values():
+                labels[6] = "V-Domain functionality"
+        identity = (
+            f"{value(finding.get('V-REGION identity %'))}% "
+            f"({value(finding.get('V-REGION identity nt'))})"
         )
+        if indel:
+            identity += (
+                f" [{value(finding.get('V-REGION identity % (with ins/del events)'))}% "
+                f"({value(finding.get('V-REGION identity nt (with ins/del events)'))})]"
+            )
+        indel_notes = []
+        if indel:
+            for field, label in [("V-REGION insertions", "insertions"),
+                                 ("V-REGION deletions", "deletions")]:
+                if finding.get(field):
+                    indel_notes.append(
+                        f"Nucleotide {label} have been detected and automatically removed "
+                        f"for this analysis. {finding[field]}"
+                    )
+        row = [
+            seq_id.split("_")[0], value(finding.get("Analysed sequence length")),
+            statuses.get(seq_id, "-"), value(finding.get("CLL subset")),
+            value(finding.get("Sequence analysis category")),
+            "\n".join(indel_notes) or None,
+            value(finding.get("V-DOMAIN Functionality")),
+            finding.get("V-DOMAIN Functionality comment") or None,
+            value(finding.get("V-GENE and allele")), value(finding.get("V-REGION score")),
+            identity,
+            value(finding.get("J-GENE and allele")), value(finding.get("J-REGION score")),
+            f"{value(finding.get('J-REGION identity %'))}% ({value(finding.get('J-REGION identity nt'))})",
+            value(finding.get("D-GENE and allele")), value(finding.get("D-REGION reading frame")),
+            value(finding.get("FR-IMGT lengths")), bracketed(finding.get("CDR-IMGT lengths")),
+            value(finding.get("AA JUNCTION")),
+            f"{value(finding.get('JUNCTION-nt nb'))} nt = {value(finding.get('JUNCTION decryption'))}",
+            "(3′V)3′{N1}5′(D)3′{N2}5′(5′J)",
+            value(finding.get("Merge Count")),
+            f"{value(finding.get('Total Reads Per'))}%",
+        ]
+        detail.update(
+            key=f"sequence-{index}",
+            heading="Detaljerade analysresultat" if index == 0 else "",
+            page_break_before=index == 0,
+            rows=[row],
+        )
+        sections.append(detail)
     sections.append(
         dict(
             kind="description",
@@ -116,14 +161,11 @@ def build_document(
     )
     sections.append(
         dict(
-            kind="table",
+            kind="references",
             key="references",
             heading="Referenser",
-            style="reference",
-            show_header=False,
-            columns={"sv": ["Nummer", "Referens"]},
-            rows=json.loads(REFERENCES),
-            column_options={"0": {"width": 1}, "1": {"width": 14}},
+            text="\n\n".join(f"{number} {text}" for number, text in REFERENCES),
+            format="plain",
         )
     )
     report_branding = dict(branding or {})

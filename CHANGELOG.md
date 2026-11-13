@@ -18,7 +18,8 @@
 - Use an outlined SVG application logo in positive and negative report headers.
 
 - Use smd-reports 0.5.3 for newly generated CLL Genie HTML reports and previews.
-- Add shared sequence-table captions and a dedicated bordered reference table.
+- Preserve grouped sequence details, paragraph-based analysis descriptions, and numbered references.
+- Include the SMD organization, department, and address in the report header.
 - Align PDF rendering dependencies with the shared report package.
 - Preserve existing saved reports and report storage contracts.
 - Rename the analysis center to Sektion för molekylär diagnostik (SMD).
