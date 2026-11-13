@@ -63,7 +63,7 @@ class Config:
     )
 
     # PDF Report related settings and variables
-    PDF_ANALYSIS_RUN_AT = "Sektion för molekylär diagnostik (SMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
+    PDF_ANALYSIS_RUN_AT = "Sektion för molekylär diagnostik (SMD) och Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
 
     REPORT_CENTER_ORGANIZATION = os.getenv(
         "REPORT_CENTER_ORGANIZATION", "Sektion för molekylär diagnostik (SMD)"
