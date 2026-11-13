@@ -72,12 +72,6 @@
     },
     "10": {
       "highlight": true
-    },
-    "19": {
-      "full_width": true
-    },
-    "20": {
-      "full_width": true
     }
   },
   "record_heading": "{0} - {1} nt ({2})",
