@@ -81,7 +81,7 @@ class Config:
         "cll_genie",
         "static",
         "images",
-        "RSKlogo-rgb.png",
+        "region-skane.svg",
     )
 
     REPORT_LOGO_PATH = os.path.join(
