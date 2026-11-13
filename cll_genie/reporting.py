@@ -51,7 +51,6 @@ def build_document(
             ),
         ),
         ("Analys genomförd av", analysis_run_at),
-        ("Rapportversion", app_version),
         ("Submission", submission_id),
     ]
     sections = []
