@@ -192,7 +192,10 @@ def render_document(**kwargs):
     document = ReportLoader().loads(json.dumps(build_document(**kwargs), ensure_ascii=False))
     html = ReportRenderer().render_html(document)
     # The sample is included in the title and remains in the patient metadata.
-    style = ".report-document-heading .report-sample-reference{display:none}"
+    style = (
+        ".report-document-heading .report-sample-reference{display:none}"
+        ".grid-table th.report_variant_header{text-align:left}"
+    )
     if document.branding.application_logo:
         style += (
             ".report-product-brand .report-application-logo"
