@@ -142,11 +142,21 @@ def build_document(
             value(finding.get("Merge Count")),
             f"{value(finding.get('Total Reads Per'))}%",
         ]
+        visible = [i for i, item in enumerate(row) if item is not None]
+        detail["columns"] = {
+            language: [labels[i] for i in visible]
+            for language, labels in detail["columns"].items()
+        }
+        detail["column_options"] = {
+            str(position): detail["column_options"][str(i)]
+            for position, i in enumerate(visible)
+            if str(i) in detail["column_options"]
+        }
         detail.update(
             key=f"sequence-{index}",
             heading="Detaljerade analysresultat" if index == 0 else "",
             page_break_before=index == 0,
-            rows=[row],
+            rows=[[row[i] for i in visible]],
         )
         sections.append(detail)
     sections.append(
