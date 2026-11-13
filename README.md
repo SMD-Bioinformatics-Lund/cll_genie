@@ -128,7 +128,7 @@ version automatically.
 
 For development Compose, also pass `--env-file .env_dev` so all deployment settings are interpolated from that file.
 
-Both installers print Coyote3-style progress logs and start/completion summaries
+Both installers print progress logs and start/completion summaries
 with the version, image, container, port, path, commit, and build time. Failures
 report rollback progress without printing environment secrets.
 
@@ -138,8 +138,8 @@ has its own Compose-based layout.
 
 ### Older Docker hosts
 
-Both Dockerfiles use Python 3.11 on Debian Bullseye, matching Coyote3's older-host
-approach. Debian 11 package sources point to the signed Debian archives. Only the
+Both Dockerfiles use Python 3.11 on Debian Bullseye for compatibility with older
+Docker hosts. Debian 11 package sources point to the signed Debian archives. Only the
 archived security index's expiry check is disabled; package signature checks remain
 enabled. This avoids the newer Bookworm userspace involved in some old Docker
 runtime failures during APT verification. No host security settings are changed.

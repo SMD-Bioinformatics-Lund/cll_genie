@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=wsgi.py
 
-# Keep the Bullseye userspace used by Coyote3 for older Docker hosts.
+# Use Bullseye userspace for compatibility with older Docker hosts.
 # Use the signed Debian 11 archives; only the archived security index's
 # expiry check is disabled. Repository signature verification stays enabled.
 RUN printf '%s\n' \

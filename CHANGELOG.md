@@ -6,7 +6,7 @@
 
 - Require deployment settings from each environment file, including port, URL prefix, container name, database, paths, and DNS.
 - Use Python 3.11 on Debian Bullseye with signed archived repositories for older Docker hosts; include the PDF font runtime.
-- Match Coyote3 installer logging with progress messages, deployment summaries, and rollback diagnostics.
+- Add installer progress messages, deployment summaries, and rollback diagnostics.
 - Add a dedicated development installer with isolated defaults and source reloading.
 - Validate deployment configuration and restore the previous container on startup failure.
 - Read the runtime version from version.py and pass the configured secret correctly.
