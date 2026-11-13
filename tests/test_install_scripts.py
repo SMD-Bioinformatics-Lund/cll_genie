@@ -79,6 +79,12 @@ def test_successful_replacement_has_version_and_separate_runtime(tmp_path, mode)
     result, state, name = deploy(tmp_path, mode=mode, db_name='cll_genie_dev')
     assert result.returncode == 0, result.stderr
     assert state['containers'] == {name: True}
+    assert f'CLL Genie {mode.title()} Deployment' in result.stdout
+    assert f'CLL Genie {mode.title()} Deployment Complete' in result.stdout
+    for message in ['[INFO] Using environment file:', '[INFO] Building Docker image:',
+                    '[INFO] Docker image built successfully.', '[INFO] Verifying application startup...',
+                    'Version:', 'Container:', 'Port:', 'Path:', 'Commit:', 'Build time:', 'URL:']:
+        assert message in result.stdout
     run = next(call for call in state['calls'] if call[0] == 'run')
     assert 'synthetic-secret' not in str(state['calls']) + result.stdout + result.stderr
     assert 'SECRET_KEY' in run and 'CLL_GENIE_VERSION' in run
@@ -96,7 +102,13 @@ def test_failed_deployment_preserves_or_restores_previous_container(tmp_path, fa
     assert result.returncode != 0
     assert state['containers'] == {name: True}
     if failure == 'FAIL_BUILD':
+        assert '[ERROR] Docker image build failed' in result.stderr
         assert not any(call[0] in ('rename', 'stop', 'rm', 'run') for call in state['calls'])
+    else:
+        assert '[WARN] Deployment failed' in result.stderr
+        assert '[WARN] Rolling back production deployment...' in result.stderr
+        assert '[INFO] Previous production container restored.' in result.stdout
+
 
 
 @pytest.mark.parametrize('db_name', [None, 'cll_genie'])

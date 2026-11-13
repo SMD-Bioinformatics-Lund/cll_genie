@@ -14,7 +14,18 @@ APP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 # Utilities
 # ------------------------------------------
 
-die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+log() {
+  printf '[INFO] %s\n' "$*"
+}
+
+warn() {
+  printf '[WARN] %s\n' "$*" >&2
+}
+
+die() {
+  printf '[ERROR] %s\n' "$*" >&2
+  exit 1
+}
 
 # ------------------------------------------
 # Configuration
@@ -44,7 +55,9 @@ done
 
 # Relative overrides are resolved from the caller directory.
 
+log "Project directory: $APP_DIR"
 [[ -f "$env_file" ]] || die "Environment file not found: $env_file"
+log "Using environment file: $env_file"
 # Environment files are trusted shell configuration. Never print their values.
 
 # ------------------------------------------
@@ -66,6 +79,7 @@ set +a
 
 # Fail before building or stopping containers if required settings are missing.
 
+log "Validating environment configuration..."
 for key in SECRET_KEY DB_HOST DB_PORT DB_NAME PORT_NBR CONTAINER_NAME RESULTS_DIR LOGS_DIR LYMPHOTRACK_RESULTS_DIR; do
   [[ -n "${!key:-}" ]] || die "Missing required variable: $key"
 done
@@ -93,6 +107,7 @@ export SCRIPT_NAME
 
 # Results and logs are writable; existing analysis input is mounted read-only.
 
+log "Checking data and log directories..."
 input_dir="$LYMPHOTRACK_RESULTS_DIR"
 for directory in "$results_dir" "$logs_dir" "$input_dir"; do
   [[ "$directory" == /* && -d "$directory" ]] || die "Required absolute directory not found: $directory"
@@ -103,6 +118,7 @@ done
 # Validate local dependencies
 # ------------------------------------------
 
+log "Checking local tools and Docker daemon..."
 command -v python3 >/dev/null || die 'python3 is required'
 command -v flock >/dev/null || die 'flock is required'
 command -v docker >/dev/null || die 'Docker is required'
@@ -114,6 +130,7 @@ docker info >/dev/null 2>&1 || die 'Docker daemon unavailable'
 
 # Read the literal version assignment without importing or starting the application.
 
+log "Resolving application version..."
 version="$(python3 - "$APP_DIR/version.py" <<'PY'
 import ast, sys
 module = ast.parse(open(sys.argv[1]).read())
@@ -128,6 +145,22 @@ PY
 [[ "$version" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ ]] || die 'Invalid image version'
 export CLL_GENIE_VERSION="$version"
 image_name="cll_genie:$CLL_GENIE_VERSION"
+
+GIT_COMMIT="$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || printf unknown)"
+BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+printf '\n%s\n' '----------------------------------------'
+printf '%s\n' 'CLL Genie Production Deployment'
+printf '%s\n' '----------------------------------------'
+printf 'Project:    %s\n' "$APP_DIR"
+printf 'Env file:   %s\n' "$env_file"
+printf 'Version:    %s\n' "$CLL_GENIE_VERSION"
+printf 'Image:      %s\n' "$image_name"
+printf 'Container:  %s\n' "$container_name"
+printf 'Port:       %s\n' "$port"
+printf 'Path:       %s\n' "$SCRIPT_NAME"
+printf 'Commit:     %s\n' "$GIT_COMMIT"
+printf 'Build time: %s\n' "$BUILD_TIME"
+printf '%s\n\n' '----------------------------------------'
 
 # ------------------------------------------
 # Prevent simultaneous deployments
@@ -158,8 +191,10 @@ done < "$env_file"
 
 # Finish the build before changing the currently running container.
 
-printf 'Building %s for %s (container %s, port %s)\n' "$image_name" "production" "$container_name" "$port"
-docker build --network host --target "$target" -t "$image_name" -f "$APP_DIR/$dockerfile" "$APP_DIR"
+log "Building Docker image: $image_name"
+docker build --network host --target "$target" -t "$image_name" -f "$APP_DIR/$dockerfile" "$APP_DIR" \
+  || die "Docker image build failed; existing container unchanged."
+log "Docker image built successfully."
 
 # ------------------------------------------
 # Rollback handler
@@ -173,11 +208,29 @@ rollback() {
   code=$?
   trap - ERR INT TERM
   set +e
-  printf 'Deployment failed; restoring the previous container.\n' >&2
-  if [[ "$replacement" == true ]]; then docker rm -f "$container_name" >/dev/null 2>&1; fi
+  warn "Deployment failed (exit code $code)."
+  warn "Rolling back production deployment..."
+  if [[ "$replacement" == true ]]; then
+    log "Removing failed replacement container..."
+    docker rm -f "$container_name" >/dev/null 2>&1 || warn "Could not remove failed container."
+  fi
   if [[ -n "$backup" ]] && exists "$backup"; then
-    docker rename "$backup" "$container_name"
-    if [[ "$was_running" == true ]]; then docker start "$container_name"; fi
+    log "Restoring previous container: $backup"
+    if docker rename "$backup" "$container_name"; then
+      if [[ "$was_running" == true ]]; then
+        if docker start "$container_name"; then
+          log "Previous production container restored."
+        else
+          warn "Previous container failed to start."
+        fi
+      else
+        log "Previous stopped container restored."
+      fi
+    else
+      warn "Could not restore previous container name; backup retained: $backup"
+    fi
+  else
+    warn "No previous container available for rollback."
   fi
   exit "$code"
 }
@@ -191,10 +244,16 @@ trap 'false' INT TERM
 # Rename rather than delete the old container so it can be restored on failure.
 
 if exists "$container_name"; then
+  log "Preserving existing production container..."
   [[ "$(docker inspect -f '{{.State.Running}}' "$container_name")" != true ]] || was_running=true
   backup="${container_name}_backup_$(date -u +%Y%m%d%H%M%S)_$$"
   docker rename "$container_name" "$backup"
-  if [[ "$was_running" == true ]]; then docker stop "$backup"; fi
+  if [[ "$was_running" == true ]]; then
+    log "Stopping previous container after preserving it as $backup"
+    docker stop "$backup"
+  fi
+else
+  log "No existing container; installing a new deployment."
 fi
 
 # ------------------------------------------
@@ -214,6 +273,7 @@ command_args=(gunicorn --workers 2 --bind "0.0.0.0:$port" wsgi:cll_genie_app)
 
 # The rollback trap removes a failed replacement and restores the previous container.
 
+log "Starting production container: $container_name"
 replacement=true
 docker run -d --name "$container_name" --restart unless-stopped \
   "${env_args[@]}" -e SECRET_KEY -e CLL_GENIE_VERSION -e PORT_NBR -e FLASK_DEBUG -e SCRIPT_NAME \
@@ -226,6 +286,7 @@ docker run -d --name "$container_name" --restart unless-stopped \
 
 # Check HTTP readiness inside the container, including the configured application subpath.
 
+log "Verifying application startup..."
 ready=false
 for ((attempt=0; attempt<15; attempt++)); do
   if docker exec "$container_name" python3 -c \
@@ -235,7 +296,7 @@ for ((attempt=0; attempt<15; attempt++)); do
   sleep 2
 done
 if [[ "$ready" != true ]]; then
-  printf 'Application did not pass its HTTP startup check.\n' >&2
+  warn "Application did not pass its HTTP startup check."
   false
 fi
 
@@ -246,5 +307,18 @@ fi
 # Disable rollback and remove the old container only after startup verification.
 
 trap - ERR INT TERM
-if [[ -n "$backup" ]]; then docker rm "$backup" >/dev/null || printf 'Warning: previous stopped container retained: %s\n' "$backup" >&2; fi
-printf 'Ready: http://localhost:%s%s/ (%s)\n' "$port" "$SCRIPT_NAME" "$container_name"
+log "Application startup verified."
+if [[ -n "$backup" ]]; then
+  log "Removing previous Production container: $backup"
+  docker rm "$backup" >/dev/null || warn "Previous stopped container retained: $backup"
+fi
+printf '\n%s\n' '----------------------------------------'
+printf '%s\n' 'CLL Genie Production Deployment Complete'
+printf '%s\n' '----------------------------------------'
+printf 'Project:    %s\n' "$APP_DIR"
+printf 'Version:    %s\n' "$CLL_GENIE_VERSION"
+printf 'Image:      %s\n' "$image_name"
+printf 'Container:  %s\n' "$container_name"
+printf 'Port:       %s\n' "$port"
+printf 'URL:        http://localhost:%s%s/\n' "$port" "$SCRIPT_NAME"
+printf '%s\n' '----------------------------------------'

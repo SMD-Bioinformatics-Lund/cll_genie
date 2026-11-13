@@ -128,6 +128,10 @@ version automatically.
 
 For development Compose, also pass `--env-file .env_dev` so all deployment settings are interpolated from that file.
 
+Both installers print Coyote3-style progress logs and start/completion summaries
+with the version, image, container, port, path, commit, and build time. Failures
+report rollback progress without printing environment secrets.
+
 Both installers are self-contained; no separate deployment helper is required.
 These installers apply to the Flask production branch; version 2 on `makeover`
 has its own Compose-based layout.
