@@ -196,7 +196,7 @@ def render_document(**kwargs):
     if document.branding.application_logo:
         style = (
             '<style>.report-product-brand .report-application-logo'
-            '{width:78mm;max-width:100%;height:auto}</style>'
+            '{width:58mm;max-width:100%;height:auto}</style>'
         )
         html = html.replace("</head>", style + "</head>", 1)
     return html
