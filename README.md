@@ -70,23 +70,67 @@
 
 - Python 3.11 or higher
 - MongoDB installed and running
-- `.env` file configured (see `.env.example`)
+- `.env` file configured (see `example_env.env`)
 - Docker and `docker-compose` (optional, for containerized deployment)
 
 ### Quick Start
 
-To install, simply run the provided shell script or use Docker Compose:
+The production installer builds the current `version.py` version, replaces the
+container only after the build succeeds, and restores the previous container if
+its replacement fails the HTTP startup check. Run these scripts on the intended
+Docker host; they make no SSH connections.
 
-
-#### Using shell script
 ```bash
-./scripts/install.sh
+bash scripts/install.sh                         # production, port from .env
+bash scripts/install.dev.sh                     # development, port from .env_dev
+bash scripts/install.dev.sh -e /path/to/dev.env
 ```
 
-#### Or with Docker Compose
+Environment files are trusted shell configuration. Both installers require:
+
+- `SECRET_KEY`, `DB_HOST`, `DB_PORT`, and `DB_NAME`
+- `PORT_NBR` and `CONTAINER_NAME` (distinct for production and development)
+- `SCRIPT_NAME`: a URL prefix such as `/cll_genie`, or `''` for root hosting
+- `RESULTS_DIR`, `LOGS_DIR`, and `LYMPHOTRACK_RESULTS_DIR`: existing absolute host paths
+- `APP_DNS`: a DNS server address, or `''` for Docker's default DNS
+
+These deployment settings have no installer defaults. `PORT_NBR` controls the
+host mapping, container listener, and startup check. Use separate databases,
+results, and log directories for development. Development rejects the database
+name `cll_genie` and the conventional production results path.
+
+Development runs Gunicorn with reloading and read-only source mounts. Debug mode
+uses the application's development permissions, so restrict access to developers.
+The existing analysis-input directory is mounted read-only. Requirements: Bash,
+Python 3, `flock`, and access to a running Docker daemon.
+
+Copy `example_env.dev.env` to `.env_dev`, then supply your own secret and database
+host (use an address reachable from inside the container, not container-local
+`localhost`). Example:
+
 ```bash
-docker-compose up -d
+SECRET_KEY='replace-with-a-development-secret'
+DB_HOST='host.docker.internal'
+DB_PORT=27017
+DB_NAME=cll_genie_dev
+PORT_NBR='your-chosen-development-port'
+CONTAINER_NAME=cll_genie_app_dev
+SCRIPT_NAME=''
+APP_DNS=''
+RESULTS_DIR=/path/to/dev/results
+LOGS_DIR=/path/to/dev/logs
+LYMPHOTRACK_RESULTS_DIR=/path/to/analysis/input
 ```
+
+Compose additionally requires `CLL_GENIE_VERSION` set to the value in `version.py`
+(currently `v1.2.0`); the development image adds `-dev`. The installers derive this
+version automatically.
+
+For development Compose, also pass `--env-file .env_dev` so all deployment settings are interpolated from that file.
+
+Both installers are self-contained; no separate deployment helper is required.
+These installers apply to the Flask production branch; version 2 on `makeover`
+has its own Compose-based layout.
 
 ### Clone the repository
 

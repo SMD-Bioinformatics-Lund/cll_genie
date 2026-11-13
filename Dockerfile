@@ -1,43 +1,25 @@
-FROM python:3.11.0-slim as cll_genie_app
+FROM python:3.11-slim-bookworm AS cll_genie_app
 
-
-LABEL base_image="python:3.11.0-slim"
 LABEL about.home="https://github.com/SMD-Bioinformatics-Lund/cll_genie"
-
-EXPOSE 8000
-#EXPOSE 27017/tcp
 WORKDIR /cll_genie
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=wsgi.py
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        fonts-liberation libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
+        libpangoft2-1.0-0 libharfbuzz-subset0 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /cll_genie/
+RUN python -m pip install --no-cache-dir --requirement requirements.txt
+
 COPY cll_genie/ /cll_genie/cll_genie/
-COPY config.py requirements.txt wsgi.py version.py CHANGELOG.md /cll_genie/
+COPY config.py wsgi.py version.py CHANGELOG.md /cll_genie/
+RUN mkdir -p /cll_genie/results/saved_cll_reports \
+    /cll_genie/results/saved_cll_analysis /cll_genie/results/clarity_reports \
+    /cll_genie/logs
 
-ENV PYHTONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV FLASK_APP=wsgi.py
-
-# Override with docker run:
-# docker run -e FLASK_MONGO_URI=your_mongo_host:27017
-#ENV FLASK_MONGO_URI=mtlucmds1.lund.skane.se:27017
-#ENV FLASK_MONGO_URI=127.0.0.1:27017
-
-ENV SCRIPT_NAME=""
-# Override when starting with docker run, e.g:
-# $ docker run -e LOG_LEVEL=DEBUG [...]
-ENV CLL_GENIE_LOG_LEVEL="INFO"
-
-
-RUN apt update &&\
-    apt install -y fonts-liberation libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info vim && \
-    pip install --verbose --no-cache-dir --upgrade pip &&                 \
-    pip install --verbose --no-cache-dir --requirement requirements.txt && \ 
-    mkdir -p /cll_genie/results/saved_cll_reports && \
-    mkdir -p /cll_genie/results/saved_cll_analysis && \
-    mkdir -p /cll_genie/results/clarity_reports && \
-    mkdir -p /cll_genie/results_dev/saved_cll_reports && \
-    mkdir -p /cll_genie/results_dev/saved_cll_analysis && \
-    mkdir -p /cll_genie/results_dev/clarity_reports && \
-    mkdir -p /cll_genie/logs 
-
-
-CMD gunicorn -w 2 -e SCRIPT_NAME=${SCRIPT_NAME} --log-level ${CLL_GENIE_LOG_LEVEL} --bind 0.0.0.0:8000 wsgi:cll_genie_app
-# CMD python3 wsgi.py
+CMD exec gunicorn -w 2 -e SCRIPT_NAME="${SCRIPT_NAME?SCRIPT_NAME must be set (may be empty)}" --log-level INFO --bind "0.0.0.0:${PORT_NBR:?PORT_NBR is required}" wsgi:cll_genie_app

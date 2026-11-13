@@ -12,7 +12,7 @@ Flask-WTF==1.0.1
 flask_weasyprint==1.0.0
 gunicorn==20.1.0
 html5lib==1.1
-Jinja2==3.1.2
+Jinja2==3.1.6
 lxml==4.9.2
 MarkupSafe==2.1.1
 num2words==0.5.12
@@ -27,7 +27,8 @@ PyYAML==6.0
 requests==2.28.2
 requests-html==0.10.0
 urllib3==1.26.15
-weasyprint==58.1
+weasyprint==70.0
 Werkzeug==2.2.2
 WTForms==3.0.1
 email_validator==2.1.0
+smd-reports[pdf]==0.5.3
