@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm AS cll_genie_app
+FROM python:3.11-slim-bullseye AS cll_genie_app
 
 LABEL about.home="https://github.com/SMD-Bioinformatics-Lund/cll_genie"
 WORKDIR /cll_genie
@@ -7,10 +7,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=wsgi.py
 
-RUN apt-get update \
+# Keep the Bullseye userspace used by Coyote3 for older Docker hosts.
+# Use the signed Debian 11 archives; only the archived security index's
+# expiry check is disabled. Repository signature verification stays enabled.
+RUN printf '%s\n' \
+        'deb http://archive.debian.org/debian bullseye main' \
+        'deb [check-valid-until=no] http://archive.debian.org/debian-security bullseye-security main' \
+        > /etc/apt/sources.list \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         fonts-liberation libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
-        libpangoft2-1.0-0 libharfbuzz-subset0 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info \
+        libpangoft2-1.0-0 libharfbuzz0b libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /cll_genie/

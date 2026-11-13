@@ -132,6 +132,14 @@ Both installers are self-contained; no separate deployment helper is required.
 These installers apply to the Flask production branch; version 2 on `makeover`
 has its own Compose-based layout.
 
+### Older Docker hosts
+
+Both Dockerfiles use Python 3.11 on Debian Bullseye, matching Coyote3's older-host
+approach. Debian 11 package sources point to the signed Debian archives. Only the
+archived security index's expiry check is disabled; package signature checks remain
+enabled. This avoids the newer Bookworm userspace involved in some old Docker
+runtime failures during APT verification. No host security settings are changed.
+
 ### Clone the repository
 
 ```bash
