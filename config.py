@@ -89,6 +89,19 @@ class Config:
         "cll_genie", "static", "images", "cll-genie-logo.svg",
     )
 
+    REPORT_LOGO_DIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "cll_genie", "static", "images", "reporting",
+    )
+    ACCREDITATION_LOGO_PATH = (
+        os.path.join(
+            REPORT_LOGO_DIR, "accreditation",
+            os.path.basename(os.environ["ACCREDITATION_LOGO_PATH"]),
+        )
+        if os.environ.get("ACCREDITATION_LOGO_PATH")
+        else None
+    )
+
     ANTIBODY_LOGO_PATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "cll_genie",

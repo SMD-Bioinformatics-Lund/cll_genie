@@ -726,7 +726,8 @@ def cll_report(sample_id: str):
                               "department": cll_app.config["REPORT_CENTER_DEPARTMENT"],
                               "address": cll_app.config["REPORT_CENTER_ADDRESS"],
                               "center_logo": cll_app.config["LOGO_PATH"],
-                              "application_logo": cll_app.config["REPORT_LOGO_PATH"]},
+                              "application_logo": cll_app.config["REPORT_LOGO_PATH"],
+                              "accreditation_logo": cll_app.config["ACCREDITATION_LOGO_PATH"]},
                 )
 
             if _type == "preview":
@@ -831,7 +832,8 @@ def negative_report(sample_id: str):
                               "department": cll_app.config["REPORT_CENTER_DEPARTMENT"],
                               "address": cll_app.config["REPORT_CENTER_ADDRESS"],
                               "center_logo": cll_app.config["LOGO_PATH"],
-                          "application_logo": cll_app.config["REPORT_LOGO_PATH"]},
+                          "application_logo": cll_app.config["REPORT_LOGO_PATH"],
+                              "accreditation_logo": cll_app.config["ACCREDITATION_LOGO_PATH"]},
             )
 
             with open(html_file_path, "w") as html_out:

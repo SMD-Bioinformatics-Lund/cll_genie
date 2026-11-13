@@ -2,7 +2,7 @@
 
 ## v1.2.0 — 2026-11-13
 
-- Adopt `smd-reports 0.5.3` with an SVG logo, SMD contact information, grouped results, and numbered references. Existing saved reports remain readable.
+- Adopt `smd-reports 0.5.3` with application/accreditation logos, SMD contact information, grouped results, and numbered references. Existing saved reports remain readable.
 - Add HTML downloads from report previews without finalizing reports.
 - Update Swedish report headings, remove brackets around M-CLL/U-CLL, and cite Nationellt Vårdprogram 2026.
 - Add self-contained production/dev installers with environment-based configuration, source reloading, startup checks, and rollback.

@@ -158,6 +158,32 @@ functionality, V/J/D findings, identity values, and junction information. Option
 indel/comment rows appear when populated. Analysis descriptions render as a continuous paragraph; references use a compact
 numbered list without blank lines.
 
+### Accreditation artwork
+
+Set `ACCREDITATION_LOGO_PATH` in `.env` or `.env_dev` to the accreditation logo's
+host path. Both installers run `scripts/prepare-report-logo.py` before building.
+It copies the artwork to `cll_genie/static/images/reporting/accreditation/<filename>`;
+Docker includes it in the image, and runtime config resolves that internal path
+by filename. The staged directory is ignored by Git. Development source mounts
+include the same file. Rebuild after changing the artwork.
+
+All CLL Genie reports are marked as accredited. When the path is configured, the
+shared renderer embeds the logo in positive, negative, and preview HTML/PDF
+footers. Missing or unsupported configured files stop installation before container
+replacement; an empty variable omits the logo. Supported formats: SVG, PNG,
+JPG/JPEG, WebP, GIF, TIFF/TIF, and BMP.
+
+For manual Compose builds, source the environment file and run the preparation
+script before building:
+
+```bash
+set -a
+source .env_dev
+set +a
+python3 scripts/prepare-report-logo.py
+docker compose --env-file .env_dev -f docker-compose.dev.yml up -d --build
+```
+
 ### Older Docker hosts
 
 Both Dockerfiles use Python 3.11 on Debian Bullseye for compatibility with older

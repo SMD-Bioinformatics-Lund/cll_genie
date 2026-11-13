@@ -68,7 +68,7 @@ log "Using environment file: $env_file"
 
 # Require deployment values in this file rather than inheriting a prior shell's settings.
 unset SECRET_KEY DB_HOST DB_PORT DB_NAME PORT_NBR CONTAINER_NAME SCRIPT_NAME \
-  RESULTS_DIR LOGS_DIR LYMPHOTRACK_RESULTS_DIR APP_DNS PUBLIC_BASE_URL
+  RESULTS_DIR LOGS_DIR LYMPHOTRACK_RESULTS_DIR APP_DNS PUBLIC_BASE_URL ACCREDITATION_LOGO_PATH
 set -a
 source "$env_file"
 set +a
@@ -220,6 +220,8 @@ done < "$env_file"
 
 # Finish the build before changing the currently running container.
 
+log "Preparing accreditation artwork..."
+python3 "$APP_DIR/scripts/prepare-report-logo.py"
 log "Building Docker image: $image_name"
 docker build --network host --target "$target" -t "$image_name" -f "$APP_DIR/$dockerfile" "$APP_DIR" \
   || die "Docker image build failed; existing container unchanged."

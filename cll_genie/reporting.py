@@ -168,6 +168,7 @@ def build_document(
         )
     )
     report_branding = dict(branding or {})
+    report_branding["accredited"] = True
     # The report logo includes the application wordmark and subtitle.
     if report_branding.get("application_logo"):
         report_branding.update(application_name="", application_suffix="")
