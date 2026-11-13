@@ -94,6 +94,13 @@ Environment files are trusted shell configuration. Both installers require:
 - `RESULTS_DIR`, `LOGS_DIR`, and `LYMPHOTRACK_RESULTS_DIR`: existing absolute host paths
 - `APP_DNS`: a DNS server address, or `''` for Docker's default DNS
 
+The displayed public URL is detected automatically as
+`https://<hostname -f><SCRIPT_NAME>/`, assuming HTTPS reverse-proxy access.
+Optionally set `PUBLIC_BASE_URL` to an HTTP(S) origin such as
+`https://reports.example.org` or `http://server.example.org:12345` when clients
+use a different hostname or connect directly to a port. The installer does not
+configure HTTPS or a reverse proxy. Internal startup checks use container loopback.
+
 These deployment settings have no installer defaults. `PORT_NBR` controls the
 host mapping, container listener, and startup check. Use separate databases,
 results, and log directories for development. Development rejects the database

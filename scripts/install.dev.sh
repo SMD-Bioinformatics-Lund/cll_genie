@@ -68,7 +68,7 @@ log "Using environment file: $env_file"
 
 # Require deployment values in this file rather than inheriting a prior shell's settings.
 unset SECRET_KEY DB_HOST DB_PORT DB_NAME PORT_NBR CONTAINER_NAME SCRIPT_NAME \
-  RESULTS_DIR LOGS_DIR LYMPHOTRACK_RESULTS_DIR APP_DNS
+  RESULTS_DIR LOGS_DIR LYMPHOTRACK_RESULTS_DIR APP_DNS PUBLIC_BASE_URL
 set -a
 source "$env_file"
 set +a
@@ -134,6 +134,25 @@ command -v docker >/dev/null || die 'Docker is required'
 docker info >/dev/null 2>&1 || die 'Docker daemon unavailable'
 
 # ------------------------------------------
+# Resolve public URL
+# ------------------------------------------
+
+# Discover the deployment host; override only when a proxy uses another hostname.
+public_base_url="${PUBLIC_BASE_URL:-}"
+if [[ -n "$public_base_url" ]]; then
+  [[ "$public_base_url" =~ ^https?://[A-Za-z0-9][A-Za-z0-9.-]*(:[0-9]+)?/?$ ]] \
+    || die 'PUBLIC_BASE_URL must be an HTTP(S) origin without a path or credentials'
+elif public_hostname="$(hostname -f 2>/dev/null)" && [[ -n "$public_hostname" ]]; then
+  public_base_url="https://$public_hostname"
+else
+  warn 'Could not detect the public hostname; set PUBLIC_BASE_URL in the environment file.'
+fi
+public_url=""
+if [[ -n "$public_base_url" ]]; then
+  public_url="${public_base_url%/}${SCRIPT_NAME%/}/"
+fi
+
+# ------------------------------------------
 # Resolve application version
 # ------------------------------------------
 
@@ -167,6 +186,7 @@ printf 'Image:      %s\n' "$image_name"
 printf 'Container:  %s\n' "$container_name"
 printf 'Port:       %s\n' "$port"
 printf 'Path:       %s\n' "$SCRIPT_NAME"
+printf 'URL:        %s\n' "${public_url:-Not detected; configure PUBLIC_BASE_URL}"
 printf 'Commit:     %s\n' "$GIT_COMMIT"
 printf 'Build time: %s\n' "$BUILD_TIME"
 printf '%s\n\n' '----------------------------------------'
@@ -332,5 +352,5 @@ printf 'Version:    %s\n' "$CLL_GENIE_VERSION"
 printf 'Image:      %s\n' "$image_name"
 printf 'Container:  %s\n' "$container_name"
 printf 'Port:       %s\n' "$port"
-printf 'URL:        http://localhost:%s%s/\n' "$port" "$SCRIPT_NAME"
+printf 'URL:        %s\n' "${public_url:-Not detected; configure PUBLIC_BASE_URL}"
 printf '%s\n' '----------------------------------------'

@@ -7,6 +7,7 @@
 - Require deployment settings from each environment file, including port, URL prefix, container name, database, paths, and DNS.
 - Use Python 3.11 on Debian Bullseye with signed archived repositories for older Docker hosts; include the PDF font runtime.
 - Add installer progress messages, deployment summaries, and rollback diagnostics.
+- Detect the public hostname for deployment URLs, with an optional PUBLIC_BASE_URL override.
 - Add a dedicated development installer with isolated defaults and source reloading.
 - Validate deployment configuration and restore the previous container on startup failure.
 - Read the runtime version from version.py and pass the configured secret correctly.
