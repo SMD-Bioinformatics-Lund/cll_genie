@@ -54,13 +54,13 @@
 
 ## Workflow
 
-1. **Sequencing, Demultiplexing, and QC**  
+1. **Sequencing, Demultiplexing, and QC**
    Prepare raw sequencing data by performing sequencing, demultiplexing, and quality control. The samples are then registered in the cll_genie database.
 
-2. **Run LymphoTrack Dx Software**  
+2. **Run LymphoTrack Dx Software**
    Process FASTQ files using LymphoTrack Dx to generate first-stage results. This will output excel  file with all the results. And a text file with QC metrics. Thiese results are add to the samples that were registered in the cll_genie database.
 
-3. **cll_genie**  
+3. **cll_genie**
     Each sample is then analysed in the `cll_genie` application, The data is sent to IMGT-vquest server and the results are retrived. These secondary analysis results along with the subset information is displayed in the aplication. From here the user can create an HTML report without the patient information. The HTML report can be downloaded and sent to Clarity for final PDF report generation.
 ---
 
@@ -188,10 +188,6 @@ All rights reserved. Internal use only.
 
 ## Contact
 
-For inquiries, feedback, or deployment support, please contact the SMD development team at Lund.   
-**Email:** ram.nanduri@skane.se  
+For inquiries, feedback, or deployment support, please contact the SMD development team at Lund.
+**Email:** ram.nanduri@skane.se
 **GitHub Issues:** [cll_genie/issues](https://github.com/SMD-Bioinformatics-Lund//cll_genie/issues)
-  
-  
-  
-  

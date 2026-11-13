@@ -1,5 +1,4 @@
 import os
-import re
 import tempfile
 import pandas as pd
 from flask import current_app as cll_app
@@ -16,6 +15,7 @@ from flask import (
     make_response,
 )
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 from cll_genie.blueprints.main.data_processing import ProcessExcel
 from cll_genie.blueprints.main.vquest import VQuest
 from cll_genie.blueprints.main.util import add_search_query
@@ -715,12 +715,6 @@ def cll_report(sample_id: str):
 
         report_date = datetime.now()
 
-        # To show a preview sign in the report
-        if _type == "preview":
-            preview = True
-        else:
-            preview = False
-
         try:
             if _type == "preview" or _type == "export":
                 html = render_document(
@@ -734,18 +728,15 @@ def cll_report(sample_id: str):
                               "center_logo": cll_app.config["LOGO_PATH"],
                               "application_logo": cll_app.config["REPORT_LOGO_PATH"]},
                 )
-                if preview:
-                    html = re.sub(
-                        r"(<body\b[^>]*>)",
-                        lambda match: match[0] + (
-                            '<div style="text-align:center">*** PREVIEW OF REPORT ***</div>'
-                        ),
-                        html,
-                        count=1,
-                    )
 
             if _type == "preview":
-                return html
+                return render_template(
+                    "report_preview.html",
+                    report_html=html,
+                    sample_name=sample_id,
+                    sample_url=url_for("main_bp.sample", sample_id=sample_id, _id=_id),
+                    download_filename=f"{secure_filename(report_id) or 'report'}-preview.html",
+                )
             elif _type == "export":
                 with open(html_file_path, "w") as html_out:
                     html_out.write(html)

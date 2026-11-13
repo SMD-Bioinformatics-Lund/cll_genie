@@ -15,6 +15,8 @@
 
 ### Reporting
 
+- Add a Download HTML action to the report preview page without finalizing the report.
+
 - Use an outlined SVG application logo in positive and negative report headers.
 
 - Use smd-reports 0.5.3 for newly generated CLL Genie HTML reports and previews.
