@@ -175,7 +175,7 @@ def build_document(
     return dict(
         application="cll_genie",
         language="sv",
-        title="IGHV-mutationsanalys",
+        title=f"IGHV-mutationsanalys - {sample_id}",
         report=dict(
             report_id=report_id,
             sample_id=sample_id,
@@ -192,11 +192,11 @@ def build_document(
 def render_document(**kwargs):
     document = ReportLoader().loads(json.dumps(build_document(**kwargs), ensure_ascii=False))
     html = ReportRenderer().render_html(document)
-    # Size the wide application wordmark within the shared header's left column.
+    # The sample is included in the title and remains in the patient metadata.
+    style = ".report-document-heading .report-sample-reference{display:none}"
     if document.branding.application_logo:
-        style = (
-            '<style>.report-product-brand .report-application-logo'
-            '{width:58mm;max-width:100%;height:auto}</style>'
+        style += (
+            ".report-product-brand .report-application-logo"
+            "{width:58mm;max-width:100%;height:auto}"
         )
-        html = html.replace("</head>", style + "</head>", 1)
-    return html
+    return html.replace("</head>", f"<style>{style}</style></head>", 1)
