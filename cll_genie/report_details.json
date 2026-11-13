@@ -11,14 +11,14 @@
       "V-Domain functionality after removal of Indels",
       "Comment",
       "V-GENE and allele",
-      "Score",
-      "Identity",
+      "V-REGION score",
+      "V-REGION identity",
       "J-GENE and allele",
-      "Score",
-      "Identity",
+      "J-REGION score",
+      "J-REGION identity",
       "D-GENE and allele by IMGT/JunctionAnalysis",
       "D-REGION reading frame",
-      "FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION",
+      "FR-IMGT lengths",
       "CDR-IMGT lengths",
       "AA JUNCTION",
       "JUNCTION length (in nt) and decryption",
@@ -36,14 +36,14 @@
       "V-Domain functionality after removal of Indels",
       "Kommentar",
       "V-GENE and allele",
-      "Score",
-      "Identity",
+      "V-REGION score",
+      "V-REGION identity",
       "J-GENE and allele",
-      "Score",
-      "Identity",
+      "J-REGION score",
+      "J-REGION identity",
       "D-GENE and allele by IMGT/JunctionAnalysis",
       "D-REGION reading frame",
-      "FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION",
+      "FR-IMGT lengths",
       "CDR-IMGT lengths",
       "AA JUNCTION",
       "JUNCTION length (in nt) and decryption",
@@ -60,21 +60,19 @@
       "highlight": true
     },
     "5": {
-      "highlight": true,
-      "full_width": true
+      "highlight": true
     },
     "6": {
       "highlight": true
     },
     "7": {
-      "highlight": true,
-      "full_width": true
+      "highlight": true
     },
     "10": {
       "highlight": true
     }
   },
   "record_heading": "{0} - {1} nt ({2})",
-  "fields_per_row": 3,
+  "fields_per_row": 2,
   "full_width_last": false
 }
