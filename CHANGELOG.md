@@ -1,4 +1,14 @@
-# CHANGELOG
+# Changelog
+
+## v1.2.0 — 2026-11-13
+
+- Adopt `smd-reports 0.5.3` with application/accreditation logos, SMD contact information, grouped results, and numbered references. Existing saved reports remain readable.
+- Add HTML downloads from report previews without finalizing reports.
+- Update Swedish report headings, remove brackets around M-CLL/U-CLL, and cite Nationellt Vårdprogram 2026.
+- Add self-contained production/dev installers with environment-based configuration, source reloading, startup checks, and rollback.
+- Improve deployment logs and automatically detect public URLs, with `PUBLIC_BASE_URL` overrides.
+- Fix secret handling and isolate development session cookies.
+- Support older Docker hosts with Python 3.11, signed Debian Bullseye archives, and PDF dependencies.
 
 ## v1.1.1
 - Added a visible V-QUEST molecule type selector, defaulting to Unknown, so submissions include the current IMGT-required moleculeType parameter. The sequence textarea now auto-expands to fit its prefilled FASTA content.

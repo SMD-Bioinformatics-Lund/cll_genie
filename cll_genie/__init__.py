@@ -1,5 +1,4 @@
 from flask import Flask
-from pprint import pformat
 import config
 from .logging_setup import configure_logging
 
@@ -22,12 +21,9 @@ def create_app():
         cll_app.config.from_object(config.ProductionConfig())
     else:
         if cll_app.debug:
-            # Load development configuration and redact sensitive information
+            # Load development configuration without logging secrets
             cll_app.logger.debug("Loading dev config:")
             cll_app.config.from_object(config.DevelopmentConfig())
-            conf_copy = dict(cll_app.config)
-            conf_copy["CLARITY_PASSWORD"] = "REDACTED"
-            cll_app.logger.debug(pformat(conf_copy))
         elif cll_app.testing:
             # Load testing configuration
             cll_app.config.from_object(config.TestConfig())

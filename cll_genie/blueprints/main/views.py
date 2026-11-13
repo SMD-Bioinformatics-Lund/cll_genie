@@ -15,9 +15,11 @@ from flask import (
     make_response,
 )
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 from cll_genie.blueprints.main.data_processing import ProcessExcel
 from cll_genie.blueprints.main.vquest import VQuest
-from cll_genie.blueprints.main.util import add_search_query, create_base64_logo
+from cll_genie.blueprints.main.util import add_search_query
+from cll_genie.reporting import render_document
 from cll_genie.blueprints.main.samplelists import SampleListController
 from cll_genie.blueprints.main import main_bp
 from cll_genie.blueprints.main.vquest_results_controller import ResultsController
@@ -705,8 +707,6 @@ def cll_report(sample_id: str):
             )
 
         mutation_status = ReportController.get_mutation_status_per_seq(results_summary)
-        logo_base64 = create_base64_logo(cll_app.config["LOGO_PATH"])
-        antibody_base64 = create_base64_logo(cll_app.config["ANTIBODY_LOGO_PATH"])
         html_file_path = ReportController.get_html_filename(_id, submission_id)
         html_file_name = os.path.basename(html_file_path)
         report_id = html_file_name.replace(".html", "")
@@ -715,31 +715,29 @@ def cll_report(sample_id: str):
 
         report_date = datetime.now()
 
-        # To show a preview sign in the report
-        if _type == "preview":
-            preview = True
-        else:
-            preview = False
-
         try:
             if _type == "preview" or _type == "export":
-                html = render_template(
-                    "cll_report.html",
-                    results_summary=results_summary,
-                    sample_id=sample_id,
-                    report_id=report_id,
-                    report_summary=report_summary,
-                    report_date=str(report_date).split(" ")[0],
-                    logo_base64=logo_base64,
-                    antibody_base64=antibody_base64,
-                    submission_id=submission_id,
-                    sample=sample,
-                    mutation_status=mutation_status,
-                    preview=preview,
+                html = render_document(
+                    sample_id=sample_id, report_id=report_id, summary=report_summary,
+                    author=current_user.get_fullname(), app_version=cll_app.config["APP_VERSION"],
+                    analysis_run_at=cll_app.config["PDF_ANALYSIS_RUN_AT"],
+                    results=results_summary, statuses=mutation_status, submission_id=submission_id,
+                    branding={"organization": cll_app.config["REPORT_CENTER_ORGANIZATION"],
+                              "department": cll_app.config["REPORT_CENTER_DEPARTMENT"],
+                              "address": cll_app.config["REPORT_CENTER_ADDRESS"],
+                              "center_logo": cll_app.config["LOGO_PATH"],
+                              "application_logo": cll_app.config["REPORT_LOGO_PATH"],
+                              "accreditation_logo": cll_app.config["ACCREDITATION_LOGO_PATH"]},
                 )
 
             if _type == "preview":
-                return html
+                return render_template(
+                    "report_preview.html",
+                    report_html=html,
+                    sample_name=sample_id,
+                    sample_url=url_for("main_bp.sample", sample_id=sample_id, _id=_id),
+                    download_filename=f"{secure_filename(report_id) or 'report'}-preview.html",
+                )
             elif _type == "export":
                 with open(html_file_path, "w") as html_out:
                     html_out.write(html)
@@ -826,13 +824,16 @@ def negative_report(sample_id: str):
 
     if not negative_report_status:
         try:
-            html = render_template(
-                "cll_report.html",
-                sample_id=sample_id,
-                report_id=report_id,
-                report_summary=report_summary,
-                results_summary=results_summary,
-                report_date=str(report_date).split(" ")[0],
+            html = render_document(
+                sample_id=sample_id, report_id=report_id, summary=report_summary,
+                author=current_user.get_fullname(), app_version=cll_app.config["APP_VERSION"],
+                analysis_run_at=cll_app.config["PDF_ANALYSIS_RUN_AT"],
+                branding={"organization": cll_app.config["REPORT_CENTER_ORGANIZATION"],
+                              "department": cll_app.config["REPORT_CENTER_DEPARTMENT"],
+                              "address": cll_app.config["REPORT_CENTER_ADDRESS"],
+                              "center_logo": cll_app.config["LOGO_PATH"],
+                          "application_logo": cll_app.config["REPORT_LOGO_PATH"],
+                              "accreditation_logo": cll_app.config["ACCREDITATION_LOGO_PATH"]},
             )
 
             with open(html_file_path, "w") as html_out:

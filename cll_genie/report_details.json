@@ -1,0 +1,80 @@
+{
+  "kind": "details",
+  "columns": {
+    "en": [
+      "Seq ID",
+      "Length",
+      "IGHV mutation status",
+      "CLL subset",
+      "Sequence analysis category",
+      "Indel summary",
+      "V-Domain functionality after removal of Indels",
+      "Comment",
+      "V-GENE and allele",
+      "V-REGION score",
+      "V-REGION identity",
+      "J-GENE and allele",
+      "J-REGION score",
+      "J-REGION identity",
+      "D-GENE and allele by IMGT/JunctionAnalysis",
+      "D-REGION reading frame",
+      "FR-IMGT lengths",
+      "CDR-IMGT lengths",
+      "AA JUNCTION",
+      "JUNCTION length (in nt) and decryption",
+      "Junction legend",
+      "Merge count",
+      "Total reads"
+    ],
+    "sv": [
+      "Seq ID",
+      "Sekvenslängd",
+      "IGHV-mutationsstatus",
+      "CLL subset",
+      "Sekvensanalyskategori",
+      "Indel summary",
+      "V-Domain functionality after removal of Indels",
+      "Kommentar",
+      "V-GENE and allele",
+      "V-REGION score",
+      "V-REGION identity",
+      "J-GENE and allele",
+      "J-REGION score",
+      "J-REGION identity",
+      "D-GENE and allele by IMGT/JunctionAnalysis",
+      "D-REGION reading frame",
+      "FR-IMGT lengths",
+      "CDR-IMGT lengths",
+      "AA JUNCTION",
+      "JUNCTION length (in nt) and decryption",
+      "Junction legend",
+      "Merge count",
+      "Totala läsningar"
+    ]
+  },
+  "column_options": {
+    "3": {
+      "highlight": true
+    },
+    "4": {
+      "highlight": true
+    },
+    "5": {
+      "highlight": true,
+      "full_width": true
+    },
+    "6": {
+      "highlight": true
+    },
+    "7": {
+      "highlight": true,
+      "full_width": true
+    },
+    "10": {
+      "highlight": true
+    }
+  },
+  "record_heading": "{0} - {1} nt ({2})",
+  "fields_per_row": 2,
+  "full_width_last": false
+}

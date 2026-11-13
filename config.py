@@ -63,7 +63,17 @@ class Config:
     )
 
     # PDF Report related settings and variables
-    PDF_ANALYSIS_RUN_AT = "Centrum för molekylär diagnostik (CMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
+    PDF_ANALYSIS_RUN_AT = "Sektion för molekylär diagnostik (SMD) och Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
+
+    REPORT_CENTER_ORGANIZATION = os.getenv(
+        "REPORT_CENTER_ORGANIZATION", "Sektion för molekylär diagnostik (SMD)"
+    )
+    REPORT_CENTER_DEPARTMENT = os.getenv(
+        "REPORT_CENTER_DEPARTMENT", "Klinisk genetik och patologi"
+    )
+    REPORT_CENTER_ADDRESS = os.getenv(
+        "REPORT_CENTER_ADDRESS", "Sölvegatan 23B, Lund, Region Skåne"
+    )
 
     # LOGO
     LOGO_PATH = os.path.join(
@@ -71,7 +81,25 @@ class Config:
         "cll_genie",
         "static",
         "images",
-        "RSKlogo-rgb.png",
+        "region-skane.svg",
+    )
+
+    REPORT_LOGO_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "cll_genie", "static", "images", "cll-genie-logo.svg",
+    )
+
+    REPORT_LOGO_DIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "cll_genie", "static", "images", "reporting",
+    )
+    ACCREDITATION_LOGO_PATH = (
+        os.path.join(
+            REPORT_LOGO_DIR, "accreditation",
+            os.path.basename(os.environ["ACCREDITATION_LOGO_PATH"]),
+        )
+        if os.environ.get("ACCREDITATION_LOGO_PATH")
+        else None
     )
 
     ANTIBODY_LOGO_PATH = os.path.join(
@@ -127,7 +155,8 @@ class DevelopmentConfig(Config):
     """
 
     DEBUG = True
-    SECRET_KEY = "secretkeynotsodisguised"
+    SECRET_KEY = Config.SECRET_KEY
+    SESSION_COOKIE_NAME = "cll_genie_dev"
     LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_dev.log")
     LOG_LEVEL = "DEBUG"
 

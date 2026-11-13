@@ -4,26 +4,27 @@ version: '3.9'
 # docker-compose down
 services:
   cll_genie_app:
-    container_name: cll_genie_app
+    container_name: ${CONTAINER_NAME:?Set CONTAINER_NAME}
     build:
       context: .
       network: host
       target: cll_genie_app
-    image: cll_genie:1.1.0
+    image: cll_genie:${CLL_GENIE_VERSION:?Set CLL_GENIE_VERSION}
     network_mode: bridge
     ports:
-      - "5813:8000"
+      - "${PORT_NBR:?Set PORT_NBR}:${PORT_NBR:?Set PORT_NBR}"
     environment:
-      - PYHTONDONTWRITEBYTECODE=1
+      - CLL_GENIE_VERSION=${CLL_GENIE_VERSION:?Set CLL_GENIE_VERSION}
+      - PORT_NBR=${PORT_NBR:?Set PORT_NBR}
+      - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi.py
-      - FLASK_DEBUG=1
-      - SCRIPT_NAME=""
+      - FLASK_DEBUG=0
+      - SCRIPT_NAME=${SCRIPT_NAME?Set SCRIPT_NAME (may be empty)}
     env_file:
       - .env
     restart: always
     volumes:
-      - "/data/lymphotrack/cll_results/:/cll_genie/results/"
-      - "/data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/"
-      - "/data/lymphotrack/logs:/cll_genie/logs"
-    command: "python3 /cll_genie/wsgi.py"
+      - "${RESULTS_DIR:?Set RESULTS_DIR}:/cll_genie/results/"
+      - "${LYMPHOTRACK_RESULTS_DIR:?Set LYMPHOTRACK_RESULTS_DIR}:${LYMPHOTRACK_RESULTS_DIR:?Set LYMPHOTRACK_RESULTS_DIR}:ro"
+      - "${LOGS_DIR:?Set LOGS_DIR}:/cll_genie/logs"
