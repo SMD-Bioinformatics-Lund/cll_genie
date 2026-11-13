@@ -143,6 +143,13 @@ Both installers are self-contained; no separate deployment helper is required.
 These installers apply to the Flask production branch; version 2 on `makeover`
 has its own Compose-based layout.
 
+### Report branding
+
+Report headers use `cll_genie/static/images/cll-genie-logo.svg`, configured by
+`REPORT_LOGO_PATH`. The SVG includes the wordmark and subtitle as vector paths,
+so saved HTML and PDFs do not require additional logo fonts. The application logo
+appears alongside the Region Skåne center logo for both positive and negative reports.
+
 ### Older Docker hosts
 
 Both Dockerfiles use Python 3.11 on Debian Bullseye for compatibility with older

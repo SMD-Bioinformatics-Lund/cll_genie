@@ -74,6 +74,11 @@ class Config:
         "RSKlogo-rgb.png",
     )
 
+    REPORT_LOGO_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "cll_genie", "static", "images", "cll-genie-logo.svg",
+    )
+
     ANTIBODY_LOGO_PATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "cll_genie",

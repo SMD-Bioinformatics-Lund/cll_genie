@@ -126,6 +126,10 @@ def build_document(
             column_options={"0": {"width": 1}, "1": {"width": 14}},
         )
     )
+    report_branding = dict(branding or {})
+    # The report logo includes the application wordmark and subtitle.
+    if report_branding.get("application_logo"):
+        report_branding.update(application_name="", application_suffix="")
     return dict(
         application="cll_genie",
         language="sv",
@@ -137,7 +141,7 @@ def build_document(
             generated_at=datetime.now(timezone.utc).isoformat(),
             fields=[dict(label=k, value=value(v)) for k, v in fields],
         ),
-        branding=branding or {},
+        branding=report_branding,
         provenance=dict(application_name="CLL Genie", application_version=app_version),
         sections=sections,
     )
@@ -145,4 +149,12 @@ def build_document(
 
 def render_document(**kwargs):
     document = ReportLoader().loads(json.dumps(build_document(**kwargs), ensure_ascii=False))
-    return ReportRenderer().render_html(document)
+    html = ReportRenderer().render_html(document)
+    # Size the wide application wordmark within the shared header's left column.
+    if document.branding.application_logo:
+        style = (
+            '<style>.report-product-brand .report-application-logo'
+            '{width:78mm;max-width:100%;height:auto}</style>'
+        )
+        html = html.replace("</head>", style + "</head>", 1)
+    return html

@@ -15,6 +15,8 @@
 
 ### Reporting
 
+- Use an outlined SVG application logo in positive and negative report headers.
+
 - Use smd-reports 0.5.3 for newly generated CLL Genie HTML reports and previews.
 - Add shared sequence-table captions and a dedicated bordered reference table.
 - Align PDF rendering dependencies with the shared report package.
