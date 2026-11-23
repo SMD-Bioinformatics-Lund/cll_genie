@@ -1,7 +1,6 @@
 """Map evaluated CLL Genie findings to the public smd-reports document format."""
 
 import json
-from copy import deepcopy
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -9,7 +8,6 @@ from smd_reports import ReportLoader, ReportRenderer
 
 METHOD = Path(__file__).with_name("report_method.txt").read_text(encoding="utf-8")
 REFERENCES = json.loads(Path(__file__).with_name("report_references.json").read_text(encoding="utf-8"))
-DETAIL_LAYOUT = json.loads(Path(__file__).with_name("report_details.json").read_text(encoding="utf-8"))
 
 
 def value(item):
@@ -20,6 +18,34 @@ def value(item):
 def bracketed(item):
     text = value(item)
     return f"[{text.strip('[]')}]" if text != "-" else text
+
+
+def sequence_table(index, caption, grouped_rows):
+    """Convert grouped cells to the five-column smd-reports table format."""
+    rows = []
+    cell_options = {}
+    for grouped_row in grouped_rows:
+        row = []
+        spans = {}
+        for text, width in grouped_row:
+            if width > 1:
+                spans[str(len(row))] = {"col_span": width}
+            row.extend([text] + [None] * (width - 1))
+        if spans:
+            cell_options[str(len(rows))] = spans
+        rows.append(row)
+    return dict(
+        kind="table",
+        key=f"sequence-{index}",
+        heading="Detaljerade analysresultat" if index == 0 else "",
+        page_break_before=index == 0,
+        caption=caption,
+        show_header=False,
+        columns={"sv": [""] * 5},
+        column_options={str(i): {"width": 1} for i in range(5)},
+        rows=rows,
+        cell_options=cell_options,
+    )
 
 
 def build_document(
@@ -103,11 +129,10 @@ def build_document(
         )
     )
     for index, (seq_id, finding) in enumerate(results.items()):
-        detail = deepcopy(DETAIL_LAYOUT)
+        seq_name = seq_id.split("_")[0]
+        length = value(finding.get("Analysed sequence length"))
+        status = statuses.get(seq_id, "-")
         indel = finding.get("V-REGION identity % (with ins/del events)") is not None
-        if not indel:
-            for labels in detail["columns"].values():
-                labels[6] = "V-Domain functionality"
         identity = (
             f"{value(finding.get('V-REGION identity %'))}% "
             f"({value(finding.get('V-REGION identity nt'))})"
@@ -126,42 +151,59 @@ def build_document(
                         f"Nucleotide {label} have been detected and automatically removed "
                         f"for this analysis. {finding[field]}"
                     )
-        row = [
-            seq_id.split("_")[0], value(finding.get("Analysed sequence length")),
-            statuses.get(seq_id, "-"), value(finding.get("CLL subset")),
-            value(finding.get("Sequence analysis category")),
-            "\n".join(indel_notes) or None,
-            value(finding.get("V-DOMAIN Functionality")),
-            finding.get("V-DOMAIN Functionality comment") or None,
-            value(finding.get("V-GENE and allele")), value(finding.get("V-REGION score")),
-            identity,
-            value(finding.get("J-GENE and allele")), value(finding.get("J-REGION score")),
-            f"{value(finding.get('J-REGION identity %'))}% ({value(finding.get('J-REGION identity nt'))})",
-            value(finding.get("D-GENE and allele")), value(finding.get("D-REGION reading frame")),
-            value(finding.get("FR-IMGT lengths")), bracketed(finding.get("CDR-IMGT lengths")),
-            value(finding.get("AA JUNCTION")),
-            f"{value(finding.get('JUNCTION-nt nb'))} nt = {value(finding.get('JUNCTION decryption'))}",
-            "(3′V)3′{N1}5′(D)3′{N2}5′(5′J)",
-            value(finding.get("Merge Count")),
-            f"{value(finding.get('Total Reads Per'))}%",
+        grouped_rows = [
+            [
+                ("Seq ID", 1), (seq_name, 1),
+                ("CLL subset", 1), (value(finding.get("CLL subset")), 1),
+                (f"Sekvensanalyskategori: {value(finding.get('Sequence analysis category'))}", 1),
+            ]
         ]
-        visible = [i for i, item in enumerate(row) if item is not None]
-        detail["columns"] = {
-            language: [labels[i] for i in visible]
-            for language, labels in detail["columns"].items()
-        }
-        detail["column_options"] = {
-            str(position): detail["column_options"][str(i)]
-            for position, i in enumerate(visible)
-            if str(i) in detail["column_options"]
-        }
-        detail.update(
-            key=f"sequence-{index}",
-            heading="Detaljerade analysresultat" if index == 0 else "",
-            page_break_before=index == 0,
-            rows=[[row[i] for i in visible]],
+        if indel_notes:
+            grouped_rows.append([("Indel summary", 1), ("\n".join(indel_notes), 4)])
+        functionality_label = "V-Domain functionality"
+        if indel:
+            functionality_label += " after removal of Indels"
+        grouped_rows.append(
+            [(functionality_label, 2), (value(finding.get("V-DOMAIN Functionality")), 3)]
         )
-        sections.append(detail)
+        if comment := finding.get("V-DOMAIN Functionality comment"):
+            grouped_rows.append([("Kommentar", 1), (comment, 4)])
+
+        j_identity = (
+            f"{value(finding.get('J-REGION identity %'))}% "
+            f"({value(finding.get('J-REGION identity nt'))})"
+        )
+        grouped_rows.extend([
+            [
+                ("V-GENE and allele", 1), (value(finding.get("V-GENE and allele")), 1),
+                (f"Score: {value(finding.get('V-REGION score'))}", 1), (f"Identity: {identity}", 2),
+            ],
+            [
+                ("J-GENE and allele", 1), (value(finding.get("J-GENE and allele")), 1),
+                (f"Score: {value(finding.get('J-REGION score'))}", 1), (f"Identity: {j_identity}", 2),
+            ],
+            [
+                ("D-GENE and allele by IMGT/JunctionAnalysis", 2),
+                (value(finding.get("D-GENE and allele")), 1),
+                (f"D-REGION reading frame: {value(finding.get('D-REGION reading frame'))}", 2),
+            ],
+            [
+                ("FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION", 2),
+                (value(finding.get("FR-IMGT lengths")), 1),
+                (bracketed(finding.get("CDR-IMGT lengths")), 1),
+                (value(finding.get("AA JUNCTION")), 1),
+            ],
+            [
+                ("JUNCTION length (in nt) and decryption", 2),
+                (f"{value(finding.get('JUNCTION-nt nb'))} nt = {value(finding.get('JUNCTION decryption'))}", 2),
+                ("(3′V)3′{N1}5′(D)3′{N2}5′(5′J)", 1),
+            ],
+            [
+                ("Merge count", 1), (value(finding.get("Merge Count")), 1),
+                ("Totala läsningar", 1), (f"{value(finding.get('Total Reads Per'))}%", 2),
+            ],
+        ])
+        sections.append(sequence_table(index, f"{seq_name} - {length} nt ({status})", grouped_rows))
     sections.append(
         dict(
             kind="description",
