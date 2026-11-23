@@ -1,6 +1,7 @@
 """Map evaluated CLL Genie findings to the public smd-reports document format."""
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -8,6 +9,8 @@ from smd_reports import ReportLoader, ReportRenderer
 
 METHOD = Path(__file__).with_name("report_method.txt").read_text(encoding="utf-8")
 REFERENCES = json.loads(Path(__file__).with_name("report_references.json").read_text(encoding="utf-8"))
+
+DETAIL_LAYOUT = json.loads(Path(__file__).with_name("report_details.json").read_text(encoding="utf-8"))
 
 
 def value(item):
@@ -18,25 +21,6 @@ def value(item):
 def bracketed(item):
     text = value(item)
     return f"[{text.strip('[]')}]" if text != "-" else text
-
-
-def sequence_details(index, title, fields):
-    """Build a native finding card with wide rows for narrative fields."""
-    return dict(
-        kind="details",
-        key=f"sequence-{index}",
-        heading="Detaljerade analysresultat" if index == 0 else "",
-        page_break_before=index == 0,
-        record_titles=[title],
-        fields_per_row=3,
-        columns={"sv": [field[0] for field in fields]},
-        rows=[[field[1] for field in fields]],
-        column_options={
-            str(i): {"full_width": True}
-            for i, field in enumerate(fields)
-            if len(field) == 3 and field[2]
-        },
-    )
 
 
 def build_document(
@@ -142,22 +126,10 @@ def build_document(
                         f"Nucleotide {label} have been detected and automatically removed "
                         f"for this analysis. {finding[field]}"
                     )
-        functionality_label = "V-Domain functionality"
-        if indel:
-            functionality_label += " after removal of Indels"
-        detail_fields = [
-            ("Seq ID", seq_name),
-            ("Sekvenslängd", length),
-            ("IGHV-mutationsstatus", status),
-            ("CLL subset", value(finding.get("CLL subset"))),
-            ("Sekvensanalyskategori", value(finding.get("Sequence analysis category"))),
-            (functionality_label, value(finding.get("V-DOMAIN Functionality"))),
-        ]
-        if indel_notes:
-            detail_fields.append(("Indel summary", "\n".join(indel_notes), True))
-        if comment := finding.get("V-DOMAIN Functionality comment"):
-            detail_fields.append(("Kommentar", comment, True))
-
+        detail = deepcopy(DETAIL_LAYOUT)
+        if not indel:
+            for labels in detail["columns"].values():
+                labels[6] = "V-Domain functionality"
         j_identity = (
             f"{value(finding.get('J-REGION identity %'))}% "
             f"({value(finding.get('J-REGION identity nt'))})"
@@ -166,24 +138,32 @@ def build_document(
             f"{value(finding.get('JUNCTION-nt nb'))} nt = "
             f"{value(finding.get('JUNCTION decryption'))}"
         )
-        detail_fields.extend([
-            ("V-GENE and allele", value(finding.get("V-GENE and allele"))),
-            ("Score", value(finding.get("V-REGION score"))),
-            ("Identity", identity),
-            ("J-GENE and allele", value(finding.get("J-GENE and allele"))),
-            ("Score", value(finding.get("J-REGION score"))),
-            ("Identity", j_identity),
-            ("D-GENE and allele by IMGT/JunctionAnalysis", value(finding.get("D-GENE and allele"))),
-            ("D-REGION reading frame", value(finding.get("D-REGION reading frame"))),
-            ("FR-IMGT lengths", value(finding.get("FR-IMGT lengths"))),
-            ("CDR-IMGT lengths", bracketed(finding.get("CDR-IMGT lengths"))),
-            ("AA JUNCTION", value(finding.get("AA JUNCTION"))),
-            ("Junction decryption", junction),
-            ("Junction legend", "(3′V)3′{N1}5′(D)3′{N2}5′(5′J)"),
-            ("Merge count", value(finding.get("Merge Count"))),
-            ("Totala läsningar", f"{value(finding.get('Total Reads Per'))}%"),
-        ])
-        sections.append(sequence_details(index, f"{seq_name} - {length} nt ({status})", detail_fields))
+        detail.update(
+            key=f"sequence-{index}",
+            heading="Detaljerade analysresultat" if index == 0 else "",
+            page_break_before=index == 0,
+            rows=[[
+                seq_name, length, status,
+                value(finding.get("CLL subset")),
+                value(finding.get("Sequence analysis category")),
+                "\n".join(indel_notes) or None,
+                value(finding.get("V-DOMAIN Functionality")),
+                finding.get("V-DOMAIN Functionality comment") or None,
+                value(finding.get("V-GENE and allele")),
+                value(finding.get("V-REGION score")), identity,
+                value(finding.get("J-GENE and allele")),
+                value(finding.get("J-REGION score")), j_identity,
+                value(finding.get("D-GENE and allele")),
+                value(finding.get("D-REGION reading frame")),
+                value(finding.get("FR-IMGT lengths")),
+                bracketed(finding.get("CDR-IMGT lengths")),
+                value(finding.get("AA JUNCTION")),
+                junction, "(3′V)3′{N1}5′(D)3′{N2}5′(5′J)",
+                value(finding.get("Merge Count")),
+                f"{value(finding.get('Total Reads Per'))}%",
+            ]],
+        )
+        sections.append(detail)
     sections.append(
         dict(
             kind="description",

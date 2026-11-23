@@ -153,8 +153,8 @@ The center contact block includes the organization, department, and address, wit
 optional `REPORT_CENTER_ORGANIZATION`, `REPORT_CENTER_DEPARTMENT`, and
 `REPORT_CENTER_ADDRESS` environment overrides.
 
-Sequence details use native `smd-reports` finding cards with themed labels and up to
-three label/value pairs per row. Indel notes and comments use wide rows when present. Analysis descriptions render as a
+Sequence details use a native `smd-reports` finding grid with themed labels and
+grouped gene, junction, and read metrics. Indel notes and comments use wide rows when present. Analysis descriptions render as a
 continuous paragraph, and references use a compact numbered list without blank lines.
 
 ### Accreditation artwork
