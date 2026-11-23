@@ -20,31 +20,22 @@ def bracketed(item):
     return f"[{text.strip('[]')}]" if text != "-" else text
 
 
-def sequence_table(index, caption, grouped_rows):
-    """Convert grouped cells to the six-column smd-reports table format."""
-    rows = []
-    cell_options = {}
-    for grouped_row in grouped_rows:
-        row = []
-        spans = {}
-        for text, width in grouped_row:
-            if width > 1:
-                spans[str(len(row))] = {"col_span": width}
-            row.extend([text] + [None] * (width - 1))
-        if spans:
-            cell_options[str(len(rows))] = spans
-        rows.append(row)
+def sequence_details(index, title, fields):
+    """Build a native finding card with wide rows for narrative fields."""
     return dict(
-        kind="table",
+        kind="details",
         key=f"sequence-{index}",
         heading="Detaljerade analysresultat" if index == 0 else "",
         page_break_before=index == 0,
-        caption=caption,
-        show_header=False,
-        columns={"sv": [""] * 6},
-        column_options={str(i): {"width": 1} for i in range(6)},
-        rows=rows,
-        cell_options=cell_options,
+        record_titles=[title],
+        fields_per_row=3,
+        columns={"sv": [field[0] for field in fields]},
+        rows=[[field[1] for field in fields]],
+        column_options={
+            str(i): {"full_width": True}
+            for i, field in enumerate(fields)
+            if len(field) == 3 and field[2]
+        },
     )
 
 
@@ -151,60 +142,48 @@ def build_document(
                         f"Nucleotide {label} have been detected and automatically removed "
                         f"for this analysis. {finding[field]}"
                     )
-        grouped_rows = [
-            [
-                ("Seq ID", 1), (seq_name, 1),
-                ("CLL subset", 1), (value(finding.get("CLL subset")), 1),
-                ("Sekvensanalyskategori", 1), (value(finding.get("Sequence analysis category")), 1),
-            ]
-        ]
-        if indel_notes:
-            grouped_rows.append([("Indel summary", 2), ("\n".join(indel_notes), 4)])
         functionality_label = "V-Domain functionality"
         if indel:
             functionality_label += " after removal of Indels"
-        grouped_rows.append(
-            [(functionality_label, 2), (value(finding.get("V-DOMAIN Functionality")), 4)]
-        )
+        detail_fields = [
+            ("Seq ID", seq_name),
+            ("Sekvenslängd", length),
+            ("IGHV-mutationsstatus", status),
+            ("CLL subset", value(finding.get("CLL subset"))),
+            ("Sekvensanalyskategori", value(finding.get("Sequence analysis category"))),
+            (functionality_label, value(finding.get("V-DOMAIN Functionality"))),
+        ]
+        if indel_notes:
+            detail_fields.append(("Indel summary", "\n".join(indel_notes), True))
         if comment := finding.get("V-DOMAIN Functionality comment"):
-            grouped_rows.append([("Kommentar", 2), (comment, 4)])
+            detail_fields.append(("Kommentar", comment, True))
 
         j_identity = (
             f"{value(finding.get('J-REGION identity %'))}% "
             f"({value(finding.get('J-REGION identity nt'))})"
         )
-        grouped_rows.extend([
-            [
-                ("V-GENE and allele", 1), (value(finding.get("V-GENE and allele")), 1),
-                ("Score", 1), (value(finding.get("V-REGION score")), 1),
-                ("Identity", 1), (identity, 1),
-            ],
-            [
-                ("J-GENE and allele", 1), (value(finding.get("J-GENE and allele")), 1),
-                ("Score", 1), (value(finding.get("J-REGION score")), 1),
-                ("Identity", 1), (j_identity, 1),
-            ],
-            [
-                ("D-GENE and allele by IMGT/JunctionAnalysis", 2),
-                (value(finding.get("D-GENE and allele")), 1),
-                ("D-REGION reading frame", 2), (value(finding.get("D-REGION reading frame")), 1),
-            ],
-            [
-                ("FR-IMGT lengths", 1), (value(finding.get("FR-IMGT lengths")), 1),
-                ("CDR-IMGT lengths", 1), (bracketed(finding.get("CDR-IMGT lengths")), 1),
-                ("AA JUNCTION", 1), (value(finding.get("AA JUNCTION")), 1),
-            ],
-            [
-                ("JUNCTION length (in nt) and decryption", 1),
-                (f"{value(finding.get('JUNCTION-nt nb'))} nt = {value(finding.get('JUNCTION decryption'))}", 2),
-                ("Junction legend", 1), ("(3′V)3′{N1}5′(D)3′{N2}5′(5′J)", 2),
-            ],
-            [
-                ("Merge count", 1), (value(finding.get("Merge Count")), 2),
-                ("Totala läsningar", 1), (f"{value(finding.get('Total Reads Per'))}%", 2),
-            ],
+        junction = (
+            f"{value(finding.get('JUNCTION-nt nb'))} nt = "
+            f"{value(finding.get('JUNCTION decryption'))}"
+        )
+        detail_fields.extend([
+            ("V-GENE and allele", value(finding.get("V-GENE and allele"))),
+            ("Score", value(finding.get("V-REGION score"))),
+            ("Identity", identity),
+            ("J-GENE and allele", value(finding.get("J-GENE and allele"))),
+            ("Score", value(finding.get("J-REGION score"))),
+            ("Identity", j_identity),
+            ("D-GENE and allele by IMGT/JunctionAnalysis", value(finding.get("D-GENE and allele"))),
+            ("D-REGION reading frame", value(finding.get("D-REGION reading frame"))),
+            ("FR-IMGT lengths", value(finding.get("FR-IMGT lengths"))),
+            ("CDR-IMGT lengths", bracketed(finding.get("CDR-IMGT lengths"))),
+            ("AA JUNCTION", value(finding.get("AA JUNCTION"))),
+            ("Junction decryption", junction),
+            ("Junction legend", "(3′V)3′{N1}5′(D)3′{N2}5′(5′J)"),
+            ("Merge count", value(finding.get("Merge Count"))),
+            ("Totala läsningar", f"{value(finding.get('Total Reads Per'))}%"),
         ])
-        sections.append(sequence_table(index, f"{seq_name} - {length} nt ({status})", grouped_rows))
+        sections.append(sequence_details(index, f"{seq_name} - {length} nt ({status})", detail_fields))
     sections.append(
         dict(
             kind="description",
