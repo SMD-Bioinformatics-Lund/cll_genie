@@ -2,6 +2,7 @@ from copy import deepcopy
 from pprint import pformat
 from flask import current_app as cll_app
 import os
+import re
 from pymongo.errors import PyMongoError
 from cll_genie.extensions import sample_handler
 from cll_genie.extensions import results_handler
@@ -261,40 +262,14 @@ class ReportController:
             return f"{reports_dir}/{report_id}.html"
 
     @staticmethod
-    def get_not_inframe_status(results_dict) -> bool:
-        """
-        Check if all sequences in the results are in-frame.
-
-        Args:
-            results_dict (dict): The results dictionary.
-
-        Returns:
-            bool: True if all sequences are in-frame, False otherwise.
-        """
-        is_inframe_status = True
-        for seq in results_dict:
-            if not results_dict[seq]["summary"]["Inframe"]:
-                is_inframe_status = False
-                break
-        return is_inframe_status
-
-    @staticmethod
-    def get_stop_codon_status(results_dict) -> bool:
-        """
-        Check if any sequence in the results has a stop codon.
-
-        Args:
-            results_dict (dict): The results dictionary.
-
-        Returns:
-            bool: True if any sequence has a stop codon, False otherwise.
-        """
-        has_stop_codon_status = False
-        for seq in results_dict:
-            if results_dict[seq]["summary"]["Stop Codon"]:
-                has_stop_codon_status = True
-                break
-        return has_stop_codon_status
+    def is_productive(summary: dict) -> bool:
+        """Use IMGT's classification, with LymphoTrack flags as a fallback."""
+        functionality = str(summary.get("V-DOMAIN Functionality") or "").casefold()
+        if re.search(r"\b(?:unproductive|non[-\s–‑]*productive|not\s+productive)\b", functionality):
+            return False
+        if re.search(r"\bproductive\b", functionality):
+            return True
+        return summary.get("Inframe") is True and summary.get("Stop Codon") is False
 
     @staticmethod
     def generate_report_summary_text(_id: str, submission_id: str) -> str:
@@ -312,48 +287,45 @@ class ReportController:
             results_summary = ReportController.results_handler.get_results(_id)["results"][
                 submission_id
             ]["vquest_results"]
-            number_of_submitted_seqs = int(
-                ReportController.get_parameters_for_report(_id, submission_id)[
-                    "Number of submitted sequences"
-                ]
-            )
-            is_inframe = ReportController.get_not_inframe_status(results_summary)
-            has_stop_codon = ReportController.get_stop_codon_status(results_summary)
-        except:
-            number_of_submitted_seqs = 0
-            results_summary = None
-            is_inframe = False
-            has_stop_codon = True
+        except (KeyError, TypeError):
+            return None
 
-        # Rearrangement comment
         if results_summary:
+            productive_results = {
+                seq_id: result for seq_id, result in results_summary.items()
+                if ReportController.is_productive(result["summary"])
+            }
+            sequence_count = len(results_summary)
+            productive_count = len(productive_results)
             # Common comment
             summary_string = "DNA har extraherats från insänt prov och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Analysen omfattar detektion av klonalt IGHV-D-J genrearrangemang, IGHV-mutationsstatus (muterad, M-CLL eller icke muterad, U-CLL), samt subsettillhörighet (subset #2 eller #8). \n\n"
 
-            if number_of_submitted_seqs == 0:
-                summary_string += "DNA har extraherats från insänt prov och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Analysen omfattar detektion av klonalt IGHV-D-J rearrangemang, IGHV-mutationsstatus (muterad, M-CLL eller icke muterad, U-CLL), samt subsettillhörighet (subset #2 eller #8). \n\n"
-            elif number_of_submitted_seqs == 1:
-                if not is_inframe or has_stop_codon:
-                    summary_string += "Vid analysen finner man en klonal sekvens, men då sekvensen saknar ett funktionellt (produktivt) IGHV-D-J rearrangemang kan IGHV-mutationsstatus inte fastställas. Vi rekommenderar därför att ett nytt blodprov skickas för en utökad analys på RNA-nivå för identifiering av ett klonalt och funktionellt IGHV-D-J rearrangemang där IGHV-mutationsanalys och subset-analys kan utföras. (Provet/RNA skickas till Salgrenska sjukhuset (Göteborg) för analys av RNA). \n\n"
+            if sequence_count == 1 and not productive_results:
+                summary_string += "Vid analysen finner man en klonal sekvens, men då sekvensen saknar ett funktionellt (produktivt) IGHV-D-J rearrangemang kan IGHV-mutationsstatus inte fastställas. Vi rekommenderar därför att ett nytt blodprov skickas för en utökad analys på RNA-nivå för identifiering av ett klonalt och funktionellt IGHV-D-J rearrangemang där IGHV-mutationsanalys och subset-analys kan utföras. (Provet/RNA skickas till Salgrenska sjukhuset (Göteborg) för analys av RNA). \n\n"
+            elif not productive_results:
+                summary_string += "Vid analysen identifierades inget funktionellt (produktivt) IGHV-D-J rearrangemang. IGHV-mutationsstatus kan därför inte fastställas. \n\n"
+            else:
+                sequence_names = ", ".join(seq_id.split("_", 1)[0] for seq_id in productive_results)
+                if sequence_count == 1:
+                    summary_string += f"Vid analysen finner man en klonal sekvens med ett funktionellt (produktivt) IGHV-D-J rearrangemang (se tabell {sequence_names}).\n\n"
                 else:
-                    summary_string += "Vid analysen finner man en klonal sekvens med ett funktionellt (produktivt) IGHV-D-J rearrangemang (se tabell seq1).\n\n"
-            elif number_of_submitted_seqs > 1:
-                table_string = ", ".join(
-                    [f"Seq{x}" for x in range(1, number_of_submitted_seqs + 1)]
-                )
-                summary_string += f"Vid analysen finner man {ReportController.swedish_number_string[number_of_submitted_seqs]} klonala sekvenser och har funktionella (produktiva) IGHV-D-J rearrangemang. (se tabeller; {table_string}) \n\n"
+                    summary_string += (
+                        f"Vid analysen finner man {sequence_count} klonala sekvenser. "
+                        f"Antal sekvenser med funktionella (produktiva) IGHV-D-J rearrangemang: "
+                        f"{productive_count} (se {sequence_names}). \n\n"
+                    )
 
             # Hyper mutation status comment
-            if is_inframe and not has_stop_codon:
+            if productive_results:
                 summary_string += (
-                    f"{ReportController.get_hypermutation_string(results_summary)}\n\n"
+                    f"{ReportController.get_hypermutation_string(productive_results)}\n\n"
                 )
 
                 # Subset comment
                 (
                     subset_string,
                     subset_id,
-                ) = ReportController.get_subset_string(results_summary)
+                ) = ReportController.get_subset_string(productive_results)
                 summary_string += f"{subset_string}\n\n"
 
                 # Clinical Comments

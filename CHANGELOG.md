@@ -4,6 +4,7 @@
 
 - Adopt `smd-reports 0.7.0` with themed sequence details, application/accreditation logos, SMD contact information, and numbered references. Existing saved reports remain readable.
 - Add HTML downloads from report previews without finalizing reports.
+- Use IMGT productivity results in the report conclusion, with LymphoTrack flags as a fallback when IMGT is inconclusive.
 - Use the clinical indication in report headings, show the sample ID below the title, remove brackets around M-CLL/U-CLL, and cite Nationellt Vårdprogram 2026.
 - Add self-contained production/dev installers with environment-based configuration, source reloading, startup checks, and rollback.
 - Improve deployment logs and automatically detect public URLs, with `PUBLIC_BASE_URL` overrides.
