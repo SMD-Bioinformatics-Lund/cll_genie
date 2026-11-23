@@ -39,7 +39,7 @@ def build_document(
     results = results or {}
     statuses = statuses or {}
     question = (clinical_indication or "").strip() or "<DIAGNOSIS>"
-    question_label = f"Frågeställning – {question}"
+    question_label = f"Frågeställning {question}"
     fields = [
         ("Patientnamn", "<PATIENT_NAME>"),
         ("Personnummer", "<PERSONAL_IDENTITY_NUMBER>"),
