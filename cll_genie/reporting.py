@@ -80,7 +80,7 @@ def build_document(
             dict(
                 kind="table",
                 key="cll-sequences",
-                heading=f"Analysresultat – {question_label}",
+                heading=f"Analysresultat {question_label}",
                 columns={
                     "sv": [
                         "SekvensID",
@@ -97,7 +97,7 @@ def build_document(
         dict(
             kind="summary",
             key="summary",
-            heading=f"Slutsats – {question_label}",
+            heading=f"Slutsats {question_label}",
             text=summary or "Slutsats saknas!",
             format="plain",
         )
