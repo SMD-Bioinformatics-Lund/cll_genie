@@ -159,7 +159,7 @@ def build_document(
             ]
         ]
         if indel_notes:
-            grouped_rows.append([("Indel summary", 1), ("\n".join(indel_notes), 5)])
+            grouped_rows.append([("Indel summary", 2), ("\n".join(indel_notes), 4)])
         functionality_label = "V-Domain functionality"
         if indel:
             functionality_label += " after removal of Indels"
@@ -167,7 +167,7 @@ def build_document(
             [(functionality_label, 2), (value(finding.get("V-DOMAIN Functionality")), 4)]
         )
         if comment := finding.get("V-DOMAIN Functionality comment"):
-            grouped_rows.append([("Kommentar", 1), (comment, 5)])
+            grouped_rows.append([("Kommentar", 2), (comment, 4)])
 
         j_identity = (
             f"{value(finding.get('J-REGION identity %'))}% "
