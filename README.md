@@ -153,7 +153,7 @@ The center contact block includes the organization, department, and address, wit
 optional `REPORT_CENTER_ORGANIZATION`, `REPORT_CENTER_DEPARTMENT`, and
 `REPORT_CENTER_ADDRESS` environment overrides.
 
-Sequence details use five-column tables with native `smd-reports` cell spans to group
+Sequence details use six-column tables with native `smd-reports` cell spans to group
 functionality, V/J/D findings, identity values, junction information, and read metrics.
 Indel notes and comments use wide rows when present. Analysis descriptions render as a
 continuous paragraph, and references use a compact numbered list without blank lines.

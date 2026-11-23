@@ -21,7 +21,7 @@ def bracketed(item):
 
 
 def sequence_table(index, caption, grouped_rows):
-    """Convert grouped cells to the five-column smd-reports table format."""
+    """Convert grouped cells to the six-column smd-reports table format."""
     rows = []
     cell_options = {}
     for grouped_row in grouped_rows:
@@ -41,8 +41,8 @@ def sequence_table(index, caption, grouped_rows):
         page_break_before=index == 0,
         caption=caption,
         show_header=False,
-        columns={"sv": [""] * 5},
-        column_options={str(i): {"width": 1} for i in range(5)},
+        columns={"sv": [""] * 6},
+        column_options={str(i): {"width": 1} for i in range(6)},
         rows=rows,
         cell_options=cell_options,
     )
@@ -155,19 +155,19 @@ def build_document(
             [
                 ("Seq ID", 1), (seq_name, 1),
                 ("CLL subset", 1), (value(finding.get("CLL subset")), 1),
-                (f"Sekvensanalyskategori: {value(finding.get('Sequence analysis category'))}", 1),
+                ("Sekvensanalyskategori", 1), (value(finding.get("Sequence analysis category")), 1),
             ]
         ]
         if indel_notes:
-            grouped_rows.append([("Indel summary", 1), ("\n".join(indel_notes), 4)])
+            grouped_rows.append([("Indel summary", 1), ("\n".join(indel_notes), 5)])
         functionality_label = "V-Domain functionality"
         if indel:
             functionality_label += " after removal of Indels"
         grouped_rows.append(
-            [(functionality_label, 2), (value(finding.get("V-DOMAIN Functionality")), 3)]
+            [(functionality_label, 2), (value(finding.get("V-DOMAIN Functionality")), 4)]
         )
         if comment := finding.get("V-DOMAIN Functionality comment"):
-            grouped_rows.append([("Kommentar", 1), (comment, 4)])
+            grouped_rows.append([("Kommentar", 1), (comment, 5)])
 
         j_identity = (
             f"{value(finding.get('J-REGION identity %'))}% "
@@ -176,30 +176,31 @@ def build_document(
         grouped_rows.extend([
             [
                 ("V-GENE and allele", 1), (value(finding.get("V-GENE and allele")), 1),
-                (f"Score: {value(finding.get('V-REGION score'))}", 1), (f"Identity: {identity}", 2),
+                ("Score", 1), (value(finding.get("V-REGION score")), 1),
+                ("Identity", 1), (identity, 1),
             ],
             [
                 ("J-GENE and allele", 1), (value(finding.get("J-GENE and allele")), 1),
-                (f"Score: {value(finding.get('J-REGION score'))}", 1), (f"Identity: {j_identity}", 2),
+                ("Score", 1), (value(finding.get("J-REGION score")), 1),
+                ("Identity", 1), (j_identity, 1),
             ],
             [
                 ("D-GENE and allele by IMGT/JunctionAnalysis", 2),
                 (value(finding.get("D-GENE and allele")), 1),
-                (f"D-REGION reading frame: {value(finding.get('D-REGION reading frame'))}", 2),
+                ("D-REGION reading frame", 2), (value(finding.get("D-REGION reading frame")), 1),
             ],
             [
-                ("FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION", 2),
-                (value(finding.get("FR-IMGT lengths")), 1),
-                (bracketed(finding.get("CDR-IMGT lengths")), 1),
-                (value(finding.get("AA JUNCTION")), 1),
+                ("FR-IMGT lengths", 1), (value(finding.get("FR-IMGT lengths")), 1),
+                ("CDR-IMGT lengths", 1), (bracketed(finding.get("CDR-IMGT lengths")), 1),
+                ("AA JUNCTION", 1), (value(finding.get("AA JUNCTION")), 1),
             ],
             [
-                ("JUNCTION length (in nt) and decryption", 2),
+                ("JUNCTION length (in nt) and decryption", 1),
                 (f"{value(finding.get('JUNCTION-nt nb'))} nt = {value(finding.get('JUNCTION decryption'))}", 2),
-                ("(3′V)3′{N1}5′(D)3′{N2}5′(5′J)", 1),
+                ("Junction legend", 1), ("(3′V)3′{N1}5′(D)3′{N2}5′(5′J)", 2),
             ],
             [
-                ("Merge count", 1), (value(finding.get("Merge Count")), 1),
+                ("Merge count", 1), (value(finding.get("Merge Count")), 2),
                 ("Totala läsningar", 1), (f"{value(finding.get('Total Reads Per'))}%", 2),
             ],
         ])
