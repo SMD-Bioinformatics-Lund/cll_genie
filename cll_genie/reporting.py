@@ -34,15 +34,18 @@ def build_document(
     statuses=None,
     submission_id="",
     branding=None,
+    clinical_indication=None,
 ):
     results = results or {}
     statuses = statuses or {}
+    question = (clinical_indication or "").strip() or "<DIAGNOSIS>"
+    question_label = f"Frågeställning – {question}"
     fields = [
         ("Patientnamn", "<PATIENT_NAME>"),
         ("Personnummer", "<PERSONAL_IDENTITY_NUMBER>"),
         ("Registreringsdatum", "<REGISTRATION_DATE>"),
         ("Provtyp", "<SAMPLE_TYPE>"),
-        ("Frågeställning", "IGHV mutationsanalys"),
+        ("Frågeställning", question),
         (
             "Analysmetod",
             (
@@ -77,7 +80,7 @@ def build_document(
             dict(
                 kind="table",
                 key="cll-sequences",
-                heading="Analysresultat",
+                heading=f"Analysresultat – {question_label}",
                 columns={
                     "sv": [
                         "SekvensID",
@@ -94,7 +97,7 @@ def build_document(
         dict(
             kind="summary",
             key="summary",
-            heading="Slutsats Frågeställning - IGHV mutationsanalys",
+            heading=f"Slutsats – {question_label}",
             text=summary or "Slutsats saknas!",
             format="plain",
         )
@@ -187,7 +190,7 @@ def build_document(
     return dict(
         application="cll_genie",
         language="sv",
-        title=f"IGHV-mutationsanalys - {sample_id}",
+        title=f"IGHV-mutationsanalys – {question_label}",
         report=dict(
             report_id=report_id,
             sample_id=sample_id,
