@@ -1,2 +1,13 @@
-# Ignore generated files
+# Keep local configuration and generated artifacts out of Docker build contexts.
+.git
+.env
+.env_*
+.env.*
+.venv
+venv*
+**/__pycache__
 **/*.pyc
+logs
+results
+results_dev
+.pytest_cache

@@ -78,3 +78,6 @@ dmypy.json
 # Others
 info/
 payload.txt
+
+# Environment-selected artwork staged for Docker builds
+/cll_genie/static/images/reporting/accreditation/

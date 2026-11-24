@@ -1,13 +1,23 @@
 {% extends "base.html" %}
 {% block title %}CLL Home{% endblock %}
 {% block body %}
-<h3>Showing all samples</h3>
-<form action="#" class="{{ url_for('main_bp.cll_genie') }}">
-  <div style="display: flex; align-items: center; width:53%" id="search"><b>Search: </b><img height=35 src="{{ url_for('static', filename='icons/search-200.png') }}"><input type="text" id="search" name="search" value="{{search}}"></div>
-</form>
-<span style="display: flex; align-items: center;">Showing {{n_skip+1}}-{{[n_skip+page_size, sample_false_count ]|list_min}} of {{ sample_false_count}} samples &nbsp;&nbsp;&nbsp;
-{% if n_skip > 0 %}<a class="nav" href="?skip={{n_skip-page_size}}&search={{search}}"><img class="nav rotate-180" height=40 src="{{ url_for('static', filename='icons/next.gif') }}"></a> &nbsp;&nbsp;&nbsp;&nbsp;{% endif %}
-{% if n_skip+page_size <= sample_false_count  %}<a class="nav" href="?skip={{n_skip+page_size}}&search={{search}}"><img class=nav height=40 src="{{ url_for('static', filename='icons/next.gif') }}"></a>{% endif %}</span><br>
+<h3>Samples</h3>
+<div class="sample-list-toolbar">
+  <form action="{{ url_for('main_bp.cll_genie') }}" method="get">
+    {% if show_controls %}<input type="hidden" name="show_controls" value="1">{% endif %}
+    <label for="sample-search"><b>Search:</b></label>
+    <input type="search" id="sample-search" name="search" value="{{ search }}">
+  </form>
+  <form action="{{ url_for('main_bp.cll_genie') }}" method="get">
+    {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+    <input type="hidden" name="show_controls" value="{{ '0' if show_controls else '1' }}">
+    <button type="submit">{{ 'Hide controls' if show_controls else 'Show controls' }}</button>
+  </form>
+</div>
+{% set controls_param = '1' if show_controls else none %}
+<span style="display: flex; align-items: center;">Showing {{ n_skip + 1 if samples_false else 0 }}-{{ [n_skip+page_size, sample_false_count]|list_min if samples_false else 0 }} of {{ sample_false_count }} samples &nbsp;&nbsp;&nbsp;
+{% if n_skip > 0 %}<a class="nav" href="{{ url_for('main_bp.cll_genie', skip=n_skip-page_size, search=search, show_controls=controls_param) }}"><img class="nav rotate-180" height=40 src="{{ url_for('static', filename='icons/next.gif') }}"></a> &nbsp;&nbsp;&nbsp;&nbsp;{% endif %}
+{% if n_skip+page_size < sample_false_count %}<a class="nav" href="{{ url_for('main_bp.cll_genie', skip=n_skip+page_size, search=search, show_controls=controls_param) }}"><img class=nav height=40 src="{{ url_for('static', filename='icons/next.gif') }}"></a>{% endif %}</span><br>
 <div>
   <table class="sortable" style="width:55%">
     <colgroup>
@@ -37,7 +47,11 @@
     </thead>
     <tbody>
   {% for sample in samples_false %}
-  {% set duplicated_sample_id = sample.samples_with_same_sample_id is not none %}
+  {% set duplicates = sample.samples_with_same_sample_id or [] %}
+  {% if not show_controls %}
+    {% set duplicates = duplicates|rejectattr('is_control')|list %}
+  {% endif %}
+  {% set duplicated_sample_id = duplicates|length > 1 %}
     <tr>
       <td>{{sample.date_added.strftime('%Y-%m-%d') }}</td>
       <td{% if duplicated_sample_id %} class="duplicates_exist"{% endif %}>
@@ -58,7 +72,7 @@
                 <th>Clarity ID</th>
                 <th>Assay</th>
               </tr>
-              {% for row in sample.samples_with_same_sample_id  if row.date_added != sample.date_added%}
+              {% for row in duplicates if row.date_added != sample.date_added %}
               <tr>
                 <td>{{row.date_added}}</td>
                 <td>{{row.name}}</td>
@@ -167,4 +181,4 @@
       {% endfor %}
     </table>
   </div>
-{% endblock %} 
+{% endblock %}
