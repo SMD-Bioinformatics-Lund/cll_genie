@@ -41,9 +41,12 @@ def cll_genie():
     page_size = cll_app.config["PAGE_SIZE"]
     n_skip = int(request.args.get("skip", 0))
     search_string = request.args.get("search", "")
+    show_controls = request.args.get("show_controls") == "1"
     query = {}
     if search_string:
         query = add_search_query(query, search_string)
+    if not show_controls:
+        query["is_control"] = {"$ne": True}
 
     samples_false, sample_false_count = SampleListController.get_unanalyzed_sample_list(
         query, n_skip, page_size
@@ -57,6 +60,7 @@ def cll_genie():
         samples_true=samples_true,
         samples_false=samples_false,
         search=search_string,
+        show_controls=show_controls,
         page_size=page_size,
         n_skip=n_skip,
         sample_false_count=sample_false_count,
