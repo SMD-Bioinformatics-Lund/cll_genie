@@ -91,6 +91,9 @@ def build_document(
                         "CLL Subset",
                     ]
                 },
+                column_options={
+                    "4": {"badge": DETAIL_LAYOUT["column_options"]["3"]["badge"]}
+                },
                 rows=rows,
             )
         )

@@ -56,8 +56,13 @@
     "3": {
       "highlight": true,
       "badge": {
+        "shape": "circle",
+        "text_color": "#ffffff",
         "values": {
           "#2": {
+            "color": "#4f7d9f"
+          },
+          "#8": {
             "color": "#4f7d9f"
           }
         }
